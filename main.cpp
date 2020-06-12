@@ -307,9 +307,9 @@ char LastNonWhitespaceChar(std::string& line)
     return i; 
 }
 
-std::string RemoveCommas(std::string line)
+String RemoveCommas(String line)
 {
-    std::string returnString = "";
+    String returnString = "";
     for(size_t i=0; i<line.size(); i++)
     {
         if(line.at(i) == ',')

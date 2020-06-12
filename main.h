@@ -18,7 +18,7 @@ typedef std::vector<Token> TokenList;
 typedef std::string ObjectClass;
 typedef std::string String;
 
-
+//shouldn't have declarations in a header file
 const ObjectClass IntegerClass = "Integer";
 const ObjectClass DecimalClass = "Decimal";
 const ObjectClass StringClass = "String";
