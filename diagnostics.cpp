@@ -11,67 +11,19 @@
 #include "diagnostics.h"
 
 // Error printing
-String ExpandMessage(String message, ...)
-{
-    va_list vl;
-    va_start(vl, message);
-
-    String expandedMessage = "";
-
-    // expands message
-    bool expandFlag = false;
-    for(size_t i=0; i<message.size(); i++)
-    {
-        if(message.at(i) == '\\')
-        {
-            expandedMessage += message.at(i++);
-            continue;
-        }
-        if(message.at(i) == '%')
-        {
-            expandFlag = true;
-            continue;
-        }
-        if(expandFlag)
-        {
-            expandFlag = false;
-            switch(message.at(i))
-            {
-                case 'i':
-                expandedMessage += std::to_string(va_arg(vl, int));
-                break;
-
-                case 's':
-                expandedMessage += va_arg(vl, String);
-                break;
-
-                case 'd':
-                expandedMessage += std::to_string(va_arg(vl, double));
-                break;
-
-                default:
-                break;
-            }
-            continue;
-        }
-        expandedMessage += message.at(i);
-    }
-    return expandedMessage;
-}
-
 void DebugPrint(const std::string& value)
 {
     if(c_DEBUG)
         std::cout << value << "\n";
 }
 
-void ErrorPrint(int lineNumber, std::stringstream& errorBuffer)
+void ErrorPrint(int lineNumber)
 {
     if(!c_ERROR)
         return;
 
     std::string line;
-    while(std::getline(errorBuffer, line))
+    while(std::getline(ErrorBuffer, line))
     {
         std::cerr << "(!) Exception at line[" << lineNumber << "]: "  << line << "\n";
     }

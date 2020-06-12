@@ -8,6 +8,7 @@ Reference* Make(String name, ObjectClass objClass, bool value);
 Reference* Make(String name, ObjectClass objClass, int value);
 Reference* Make(String name, ObjectClass objClass, const String value);
 Reference* Make(String name, ObjectClass objClass, double value);
+Reference* Make(String name, Object* obj);
 Reference* Make(const String value);
 
 

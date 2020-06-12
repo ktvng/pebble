@@ -54,6 +54,15 @@ Reference* Make(String name, ObjectClass objClass, const String value)
     return ref;
 }
 
+Reference* Make(String name, Object* obj)
+{
+    Reference* ref = new Reference;
+    ref->Name = name;
+    ref->ToObject = obj;
+
+    return ref;
+}
+
 Reference* Make(const String name)
 {
     static Object nullObject;
@@ -113,7 +122,7 @@ int GetIntValue(const Object& obj)
 {
     if(obj.Class != IntegerClass)
     {
-        DebugPrint("Object has no integer value");
+        DebugPrint("object has no integer value");
         return 0;
     }
     return *static_cast<int*>(obj.Value);
@@ -129,7 +138,7 @@ double GetDecimalValue(const Object& obj)
     {
         return static_cast<double>(*static_cast<int*>(obj.Value));
     }
-    DebugPrint("Object has no decimal value");
+    DebugPrint("object has no decimal value");
     return 0;
 }
 
