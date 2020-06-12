@@ -526,7 +526,7 @@ void DecideOperands(const OperationType& lineType, const std::string& line, std:
     std::istringstream iss(line);
     std::vector<std::string> tokens { std::istream_iterator<std::string>(iss), 
         std::istream_iterator<std::string>() };
-    if(lineType == OperationType:: Define)
+    if(lineType == OperationType::Define)
     {
         std::string type = tokens.at(1);
         std::string name = tokens.at(2);
@@ -598,7 +598,7 @@ std::string RemoveCommas(std::string line)
     return returnString;
 }
 
-// commas allow line breaks
+// commas allow line breaks TODO: WORK HERE
 std::string GetEffectiveLine(std::fstream& file, int& lineNumber)
 {
     std::string fullLine = "";
@@ -670,7 +670,7 @@ enum class TokenType
 struct Token
 {
     TokenType Type;
-    std::string Content;
+    String Content;
 };
 
 void SkipWhiteSpace(const std::string& line, size_t& position)
@@ -774,7 +774,7 @@ Token* GetToken(const std::string& line, size_t& position)
     // special case for string
     if(line.at(position) == '"')
     {
-        for(++position; position < line.size() && line.at(position) != '"'; position++)
+        while(++position < line.size() && line.at(position) != '"')
         {
             tokenString += line.at(position);
         }
@@ -881,9 +881,9 @@ int main()
     //     PrintReference(*elem);
     // }
 
-    // std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
-    // TokenList l = LexLine(line);
-    // PrintTokenList(l);
+    std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
+    TokenList l = LexLine(line);
+    PrintTokenList(l);
 
     return 0;
 }
