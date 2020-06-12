@@ -415,7 +415,8 @@ void DoBlock(Block& codeBlock)
     for(Operation* op: codeBlock.Operations)
     {
         // PrintOperation(*op);
-        Reference* result = DoOperation(op);
+        // Reference* result = 
+        DoOperation(op);
         if(ErrorFlag)
         {
             ReportError(op->LineNumber);
@@ -485,7 +486,7 @@ struct LineTypeProbability
 
 void DecideLineTypeProbabilities(std::vector<LineTypeProbability>& typeProbabilities, const std::string line)
 {
-    int pos;
+    size_t pos;
     if(pos = line.rfind("add"); pos != std::string::npos)
     {
         LineTypeProbability addType = { OperationType::Add, 10.0/pos };
@@ -586,7 +587,7 @@ char LastNonWhitespaceChar(std::string& line)
 std::string RemoveCommas(std::string line)
 {
     std::string returnString = "";
-    for(int i=0; i<line.size(); i++)
+    for(size_t i=0; i<line.size(); i++)
     {
         if(line.at(i) == ',')
             continue;
@@ -671,14 +672,14 @@ struct Token
     std::string Content;
 };
 
-void SkipWhiteSpace(const std::string& line, int& position)
+void SkipWhiteSpace(const std::string& line, size_t& position)
 {
     for(; position < line.size() && line.at(position) == ' '; position++);
 }
 
 bool IsInteger(const std::string& tokenString)
 {
-    for(int i=0; i<tokenString.size(); i++)
+    for(size_t i=0; i<tokenString.size(); i++)
     {
         if(!std::isdigit(tokenString.at(i)))
             return false;
@@ -689,7 +690,7 @@ bool IsInteger(const std::string& tokenString)
 bool IsDecimal(const std::string& tokenString)
 {
     bool foundDecimalPointAlready = false;
-    for(int i=0; i<tokenString.size(); i++)
+    for(size_t i=0; i<tokenString.size(); i++)
     {
         if(!std::isdigit(tokenString.at(i)))
         {
@@ -717,7 +718,7 @@ bool IsString(const std::string& tokenString)
 std::string ToLowerCase(const std::string& str)
 {
     std::string lowerCaseStr = "";
-    for(int i=0; i<str.size(); i++)
+    for(size_t i=0; i<str.size(); i++)
     {
         lowerCaseStr += std::tolower(str.at(i));
     }
@@ -763,7 +764,7 @@ TokenType TypeOfTokenString(const std::string& tokenString)
     
 }
 
-Token* GetToken(const std::string& line, int& position)
+Token* GetToken(const std::string& line, size_t& position)
 {
     Token* token;
     SkipWhiteSpace(line, position);
@@ -796,7 +797,7 @@ Token* GetToken(const std::string& line, int& position)
 TokenList LexLine(const std::string& line)
 {
     TokenList tokens;
-    int linePosition = 0;
+    size_t linePosition = 0;
     while(linePosition < line.size())
     {
         Token* t = GetToken(line, linePosition);
