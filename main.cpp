@@ -14,6 +14,7 @@
 #include <map>
 #include <iterator>
 #include <sstream>
+#include <cctype>
 
 #include "main.h"
 
