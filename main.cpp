@@ -24,10 +24,10 @@
 
 
 std::vector<Reference*> GlobalReferences;
+
+// Error reporting
 std::stringstream ErrorBuffer;
 static bool ErrorFlag = false;
-
-
 
 
 String Message(String message, ...)
@@ -84,14 +84,18 @@ void ReportError(String expandedMessage)
     ErrorFlag = true;
 }
 
+
+
+// Atomic Operations
 ///
-void Assign(Reference& lRef, Reference& rRef)
+Reference* Assign(Reference& lRef, Reference& rRef)
 {
     lRef.ToObject = rRef.ToObject;
+    return Make(returnReferenceName, lRef.ToObject);
 }
 
 /// 
-void Print(Reference& ref)
+Reference* Print(Reference& ref)
 {
     if(ref.ToObject->Class == IntegerClass ||
         ref.ToObject->Class == DecimalClass ||
@@ -101,6 +105,8 @@ void Print(Reference& ref)
     {
         std::cout << GetStringValue(*ref.ToObject) << "\n";
     }
+
+    return Make(returnReferenceName, ref.ToObject);
 }
 
 ///
@@ -143,6 +149,8 @@ Reference* And(const Reference& lRef, const Reference& rRef)
 
 
 
+
+// Program execution
 Reference* DoOperationOnReferences(Operation* op, std::vector<Reference*> operands)
 {
     Reference* nullRef = Make(returnReferenceName);
@@ -202,9 +210,7 @@ void DoBlock(Block& codeBlock)
 
 
 
-
-
-
+// Creating operations
 Operation* CreateReturnOperation(Reference* ref, int lineNumber)
 {
     Operation* op = new Operation;
@@ -243,7 +249,7 @@ Reference* CreateReference(std::string name, std::string type, std::string value
 
 
 
-
+// Parsing + Deciding
 Reference* DecideReference(std::string name)
 {
     for(Reference* ref: GlobalReferences)
@@ -255,7 +261,6 @@ Reference* DecideReference(std::string name)
     DebugPrint("Cannot decide reference");
     return nullptr;
 }
-
 
 void DecideLineTypeProbabilities(std::vector<LineTypeProbability>& typeProbabilities, const std::string line)
 {
@@ -347,6 +352,7 @@ void DecideOperands(const OperationType& lineType, const std::string& line, std:
         operands.push_back(op1);
     }
 }
+
 
 
 char LastNonWhitespaceChar(std::string& line)

@@ -54,6 +54,15 @@ Reference* Make(String name, ObjectClass objClass, const String value)
     return ref;
 }
 
+Reference* Make(String name, Object* obj)
+{
+    Reference* ref = new Reference;
+    ref->Name = name;
+    ref->ToObject = obj;
+
+    return ref;
+}
+
 Reference* Make(const String name)
 {
     static Object nullObject;
