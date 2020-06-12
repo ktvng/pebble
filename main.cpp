@@ -101,19 +101,19 @@ void ReportError(int lineNumber)
 
 
 
-void Print(const Object& obj)
+void PrintDiagnostics(const Object& obj)
 {
     std::cout << "| Class: " << obj.Class << "\n| Value: " << GetStringValue(obj)  << "\n"; 
 }
 
-void Print(const Reference& ref)
+void PrintDiagnostics(const Reference& ref)
 {
     std::cout << "| Name: " << ref.Name << "\n";
-    Print(*ref.ToObject);
+    PrintDiagnostics(*ref.ToObject);
     std::cout << "\n";
 }
 
-void Print(const Operation& op, int level=0)
+void PrintDiagnostics(const Operation& op, int level=0)
 {
     std::string type;
     switch(op.Type){
@@ -144,11 +144,11 @@ void Print(const Operation& op, int level=0)
     std::cout << "OP---" << level << "\nType " << type << "\n";
     if(op.Type == OperationType::Return)
     {
-        Print(*op.Value);
+        PrintDiagnostics(*op.Value);
     }
     for(Operation* operand: op.Operands)
     {
-        Print(*operand, level+1);
+        PrintDiagnostics(*operand, level+1);
     }
 }
 
@@ -320,7 +320,11 @@ bool GetBoolValue(const Object& obj)
     }
     else if (obj.Class == IntegerClass)
     {
-        return *static_cast<int*>(obj.Value);
+        return static_cast<bool>(*static_cast<int*>(obj.Value));
+    }
+    else if(obj.Class == NullClass)
+    {
+        return false;
     }
     else
     {
@@ -466,6 +470,11 @@ Reference* CreateReference(std::string name, std::string type, std::string value
     return Make(name);
 }
 
+
+
+
+
+
 Reference* DecideReference(std::string name)
 {
     for(Reference* ref: GlobalReferences)
@@ -482,7 +491,7 @@ Reference* DecideReference(std::string name)
 struct LineTypeProbability
 {
     OperationType Type;
-    double Probabilitiy;
+    double Probability;
 };
 
 void DecideLineTypeProbabilities(std::vector<LineTypeProbability>& typeProbabilities, const std::string line)
@@ -516,7 +525,7 @@ void DecideLineType(std::vector<LineTypeProbability>& typeProbabilities, Operati
 {
     std::sort(typeProbabilities.begin(), typeProbabilities.end(),
         [](const LineTypeProbability& ltp1, const LineTypeProbability& ltp2){
-            return ltp1.Probabilitiy > ltp2.Probabilitiy;
+            return ltp1.Probability > ltp2.Probability;
         });
     lineType = typeProbabilities.at(0).Type;
 }
@@ -526,7 +535,7 @@ void DecideOperands(const OperationType& lineType, const std::string& line, std:
     std::istringstream iss(line);
     std::vector<std::string> tokens { std::istream_iterator<std::string>(iss), 
         std::istream_iterator<std::string>() };
-    if(lineType == OperationType:: Define)
+    if(lineType == OperationType::Define)
     {
         std::string type = tokens.at(1);
         std::string name = tokens.at(2);
@@ -562,7 +571,6 @@ void DecideOperands(const OperationType& lineType, const std::string& line, std:
 
         int pos = line.rfind("=");
         Operation* op2 = ParseLine(line.substr(pos+1), lineNumber);
-        op2->LineNumber = lineNumber;
 
         operands.push_back(op1);
         operands.push_back(op2);
