@@ -5,9 +5,10 @@
 
 #include "arch.h"
 
+extern std::stringstream ErrorBuffer;
 
 void DebugPrint(const std::string& value);
-void ErrorPrint(int lineNumber, std::stringstream& errorBuffer);
+void ErrorPrint(int lineNumber);
 
 void PrintDiagnostics(const Object& obj);
 void PrintDiagnostics(const Reference& ref);
