@@ -143,7 +143,7 @@ void Print(const Operation& op, int level=0)
     std::cout << "OP---" << level << "\nType " << type << "\n";
     if(op.Type == OperationType::Return)
     {
-        PrintReference(*op.Value);
+        Print(*op.Value);
     }
     for(Operation* operand: op.Operands)
     {
