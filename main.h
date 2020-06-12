@@ -30,6 +30,8 @@ const std::string returnReferenceName = "returnObject";
 const bool c_DEBUG = true;
 const bool c_ERROR = true;
 
+extern std::stringstream ErrorBuffer;
+
 
 void PrintReference(const Reference& ref);
 Operation* ParseLine(const std::string& line, int lineNumber);

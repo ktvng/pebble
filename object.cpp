@@ -113,7 +113,7 @@ int GetIntValue(const Object& obj)
 {
     if(obj.Class != IntegerClass)
     {
-        DebugPrint("Object has no integer value");
+        DebugPrint("object has no integer value");
         return 0;
     }
     return *static_cast<int*>(obj.Value);
@@ -129,7 +129,7 @@ double GetDecimalValue(const Object& obj)
     {
         return static_cast<double>(*static_cast<int*>(obj.Value));
     }
-    DebugPrint("Object has no decimal value");
+    DebugPrint("object has no decimal value");
     return 0;
 }
 

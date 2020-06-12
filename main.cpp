@@ -30,8 +30,59 @@ static bool ErrorFlag = false;
 
 
 
+String Message(String message, ...)
+{
+    va_list vl;
+    va_start(vl, message);
 
+    String expandedMessage = "";
 
+    // expands message
+    bool expandFlag = false;
+    for(size_t i=0; i<message.size(); i++)
+    {
+        if(message.at(i) == '\\')
+        {
+            expandedMessage += message.at(i++);
+            continue;
+        }
+        if(message.at(i) == '%')
+        {
+            expandFlag = true;
+            continue;
+        }
+        if(expandFlag)
+        {
+            expandFlag = false;
+            switch(message.at(i))
+            {
+                case 'i':
+                expandedMessage += std::to_string(va_arg(vl, int));
+                break;
+
+                case 's':
+                expandedMessage += va_arg(vl, String);
+                break;
+
+                case 'd':
+                expandedMessage += std::to_string(va_arg(vl, double));
+                break;
+
+                default:
+                break;
+            }
+            continue;
+        }
+        expandedMessage += message.at(i);
+    }
+    return expandedMessage;
+}
+
+void ReportError(String expandedMessage)
+{
+    ErrorBuffer << expandedMessage << std::endl;
+    ErrorFlag = true;
+}
 
 ///
 void Assign(Reference& lRef, Reference& rRef)
@@ -78,8 +129,7 @@ Reference* Add(const Reference& lRef, const Reference& rRef)
     }
 
     resultRef = Make(returnReferenceName);
-    ErrorFlag = true;
-    ErrorBuffer << "cannot add types " << lRef.ToObject->Class << " and " << rRef.ToObject->Class + "\n";
+    ReportError(Message("cannot add types %s and %s", lRef.ToObject->Class, rRef.ToObject->Class));
     return resultRef;
 }
 
@@ -145,7 +195,7 @@ void DoBlock(Block& codeBlock)
         DoOperation(op);
         if(ErrorFlag)
         {
-            ErrorPrint(op->LineNumber, ErrorBuffer);
+            ErrorPrint(op->LineNumber);
         }
     }
 }
@@ -164,7 +214,6 @@ Operation* CreateReturnOperation(Reference* ref, int lineNumber)
 
     return op;
 }
-
 
 Reference* CreateReference(std::string name, std::string type, std::string value)
 {
