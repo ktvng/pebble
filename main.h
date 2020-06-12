@@ -11,6 +11,7 @@ struct Object;
 struct Block;
 struct Operation;
 struct Token;
+struct LineTypeProbability;
 
 
 typedef std::vector<Token> TokenList;
@@ -25,11 +26,6 @@ const ObjectClass BooleanClass = "Boolean";
 const ObjectClass NullClass = "Null";
 
 const std::string returnReferenceName = "returnObject";
-
-std::vector<Reference*> GlobalReferences;
-
-std::stringstream ErrorBuffer;
-bool ErrorFlag;
 
 const bool c_DEBUG = true;
 const bool c_ERROR = true;

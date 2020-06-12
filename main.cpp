@@ -17,242 +17,19 @@
 #include <cctype>
 
 #include "main.h"
+#include "arch.h"
+#include "token.h"
+#include "object.h"
+#include "diagnostics.h"
 
 
-// Structs
-enum class ControlType
-{
-    If,
-    While,
-    Statement
-};
-
-enum class OperationType
-{
-    Define,
-    Assign, //
-    IsEqual,
-    LessThan,
-    GreaterThan,
-    Add, //
-    Subtract,
-    Multiply,
-    Divide,
-    And, //
-    Or,
-    Not,
-    Evaluate,
-    Print,
-    Return,
-};
-
-struct Reference
-{
-    std::string Name;
-    Object* ToObject;
-};
-
-struct Object
-{
-    ObjectClass Class;
-    std::vector<Reference> Attributes;
-    void* Value;
-};
-
-struct Operation
-{
-    OperationType Type;
-    std::vector<Operation*> Operands;
-    Reference* Value;
-    int LineNumber;
-};
-
-struct Block
-{
-    std::vector<Operation*> Operations;
-};
+std::vector<Reference*> GlobalReferences;
+std::stringstream ErrorBuffer;
+static bool ErrorFlag = false;
 
 
 
 
-
-void DebugPrint(std::string value)
-{
-    if(c_DEBUG)
-        std::cout << value << "\n";
-}
-
-void ReportError(int lineNumber)
-{
-    if(c_ERROR)
-    {
-        std::string line;
-        while(std::getline(ErrorBuffer, line))
-        {
-            std::cerr << "(!) Exception at line[" << lineNumber << "]: "  << line << "\n";
-        }
-    }
-    ErrorFlag = false;
-}
-
-
-
-
-
-
-
-void PrintDiagnostics(const Object& obj)
-{
-    std::cout << "| Class: " << obj.Class << "\n| Value: " << GetStringValue(obj)  << "\n"; 
-}
-
-void PrintDiagnostics(const Reference& ref)
-{
-    std::cout << "| Name: " << ref.Name << "\n";
-    PrintDiagnostics(*ref.ToObject);
-    std::cout << "\n";
-}
-
-void PrintDiagnostics(const Operation& op, int level=0)
-{
-    std::string type;
-    switch(op.Type){
-        case OperationType::Add:
-        type = "Add";
-        break;
-
-        case OperationType::Return:
-        type = "Return";
-        break;
-
-        case OperationType::Print:
-        type = "Print";
-        break;
-
-        case OperationType::Assign:
-        type = "Assign";
-        break;
-
-        case OperationType::Define:
-        type = "Define";
-        break;
-
-        default:
-        type = "unimplemented";
-        break;
-    }
-    std::cout << "OP---" << level << "\nType " << type << "\n";
-    if(op.Type == OperationType::Return)
-    {
-        PrintDiagnostics(*op.Value);
-    }
-    for(Operation* operand: op.Operands)
-    {
-        PrintDiagnostics(*operand, level+1);
-    }
-}
-
-
-
-
-
-
-
-
-Reference* MakeGeneric(std::string name, ObjectClass objClass)
-{
-    Reference* ref = new Reference;
-    Object* obj = new Object;
-
-    ref->Name = name;
-    ref->ToObject = obj;
-
-    obj->Class = objClass;
-    
-    return ref;
-}
-
-Reference* Make(std::string name, ObjectClass objClass, int value)
-{
-    Reference* ref = MakeGeneric(name, objClass);
-    int* i = new int;
-    *i = value;
-    ref->ToObject->Value = i;
-
-    return ref;
-}
-
-Reference* Make(std::string name, ObjectClass objClass, double value)
-{
-    Reference* ref = MakeGeneric(name, objClass);
-    double* d = new double;
-    *d = value;
-    ref->ToObject->Value = d;
-
-    return ref;
-}
-
-Reference* Make(std::string name, ObjectClass objClass, bool value)
-{
-    Reference* ref = MakeGeneric(name, objClass);
-    bool* b = new bool;
-    *b = value;
-    ref->ToObject->Value = b;
-
-    return ref;
-}
-
-Reference* Make(std::string name, ObjectClass objClass, std::string value)
-{
-    Reference* ref = MakeGeneric(name, objClass);
-    std::string* s = new std::string;
-    *s = value;
-    ref->ToObject->Value = s;
-    
-    return ref;
-}
-
-Reference* Make(std::string name)
-{
-    static Object nullObject;
-    nullObject.Class = NullClass;
-    
-    Reference* ref = new Reference { name, &nullObject };
-    return ref;
-}
-
-
-
-
-std::string GetStringValue(const Object& obj)
-{
-    if(obj.Class == IntegerClass)
-    {
-        return std::to_string(*static_cast<int*>(obj.Value));
-    }
-    else if(obj.Class == DecimalClass)
-    {
-        return std::to_string(*static_cast<double*>(obj.Value));
-    }
-    else if(obj.Class == BooleanClass)
-    {
-        if(*static_cast<bool*>(obj.Value))
-        {
-            return "true";
-        }
-        return "false";
-    }
-    else if(obj.Class == StringClass)
-    {
-        return *static_cast<std::string*>(obj.Value);
-    }
-    else if(obj.Class == NullClass)
-    {
-        return "null";
-    }
-    DebugPrint("unknown class");
-    return "";
-}
 
 
 
@@ -272,63 +49,6 @@ void Print(Reference& ref)
         ref.ToObject->Class == NullClass)
     {
         std::cout << GetStringValue(*ref.ToObject) << "\n";
-    }
-}
-
-///
-bool IsNumeric(const Reference& ref)
-{
-    return ref.ToObject->Class == IntegerClass || ref.ToObject->Class == DecimalClass;
-}
-
-ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2)
-{
-    if(obj1.Class == DecimalClass || obj2.Class == DecimalClass)
-        return DecimalClass;
-    return IntegerClass;
-}
-
-int GetIntValue(const Object& obj)
-{
-    if(obj.Class != IntegerClass)
-    {
-        DebugPrint("Object has no integer value");
-        return 0;
-    }
-    return *static_cast<int*>(obj.Value);
-}
-
-double GetDecimalValue(const Object& obj)
-{
-    if(obj.Class == DecimalClass)
-    {
-        return *static_cast<double*>(obj.Value);
-    }
-    if(obj.Class == IntegerClass)
-    {
-        return static_cast<double>(*static_cast<int*>(obj.Value));
-    }
-    DebugPrint("Object has no decimal value");
-    return 0;
-}
-
-bool GetBoolValue(const Object& obj)
-{
-    if(obj.Class == BooleanClass)
-    {
-        return *static_cast<bool*>(obj.Value);
-    }
-    else if (obj.Class == IntegerClass)
-    {
-        return static_cast<bool>(*static_cast<int*>(obj.Value));
-    }
-    else if(obj.Class == NullClass)
-    {
-        return false;
-    }
-    else
-    {
-        return true;
     }
 }
 
@@ -369,6 +89,7 @@ Reference* And(const Reference& lRef, const Reference& rRef)
     bool b = GetBoolValue(*lRef.ToObject) && GetBoolValue(*rRef.ToObject);
     return Make(returnReferenceName, BooleanClass, b);
 }
+
 
 
 
@@ -424,7 +145,7 @@ void DoBlock(Block& codeBlock)
         DoOperation(op);
         if(ErrorFlag)
         {
-            ReportError(op->LineNumber);
+            ErrorPrint(op->LineNumber, ErrorBuffer);
         }
     }
 }
@@ -443,7 +164,6 @@ Operation* CreateReturnOperation(Reference* ref, int lineNumber)
 
     return op;
 }
-
 
 
 Reference* CreateReference(std::string name, std::string type, std::string value)
@@ -487,12 +207,6 @@ Reference* DecideReference(std::string name)
     return nullptr;
 }
 
-
-struct LineTypeProbability
-{
-    OperationType Type;
-    double Probability;
-};
 
 void DecideLineTypeProbabilities(std::vector<LineTypeProbability>& typeProbabilities, const std::string line)
 {
@@ -665,206 +379,6 @@ Block Parse(const std::string filepath, int& lineNumber){
 
 
 
-enum class TokenType
-{
-    Simple,
-    Reference,
-    Integer,
-    String,
-    Decimal,
-    Boolean,
-};
-
-struct Token
-{
-    TokenType Type;
-    String Content;
-};
-
-void SkipWhiteSpace(const std::string& line, size_t& position)
-{
-    for(; position < line.size() && line.at(position) == ' '; position++);
-}
-
-bool IsInteger(const std::string& tokenString)
-{
-    for(size_t i=0; i<tokenString.size(); i++)
-    {
-        if(!std::isdigit(tokenString.at(i)))
-            return false;
-    }
-    return true;
-}
-
-bool IsDecimal(const std::string& tokenString)
-{
-    bool foundDecimalPointAlready = false;
-    for(size_t i=0; i<tokenString.size(); i++)
-    {
-        if(!std::isdigit(tokenString.at(i)))
-        {
-            if(tokenString.at(i) == '.')
-            {
-                if(foundDecimalPointAlready)
-                    return false;
-                foundDecimalPointAlready = true;
-            }
-            else
-            {
-                return false;
-            }
-            
-        }
-    }
-    return true;
-}
-
-bool IsString(const std::string& tokenString)
-{
-    return tokenString.at(0) == '"' && tokenString.at(tokenString.size()-1) == '"';
-}
-
-std::string ToLowerCase(const std::string& str)
-{
-    std::string lowerCaseStr = "";
-    for(size_t i=0; i<str.size(); i++)
-    {
-        lowerCaseStr += std::tolower(str.at(i));
-    }
-    return lowerCaseStr;
-}
-
-bool IsBoolean(const std::string& tokenString)
-{
-    return ToLowerCase(tokenString) == "true" || ToLowerCase(tokenString) == "false";
-}
-
-bool IsReference(const std::string& tokenString)
-{
-    return tokenString.at(0) == std::toupper(tokenString.at(0));
-}
-
-TokenType TypeOfTokenString(const std::string& tokenString)
-{
-    if(IsInteger(tokenString))
-    {
-        return TokenType::Integer;
-    }
-    else if(IsDecimal(tokenString))
-    {
-        return TokenType::Decimal;
-    }
-    else if(IsString(tokenString))
-    {
-        return TokenType::String;
-    }
-    else if(IsBoolean(tokenString))
-    {
-        return TokenType::Boolean;
-    }
-    else if(IsReference(tokenString))
-    {
-        return TokenType::Reference;
-    }
-    else
-    {
-        return TokenType::Simple;
-    }
-    
-}
-
-Token* GetToken(const std::string& line, size_t& position)
-{
-    Token* token;
-    SkipWhiteSpace(line, position);
-    std::string tokenString = "";
-    
-    // special case for string
-    if(line.at(position) == '"')
-    {
-        while(++position < line.size() && line.at(position) != '"')
-        {
-            tokenString += line.at(position);
-        }
-        position++; // get rid of end quote
-        token = new Token { TokenType::String, tokenString };
-        return token;
-    }
-    for(; position < line.size() && line.at(position) != ' '; position++)
-    {
-        tokenString += line.at(position);    
-    }
-
-    if(tokenString == "")
-        return nullptr;
-    
-    token = new Token { TypeOfTokenString(tokenString), tokenString};
-    return token;
-}
-
-
-TokenList LexLine(const std::string& line)
-{
-    TokenList tokens;
-    size_t linePosition = 0;
-    while(linePosition < line.size())
-    {
-        Token* t = GetToken(line, linePosition);
-        if(t == nullptr)
-            continue;
-
-        tokens.push_back(*t);
-    }
-
-    return tokens;
-}
-
-std::string GetStringTokenType(TokenType type)
-{
-    std::string typeString;
-    switch(type)
-    {
-        case TokenType::Boolean:
-        typeString = "boolean  ";
-        break;
-
-        case TokenType::Decimal:
-        typeString = "decimal  ";
-        break;
-
-        case TokenType::Integer:
-        typeString = "integer  ";
-        break;
-
-        case TokenType::Reference:
-        typeString = "reference";
-        break;
-
-        case TokenType::Simple:
-        typeString = "simple   ";
-        break;
-
-        case TokenType::String:
-        typeString = "string   ";
-        break;
-
-        default:
-        typeString = "unknown  ";
-        break;
-    }
-
-    return typeString;
-}
-
-void PrintTokenList(TokenList tokenList)
-{
-    std::cout << "TOKENS---\n";
-    for(Token t: tokenList)
-    {
-        std::cout << "| Type: " << GetStringTokenType(t.Type) << "\t Content: " << t.Content << "\n";
-    }
-}
-
 
 
 int main()
@@ -891,7 +405,7 @@ int main()
 
     std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
     TokenList l = LexLine(line);
-    PrintTokenList(l);
+    PrintDiagnostics(l);
 
     return 0;
 }
