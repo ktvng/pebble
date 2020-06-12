@@ -15,55 +15,10 @@
 #include <iterator>
 #include <sstream>
 
-typedef std::string ObjectClass;
-
-const std::string IntegerClass = "Integer";
-const std::string DecimalClass = "Decimal";
-const std::string StringClass = "String";
-const std::string BooleanClass = "Boolean";
-const std::string NullClass = "Null";
+#include "main.h"
 
 
-const std::string returnReferenceName = "returnObject";
-
-
-struct Reference;
-struct Object;
-struct Block;
-struct Operation;
-struct Token;
-
-
-typedef std::vector<Token> TokenList;
-
-std::vector<Reference*> GlobalReferences;
-std::stringstream ErrorBuffer;
-bool ErrorFlag;
-TokenList LexLine(const std::string& line);
-
-const bool c_DEBUG = true;
-void DebugPrint(std::string value)
-{
-    if(c_DEBUG)
-        std::cout << value << "\n";
-}
-
-const bool c_ERROR = true;
-void ReportError(int lineNumber)
-{
-    if(c_ERROR)
-    {
-        std::string line;
-        while(std::getline(ErrorBuffer, line))
-        {
-            std::cerr << "(!) Exception at line[" << lineNumber << "]: "  << line << "\n";
-        }
-    }
-    ErrorFlag = false;
-}
-
-
-
+// Structs
 enum class ControlType
 {
     If,
@@ -89,10 +44,6 @@ enum class OperationType
     Print,
     Return,
 };
-
-void PrintReference(const Reference& ref);
-Operation* ParseLine(const std::string& line, int lineNumber);
-std::string GetStringValue(const Object& obj);
 
 struct Reference
 {
@@ -124,21 +75,44 @@ struct Block
 
 
 
+void DebugPrint(std::string value)
+{
+    if(c_DEBUG)
+        std::cout << value << "\n";
+}
+
+void ReportError(int lineNumber)
+{
+    if(c_ERROR)
+    {
+        std::string line;
+        while(std::getline(ErrorBuffer, line))
+        {
+            std::cerr << "(!) Exception at line[" << lineNumber << "]: "  << line << "\n";
+        }
+    }
+    ErrorFlag = false;
+}
 
 
-void PrintObject(const Object& obj)
+
+
+
+
+
+void Print(const Object& obj)
 {
     std::cout << "| Class: " << obj.Class << "\n| Value: " << GetStringValue(obj)  << "\n"; 
 }
 
-void PrintReference(const Reference& ref)
+void Print(const Reference& ref)
 {
     std::cout << "| Name: " << ref.Name << "\n";
-    PrintObject(*ref.ToObject);
+    Print(*ref.ToObject);
     std::cout << "\n";
 }
 
-void PrintOperation(const Operation& op, int level=0)
+void Print(const Operation& op, int level=0)
 {
     std::string type;
     switch(op.Type){
@@ -173,7 +147,7 @@ void PrintOperation(const Operation& op, int level=0)
     }
     for(Operation* operand: op.Operands)
     {
-        PrintOperation(*operand, level+1);
+        Print(*operand, level+1);
     }
 }
 
@@ -311,7 +285,7 @@ ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2)
     if(obj1.Class == DecimalClass || obj2.Class == DecimalClass)
         return DecimalClass;
     return IntegerClass;
-};
+}
 
 int GetIntValue(const Object& obj)
 {
@@ -321,7 +295,7 @@ int GetIntValue(const Object& obj)
         return 0;
     }
     return *static_cast<int*>(obj.Value);
-};
+}
 
 double GetDecimalValue(const Object& obj)
 {
