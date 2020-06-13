@@ -18,10 +18,12 @@ void PrintDiagnostics(const Object& obj);
 void PrintDiagnostics(const Reference& ref);
 void PrintDiagnostics(const Operation& op, int level=0);
 void PrintDiagnostics(const TokenList& tokenList);
+void PrintDiagnostics(const Token& token);
 
 void PrintDiagnostics(const Object* obj);
 void PrintDiagnostics(const Reference* ref);
 void PrintDiagnostics(const Operation* op, int level=0);
 void PrintDiagnostics(const TokenList* tokenList);
+void PrintDiagnostics(const Token* token);
 
 #endif

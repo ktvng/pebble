@@ -27,16 +27,15 @@ const ObjectClass NullClass = "Null";
 
 const std::string returnReferenceName = "returnObject";
 
+
 const bool c_DEBUG = true;
 const bool c_ERROR = true;
 
 extern std::stringstream ErrorBuffer;
 
 
-void PrintReference(const Reference& ref);
 Operation* ParseLine(TokenList& tokens);
-std::string GetStringValue(const Object& obj);
 TokenList LexLine(const std::string& line);
-Reference* DecideReference(std::string name);
+Reference* DecideReferenceOf(Token* token);
 
 #endif

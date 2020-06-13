@@ -247,3 +247,85 @@ TokenList LeftOfToken(const TokenList& tokens, Token* pivotToken)
     RenumberTokenList(rightList);
     return rightList;
 }
+
+
+bool TokenMatchesType(Token* token, std::vector<TokenType> types)
+{
+    for(TokenType type: types)
+    {
+        if(type == token->Type)
+            return true;
+    }
+    return false;
+}
+
+bool TokenMatchesContent(Token* token, std::vector<String> contents)
+{
+    for(String content: contents)
+    {
+        if(content == token->Content)
+            return true;
+    }
+    return false;
+}
+
+Token* NextTokenMatching(const TokenList& tokens, std::vector<TokenType> types, int& pos)
+{
+    for(; static_cast<size_t>(pos)<tokens.size(); pos++)
+    {
+        if(TokenMatchesType(tokens.at(pos), types))
+            return tokens.at(pos++);
+    }
+    pos = -1;
+    return nullptr;
+}
+
+
+Token* NextTokenMatching(const TokenList& tokens, TokenType type, int& pos)
+{
+    std::vector<TokenType> types = { type };
+    return NextTokenMatching(tokens, types, pos);
+}
+
+Token* NextTokenMatching(const TokenList& tokens, TokenType type)
+{
+    int i = 0;
+    return NextTokenMatching(tokens, type, i);
+}
+
+Token* NextTokenMatching(const TokenList& tokens, std::vector<TokenType> types)
+{
+    int i = 0;
+    return NextTokenMatching(tokens, types, i);
+}
+
+Token* NextTokenMatching(const TokenList& tokens, std::vector<String> contents, int& pos)
+{
+    for(; static_cast<size_t>(pos)<tokens.size(); pos++)
+    {
+        if(TokenMatchesContent(tokens.at(pos), contents))
+            return tokens.at(pos++);
+    }
+    pos = -1;
+    return nullptr;
+}
+
+Token* NextTokenMatching(const TokenList& tokens, std::vector<String> contents)
+{
+    int pos = 0;
+    return NextTokenMatching(tokens, contents, pos);
+}
+
+Token* NextTokenMatching(const TokenList& tokens, String content, int& pos)
+{
+    std::vector<String> contents = { content };
+    return NextTokenMatching(tokens, contents, pos);
+}
+
+Token* NextTokenMatching(const TokenList& tokens, String content)
+{
+    int pos = 0;
+    return NextTokenMatching(tokens, content, pos);
+}
+
+

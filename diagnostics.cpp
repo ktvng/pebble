@@ -146,12 +146,22 @@ void PrintDiagnostics(const Operation* op, int level)
     PrintDiagnostics(*op);
 }
 
+void PrintDiagnostics(const Token& token)
+{
+    std::cout << "| Type: " << GetStringTokenType(token.Type) << "\t Content: " << token.Content << "\n";
+}
+
+void PrintDiagnostics(const Token* token)
+{
+    PrintDiagnostics(*token);
+}
+
 void PrintDiagnostics(const TokenList& tokenList)
 {
     std::cout << "TOKENS---\n";
-    for(Token* t: tokenList)
+    for(const Token* t: tokenList)
     {
-        std::cout << "| Type: " << GetStringTokenType(t->Type) << "\t Content: " << t->Content << "\n";
+        PrintDiagnostics(t);
     }
 }
 

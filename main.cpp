@@ -280,10 +280,12 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 
 // Decide Operands
 // should edit token list remove used tokens
-void DecideOperandsAdd(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsAdd(TokenList& tokens, std::vector<Operation*>& operands) // EDIT
 {
-    Reference* arg1 = DecideReference(tokens.at(1)->Content);
-    Reference* arg2 = DecideReference(tokens.at(2)->Content);
+    int pos = 0;
+ 
+    Reference* arg1 = DecideReferenceOf( NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+    Reference* arg2 = DecideReferenceOf( NextTokenMatching(tokens, ObjectTokenTypes, pos) );
 
     Operation* op1 = CreateReturnOperation(arg1);
     Operation* op2 = CreateReturnOperation(arg2);
@@ -294,18 +296,23 @@ void DecideOperandsAdd(TokenList& tokens, std::vector<Operation*>& operands)
 
 void DecideOperandsDefine(TokenList& tokens, std::vector<Operation*>& operands)
 {
-    Token* name = tokens.at(1);
-    Token* value = tokens.at(2);
+    Token* name = NextTokenMatching(tokens, TokenType::Reference);
+    Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
+
+    if(name == nullptr)
+        DebugPrint("Unknown reference");
+    if(value == nullptr)
+        DebugPrint("Unknown value");
 
     Reference* r = CreateReference(name, value);
 
+
     GlobalReferences.push_back(r);
-    return;
 }
 
 void DecideOperandsPrint(TokenList& tokens, std::vector<Operation*>& operands)
 {
-    Reference* arg1 = DecideReference(tokens.at(1)->Content);
+    Reference* arg1 = DecideReferenceOf(NextTokenMatching(tokens, ObjectTokenTypes));
     
     Operation* op1 = CreateReturnOperation(arg1);
     operands.push_back(op1);
@@ -313,11 +320,12 @@ void DecideOperandsPrint(TokenList& tokens, std::vector<Operation*>& operands)
 
 void DecideOperandsAssign(TokenList& tokens, std::vector<Operation*>& operands)
 {
-    Reference* arg1 = DecideReference(tokens.at(0)->Content);
+    int pos = 0;
+    Reference* arg1 = DecideReferenceOf(NextTokenMatching(tokens, TokenType::Reference, pos));
     Operation* op1 = CreateReturnOperation(arg1);
 
-    TokenList leftTokens = RightOfToken(tokens, tokens.at(1));
-    Operation* op2 = ParseLine(leftTokens);
+    TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
+    Operation* op2 = ParseLine(rightTokens);
 
     operands.push_back(op1);
     operands.push_back(op2);
@@ -377,11 +385,7 @@ void DecideOperandsReturn(TokenList& tokens, std::vector<Operation*>& operands)
 {
     Reference* arg1;
 
-    if(tokens.at(0)->Type == TokenType::Reference)
-        arg1 = DecideReference(tokens.at(0)->Content);
-    else if(tokens.at(0)->Type != TokenType::Simple){
-        arg1 = CreateReference(returnReferenceName, tokens.at(0));
-    }
+    arg1 = DecideReferenceOf(NextTokenMatching(tokens, ObjectTokenTypes));
 
     Operation* op1 = CreateReturnOperation(arg1);
 
@@ -394,16 +398,28 @@ void DecideOperandsReturn(TokenList& tokens, std::vector<Operation*>& operands)
 
 
 // Meta Parsing + Deciding
-Reference* DecideReference(std::string name)
+
+/// decides the reference of an object token
+Reference* DecideReferenceOf(Token* token)
 {
-    for(Reference* ref: GlobalReferences)
+    if(token == nullptr)
+        return CreateReference(returnReferenceName);
+
+    if(token->Type == TokenType::Reference)
     {
-        if(ref->Name == name){
-            return ref;
+        for(Reference* ref: GlobalReferences)
+        {
+            if(ref->Name == token->Content){
+                return ref;
+            }
         }
+        DebugPrint("Cannot decide reference");
+        return CreateReference(returnReferenceName);
     }
-    DebugPrint("Cannot decide reference");
-    return CreateReference(returnReferenceName);
+    else
+    {
+        return CreateReference(returnReferenceName, token);
+    }
 }
 
 void DecideLineTypeProbabilities(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
@@ -541,7 +557,6 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
             break;
         if(newLine != "")
             lineStart = lineNumber - 1;
-        std::cout << "(" << newLine << ")";
         fullLine += newLine;
 
     } while (LastNonWhitespaceChar(newLine) == ',' || newLine.size() == 0);
@@ -631,7 +646,6 @@ Block ParseBlock(const std::string filepath, int& lineNumber){
         parsedBlock.Operations.push_back(op);
 
         lineNumber = lineEndPos;
-        std::cout << lineNumber;
     }
 
     return parsedBlock;
@@ -647,14 +661,14 @@ Block ParseBlock(const std::string filepath, int& lineNumber){
 int main()
 {
     bool PRINT_OPERATIONS = false;
-
+    bool PRINT_GLOBAL_REFS = false;
     int lineNumber = 1;
     Block b = ParseBlock(".\\program", lineNumber);
 
     // PRINT OPERATIONS
     if(PRINT_OPERATIONS)
     {
-    for(Operation* op: b.Operations)
+        for(Operation* op: b.Operations)
         {
             PrintDiagnostics(*op);
         }
@@ -664,16 +678,29 @@ int main()
     std::cout << "####################\n";
     DoBlock(b);
 
+    std::cout << "####################\n";
+    std::cout << "FINISH";
+    
     // PRINT GLOBALREFRENCES
-    // for(auto elem: GlobalReferences)
-    // {
-    //     std::cout << &elem << "\n";
-    //     PrintReference(*elem);
-    // }
-
+    if(PRINT_GLOBAL_REFS)
+    {
+        for(auto elem: GlobalReferences)
+        {
+            std::cout << &elem << "\n";
+            PrintDiagnostics(*elem);
+        }
+    }
+    
     // std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
     // TokenList l = LexLine(line);
-    // PrintDiagnostics(l);
+    // std::cout << "######\n"; 
+    // int pos=0;
+    // Token* t;
+    // for(t = NextTokenMatchingType(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatchingType(l, ObjectTokenTypes, pos))
+    // {
+    //     PrintDiagnostics(t);
+    // }
+
 
     return 0;
 }

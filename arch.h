@@ -83,4 +83,19 @@ struct Token
     int Position;
 };
 
+const std::vector<TokenType> PrimitiveTokenTypes {
+    TokenType::Integer,
+    TokenType::String,
+    TokenType::Decimal,
+    TokenType::Boolean,
+};
+
+const std::vector<TokenType> ObjectTokenTypes {
+    TokenType::Integer,
+    TokenType::String,
+    TokenType::Decimal,
+    TokenType::Boolean,
+    TokenType::Reference,
+};
+
 #endif
