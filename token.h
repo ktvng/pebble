@@ -18,6 +18,9 @@ TokenList LeftOfToken(const TokenList& tokens, Token* token);
 // and renumbered to begin at 0
 TokenList RightOfToken(const TokenList& tokens, Token* token);
 
+
+
+
 /// finds the next token of [type] from [pos] in [tokens] and sets [pos] to the position after this token
 /// returns nullptr and sets [pos] = -1 if no token exists
 Token* NextTokenMatching(const TokenList& tokens, TokenType type, int& pos);
@@ -40,5 +43,10 @@ Token* NextTokenMatching(const TokenList& tokens, std::vector<String> contents, 
 Token* NextTokenMatching(const TokenList& tokens, std::vector<String> contents);
 Token* NextTokenMatching(const TokenList& tokens, String content, int& pos);
 Token* NextTokenMatching(const TokenList& tokens, String content);
+
+
+/// returns true if [token] is one of the TokenTypes in [types]
+bool TokenMatchesType(Token* token, TokenType type);
+bool TokenMatchesType(Token* token, std::vector<TokenType> types);
 
 #endif

@@ -16,7 +16,7 @@ Reference* CreateReferenceInternal(String name, ObjectClass objClass)
     return ref;
 }
 
-Reference* CreateReference(String name, ObjectClass objClass, int value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
     int* i = new int;
@@ -26,7 +26,7 @@ Reference* CreateReference(String name, ObjectClass objClass, int value)
     return ref;
 }
 
-Reference* CreateReference(String name, ObjectClass objClass, double value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
     double* d = new double;
@@ -36,7 +36,7 @@ Reference* CreateReference(String name, ObjectClass objClass, double value)
     return ref;
 }
 
-Reference* CreateReference(String name, ObjectClass objClass, bool value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
     bool* b = new bool;
@@ -46,7 +46,7 @@ Reference* CreateReference(String name, ObjectClass objClass, bool value)
     return ref;
 }
 
-Reference* CreateReference(String name, ObjectClass objClass, const String value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
     std::string* s = new std::string;
@@ -65,12 +65,12 @@ Reference* CreateReference(String name, Object* obj)
     return ref;
 }
 
-Reference* CreateReference(const String name)
+Reference* CreateNullReference()
 {
     static Object nullObject;
     nullObject.Class = NullClass;
     
-    Reference* ref = new Reference { name, &nullObject };
+    Reference* ref = new Reference { c_returnReferenceName, &nullObject };
     return ref;
 }
 
@@ -165,7 +165,7 @@ bool GetBoolValue(const Object& obj)
 }
 
 
-Reference* CreateReference(String name, Token* valueToken)
+Reference* CreateReferenceToNewObject(String name, Token* valueToken)
 {
     String value = valueToken->Content;
     bool b;
@@ -173,17 +173,17 @@ Reference* CreateReference(String name, Token* valueToken)
     switch(valueToken->Type)
     {
         case TokenType::Integer:
-        return CreateReference(name, IntegerClass, std::stoi(value));
+        return CreateReferenceToNewObject(name, IntegerClass, std::stoi(value));
 
         case TokenType::Boolean:
         b = value == "true" ? true : false;
-        return CreateReference(name, BooleanClass, b);
+        return CreateReferenceToNewObject(name, BooleanClass, b);
 
         case TokenType::String:
-        return CreateReference(name, StringClass, value);
+        return CreateReferenceToNewObject(name, StringClass, value);
 
         case TokenType::Decimal:
-        return CreateReference(name, DecimalClass, std::stod(value));
+        return CreateReferenceToNewObject(name, DecimalClass, std::stod(value));
 
         default:
         break;
@@ -191,11 +191,11 @@ Reference* CreateReference(String name, Token* valueToken)
 
     // Does not support generic objects;
     DebugPrint("Cannot create reference");
-    return CreateReference(name);
+    return CreateNullReference();
 }
 
-Reference* CreateReference(Token* nameToken, Token* valueToken)
+Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken)
 {
-    return CreateReference(nameToken->Content, valueToken);
+    return CreateReferenceToNewObject(nameToken->Content, valueToken);
 }
 

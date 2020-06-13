@@ -259,6 +259,12 @@ bool TokenMatchesType(Token* token, std::vector<TokenType> types)
     return false;
 }
 
+bool TokenMatchesType(Token* token, TokenType type)
+{
+    std::vector<TokenType> types = { type };
+    return TokenMatchesType(token, types);
+}
+
 bool TokenMatchesContent(Token* token, std::vector<String> contents)
 {
     for(String content: contents)

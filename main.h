@@ -17,6 +17,7 @@ typedef std::vector<Token*> TokenList;
 typedef std::string ObjectClass;
 typedef std::string String;
 typedef std::vector<OperationTypeProbability> PossibleOperationsList;
+typedef std::vector<Operation*> OperationsList;
 
 
 const ObjectClass IntegerClass = "Integer";
@@ -25,7 +26,7 @@ const ObjectClass StringClass = "String";
 const ObjectClass BooleanClass = "Boolean";
 const ObjectClass NullClass = "Null";
 
-const std::string returnReferenceName = "returnObject";
+const std::string c_returnReferenceName = "ReturnedObject";
 
 
 const bool c_DEBUG = true;

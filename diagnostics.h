@@ -11,6 +11,7 @@ extern std::stringstream ErrorBuffer;
 void DebugPrint(const std::string& value);
 void RuntimeErrorPrint(int lineNumber);
 
+/// creates a String by expanding a [message] and its variable arguments
 String Message(String message, ...);
 
 

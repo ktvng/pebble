@@ -27,9 +27,11 @@ std::vector<Reference*> GlobalReferences;
 
 // Error reporting
 std::stringstream ErrorBuffer;
+
+/// flag which is true whenever the ErrorBuffer contains a pending error message
 static bool ErrorFlag = false;
 
-// adds an error to the error buffer
+/// adds an error to the error buffer which will be printed when RuntimeErrorPrint is called
 void ReportError(String expandedMessage)
 {
     ErrorBuffer << expandedMessage << std::endl;
@@ -43,7 +45,7 @@ void ReportError(String expandedMessage)
 Reference* Assign(Reference& lRef, Reference& rRef)
 {
     lRef.ToObject = rRef.ToObject;
-    return CreateReference(returnReferenceName, lRef.ToObject);
+    return CreateReference(c_returnReferenceName, lRef.ToObject);
 }
 
 /// 
@@ -58,7 +60,7 @@ Reference* Print(Reference& ref)
         std::cout << GetStringValue(*ref.ToObject) << "\n";
     }
 
-    return CreateReference(returnReferenceName, ref.ToObject);
+    return CreateReference(c_returnReferenceName, ref.ToObject);
 }
 
 ///
@@ -72,21 +74,21 @@ Reference* Add(const Reference& lRef, const Reference& rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*lRef.ToObject) + GetIntValue(*rRef.ToObject);
-            resultRef = CreateReference(returnReferenceName, IntegerClass, value);
+            resultRef = CreateReferenceToNewObject(c_returnReferenceName, IntegerClass, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*(lRef.ToObject)) + GetDecimalValue(*(rRef.ToObject));
-            resultRef = CreateReference(returnReferenceName, DecimalClass, value);
+            resultRef = CreateReferenceToNewObject(c_returnReferenceName, DecimalClass, value);
         }
         else
         {
-            resultRef = CreateReference(returnReferenceName);
+            resultRef = CreateNullReference();
         }
         return resultRef;
     }
 
-    resultRef = CreateReference(returnReferenceName);
+    resultRef = CreateNullReference();
     ReportError(Message("cannot add types %s and %s", lRef.ToObject->Class, rRef.ToObject->Class));
     return resultRef;
 }
@@ -95,7 +97,7 @@ Reference* Add(const Reference& lRef, const Reference& rRef)
 Reference* And(const Reference& lRef, const Reference& rRef)
 {
     bool b = GetBoolValue(*lRef.ToObject) && GetBoolValue(*rRef.ToObject);
-    return CreateReference(returnReferenceName, BooleanClass, b);
+    return CreateReferenceToNewObject(c_returnReferenceName, BooleanClass, b);
 }
 
 
@@ -104,36 +106,35 @@ Reference* And(const Reference& lRef, const Reference& rRef)
 
 // Program execution
 
-// update when adding operations
+/// executes an operation [op] on the ordered list of reference [operands]. should only be called
+/// through DoOperation
 Reference* DoOperationOnReferences(Operation* op, std::vector<Reference*> operands)
 {
-    Reference* nullRef = CreateReference(returnReferenceName);
     switch(op->Type)
     {
         case OperationType::Add:
         return Add(*operands.at(0), *operands.at(1));
 
         case OperationType::Print:
-        Print(*operands.at(0));
-        return nullRef;
+        return Print(*operands.at(0));
 
         case OperationType::Assign:
-        Assign(*operands.at(0), *operands.at(1));
-        return nullRef;
+        return Assign(*operands.at(0), *operands.at(1));
 
         default:
-        break;
+        DebugPrint("(DoOperationOnReference) unknown/unimplemented OperationType");
+        return CreateNullReference();
     }
-    return nullRef;
 }
 
+/// executes an operation [op]
 Reference* DoOperation(Operation* op)
 {
     if(op->Type == OperationType::Return)
         return op->Value;
     else if (op->Type == OperationType::Define)
     {
-        return CreateReference(returnReferenceName);
+        return CreateNullReference();
     }
     else
     {
@@ -148,6 +149,7 @@ Reference* DoOperation(Operation* op)
     
 }
 
+/// executes a [codeBlock]
 void DoBlock(Block& codeBlock)
 {
     for(Operation* op: codeBlock.Operations)
@@ -165,15 +167,27 @@ void DoBlock(Block& codeBlock)
 
 
 // Creating operations
+
+/// creates a Operation with OperationType::Return to return [ref]
 Operation* CreateReturnOperation(Reference* ref)
 {
     Operation* op = new Operation;
     op->Type = OperationType::Return;
     op->Value = ref;
-    op->LineNumber = 0;
-    op->Operands = std::vector<Operation*>();
 
     return op;
+}
+
+/// adds a new return Operation for [ref] to [operands]
+void AddReferenceReturnOperationTo(OperationsList& operands, Reference* ref)
+{
+    operands.push_back(CreateReturnOperation(ref));
+}
+
+/// adds an existing Operation [op] to [operands]
+void AddOperationTo(OperationsList& operands, Operation* op)
+{
+    operands.push_back(op);
 }
 
 
@@ -280,21 +294,18 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 
 // Decide Operands
 // should edit token list remove used tokens
-void DecideOperandsAdd(TokenList& tokens, std::vector<Operation*>& operands) // EDIT
+void DecideOperandsAdd(TokenList& tokens, OperationsList& operands) // EDIT
 {
     int pos = 0;
  
     Reference* arg1 = DecideReferenceOf( NextTokenMatching(tokens, ObjectTokenTypes, pos) );
     Reference* arg2 = DecideReferenceOf( NextTokenMatching(tokens, ObjectTokenTypes, pos) );
 
-    Operation* op1 = CreateReturnOperation(arg1);
-    Operation* op2 = CreateReturnOperation(arg2);
-
-    operands.push_back(op1);
-    operands.push_back(op2);
+    AddReferenceReturnOperationTo(operands, arg1);
+    AddReferenceReturnOperationTo(operands, arg2);
 }
 
-void DecideOperandsDefine(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
 {
     Token* name = NextTokenMatching(tokens, TokenType::Reference);
     Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
@@ -304,92 +315,84 @@ void DecideOperandsDefine(TokenList& tokens, std::vector<Operation*>& operands)
     if(value == nullptr)
         DebugPrint("Unknown value");
 
-    Reference* r = CreateReference(name, value);
+    Reference* r = CreateReferenceToNewObject(name, value);
 
 
     GlobalReferences.push_back(r);
 }
 
-void DecideOperandsPrint(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
 {
     Reference* arg1 = DecideReferenceOf(NextTokenMatching(tokens, ObjectTokenTypes));
-    
-    Operation* op1 = CreateReturnOperation(arg1);
-    operands.push_back(op1);
+    AddReferenceReturnOperationTo(operands, arg1);
 }
 
-void DecideOperandsAssign(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsAssign(TokenList& tokens, OperationsList& operands)
 {
     int pos = 0;
     Reference* arg1 = DecideReferenceOf(NextTokenMatching(tokens, TokenType::Reference, pos));
-    Operation* op1 = CreateReturnOperation(arg1);
 
     TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
     Operation* op2 = ParseLine(rightTokens);
 
-    operands.push_back(op1);
-    operands.push_back(op2);
+    AddReferenceReturnOperationTo(operands, arg1);
+    AddOperationTo(operands, op2);
 }
 
-void DecideOperandsIsEqual(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsIsEqual(TokenList& tokens, OperationsList& operands)
 {
 
 }
 
-void DecideOperandsIsLessThan(TokenList& tokens, std::vector<Operation*>& operands)
-{
-    
-}
-
-void DecideOperandsIsGreaterThan(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsIsLessThan(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsSubtract(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsIsGreaterThan(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsMultiply(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsSubtract(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsDivide(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsMultiply(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsAnd(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsDivide(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsOr(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsAnd(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsNot(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsOr(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsEvaluate(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsNot(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsReturn(TokenList& tokens, std::vector<Operation*>& operands)
+void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands)
 {
-    Reference* arg1;
+    
+}
 
-    arg1 = DecideReferenceOf(NextTokenMatching(tokens, ObjectTokenTypes));
-
-    Operation* op1 = CreateReturnOperation(arg1);
-
-    operands.push_back(op1);
+void DecideOperandsReturn(TokenList& tokens, OperationsList& operands)
+{
+    Reference* arg1 = DecideReferenceOf(NextTokenMatching(tokens, ObjectTokenTypes));
+    AddReferenceReturnOperationTo(operands, arg1);
 }
 
 
@@ -398,31 +401,64 @@ void DecideOperandsReturn(TokenList& tokens, std::vector<Operation*>& operands)
 
 
 // Meta Parsing + Deciding
-
-/// decides the reference of an object token
-Reference* DecideReferenceOf(Token* token)
+/// returns true if [token] corresponds to [ref]
+bool TokenMatchesReference(Token* token, Reference* ref) // MAJOR
 {
-    if(token == nullptr)
-        return CreateReference(returnReferenceName);
+    return token->Content == ref->Name;
+}
 
-    if(token->Type == TokenType::Reference)
+/// returns a pointer to a Reference if [token] corresponds to an existing reference and nullptr if 
+/// no matching token can be resolved;
+Reference* DecideExistingReferenceFor(Token* token) // MAJOR: Add scope
+{
+    if(TokenMatchesType(token, TokenType::Reference))
     {
         for(Reference* ref: GlobalReferences)
         {
-            if(ref->Name == token->Content){
+            if(TokenMatchesReference(token, ref))
                 return ref;
-            }
         }
-        DebugPrint("Cannot decide reference");
-        return CreateReference(returnReferenceName);
+        DebugPrint("cannot resolve reference for token");
     }
-    else
-    {
-        return CreateReference(returnReferenceName, token);
-    }
+    return nullptr;
 }
 
-void DecideLineTypeProbabilities(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+/// returns a new primitive reference if [token] is a PrimitiveTokenType, otherwise nullptr
+Reference* DecideNewReferenceFor(Token* token)
+{
+    if(TokenMatchesType(token, PrimitiveTokenTypes))
+    {
+        return CreateReferenceToNewObject(c_returnReferenceName, token);
+    }
+    return nullptr;
+}
+
+/// given a Token* [token], will return either an existing reference (or null reference if none match)
+/// or a new reference to a primitive object
+Reference* DecideReferenceOf(Token* token)
+{
+    if(token == nullptr)
+        return CreateNullReference();
+
+    Reference* tokenRef;
+
+    tokenRef = DecideExistingReferenceFor(token);
+    if(tokenRef != nullptr)
+        return tokenRef;
+
+    tokenRef = DecideNewReferenceFor(token);
+    if(tokenRef != nullptr)
+        return tokenRef;
+
+    return CreateNullReference();
+}
+
+
+
+
+/// decide the probability that a line represented by [tokens] corresponds to each of the atomic operations and stores
+/// this in [typeProbabilities]
+void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     DecideProbabilityDefine(typeProbabilities, tokens);
     DecideProbabilityAssign(typeProbabilities, tokens);
@@ -442,23 +478,26 @@ void DecideLineTypeProbabilities(PossibleOperationsList& typeProbabilities, cons
 }
 
 // TODO: figure out how to decide line type
-void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType)
+/// assign [lineType] based on [typeProbabitlites] for each atomic operation
+void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType) // MAJOR
 {
     lineType = LineType::Atomic;
 }
 
-void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationType& lineType)
+/// given pre-completed [typeProbabilities], decides what operation is most likey
+void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationType& opType) // MAJOR
 {
     std::sort(typeProbabilities.begin(), typeProbabilities.end(),
         [](const OperationTypeProbability& ltp1, const OperationTypeProbability& ltp2){
             return ltp1.Probability > ltp2.Probability;
         });
-    lineType = typeProbabilities.at(0).Type;
+    opType = typeProbabilities.at(0).Type;
 }
 
-void DecideOperands(const OperationType& lineType, TokenList& tokens, std::vector<Operation*>& operands)
+/// decides and adds the operations for the Operation of [opType] to [operands] 
+void DecideOperands(const OperationType& opType, TokenList& tokens, OperationsList& operands)
 {
-    switch(lineType)
+    switch(opType)
     {
         case OperationType::Define:
         DecideOperandsDefine(tokens, operands);
@@ -524,6 +563,8 @@ void DecideOperands(const OperationType& lineType, TokenList& tokens, std::vecto
 
 
 
+
+
 char LastNonWhitespaceChar(std::string& line)
 {
     int i;
@@ -566,13 +607,13 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
 
 
 
-
+/// parses an atomic operation into an Operation tree
 Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
     OperationType opType;
     DecideOperationType(typeProbabilities, opType);
 
-    std::vector<Operation*> operands;
+    OperationsList operands;
     DecideOperands(opType, tokens, operands);
 
     Operation* op = new Operation;
@@ -580,7 +621,7 @@ Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& 
     op->Operands = operands;
     if(opType == OperationType::Return)
     {
-        op->Operands = std::vector<Operation*>();
+        op->Operands = OperationsList();
         op->Value = operands.at(0)->Value;
     }
 
@@ -588,13 +629,14 @@ Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& 
 }
 
 // TODO: Implement
+/// parses a composite operation into an Operation tree
 Operation* ParseComposite(PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
     return nullptr;
 }
 
 
-
+/// assigns [lineNumber] to be the LineNumber for each operation in the Operation tree of [op]
 void NumberOperation(Operation* op, int lineNumber)
 {
     op->LineNumber = lineNumber;
@@ -604,10 +646,14 @@ void NumberOperation(Operation* op, int lineNumber)
     }
 }
 
+
+
+
+/// parses a line of code
 Operation* ParseLine(TokenList& tokens)
 {
     PossibleOperationsList typeProbabilities;
-    DecideLineTypeProbabilities(typeProbabilities, tokens);
+    DecideOperationTypeProbabilities(typeProbabilities, tokens);
 
     LineType lineType;
     DecideLineType(typeProbabilities, tokens, lineType);
@@ -630,6 +676,7 @@ Operation* ParseLine(TokenList& tokens)
     }
 }
 
+/// parses a block of code
 Block ParseBlock(const std::string filepath, int& lineNumber){
     Block parsedBlock;
     std::fstream file;
