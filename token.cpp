@@ -1,8 +1,10 @@
 #include <string>
 #include <vector>
+#include <iostream>
 
 #include "main.h"
 #include "arch.h"
+#include "diagnostics.h"
 
 
 void SkipWhiteSpace(const std::string& line, size_t& position)
@@ -97,7 +99,7 @@ TokenType TypeOfTokenString(const std::string& tokenString)
     
 }
 
-Token* GetToken(const std::string& line, size_t& position)
+Token* GetToken(const std::string& line, size_t& position, int tokenNumber)
 {
     Token* token;
     SkipWhiteSpace(line, position);
@@ -111,7 +113,7 @@ Token* GetToken(const std::string& line, size_t& position)
             tokenString += line.at(position);
         }
         position++; // get rid of end quote
-        token = new Token { TokenType::String, tokenString };
+        token = new Token { TokenType::String, tokenString, tokenNumber };
         return token;
     }
     for(; position < line.size() && line.at(position) != ' '; position++)
@@ -122,7 +124,7 @@ Token* GetToken(const std::string& line, size_t& position)
     if(tokenString == "")
         return nullptr;
     
-    token = new Token { TypeOfTokenString(tokenString), tokenString};
+    token = new Token { TypeOfTokenString(tokenString), tokenString, tokenNumber };
     return token;
 }
 
@@ -131,13 +133,15 @@ TokenList LexLine(const std::string& line)
 {
     TokenList tokens;
     size_t linePosition = 0;
+    int tokenNumber = 0;
     while(linePosition < line.size())
     {
-        Token* t = GetToken(line, linePosition);
+        Token* t = GetToken(line, linePosition, tokenNumber);
         if(t == nullptr)
             continue;
 
-        tokens.push_back(*t);
+        tokens.push_back(t);
+        tokenNumber++;
     }
 
     return tokens;
@@ -178,4 +182,68 @@ std::string GetStringTokenType(TokenType type)
     }
 
     return typeString;
+}
+
+bool SameLetter(char c1, char c2)
+{
+    int diff = std::abs(static_cast<int>(c1) - static_cast<int>(c2));
+    return diff == 0 || diff == 32;
+}
+
+bool StringCaseInsensitiveEquals(const std::string& str1, const std::string& str2)
+{
+    if(str1.size() != str2.size())
+        return false;
+
+    for(size_t pos=0; pos<str1.size(); pos++)
+    {
+        if(!SameLetter(str1.at(pos), str2.at(pos)))
+            return false;
+    }
+    
+    return true;
+}
+
+Token* FindToken(const TokenList& tokens, std::string str)
+{
+    for(Token* t: tokens)
+    {
+        if(StringCaseInsensitiveEquals(str, t->Content))
+            return t;
+    }
+    return nullptr;
+}
+
+void RenumberTokenList(TokenList& tokens)
+{
+    for(int i=0; static_cast<size_t>(i)<tokens.size(); i++)
+    {
+        tokens.at(i)->Position = i;
+    }
+}
+
+
+
+TokenList RightOfToken(const TokenList& tokens, Token* pivotToken)
+{
+    TokenList leftList;
+    leftList.reserve(tokens.size());
+
+    for(int i=pivotToken->Position + 1; static_cast<size_t>(i)<tokens.size(); i++)
+        leftList.push_back(tokens.at(i));
+    
+    RenumberTokenList(leftList);
+    return leftList;
+}
+
+TokenList LeftOfToken(const TokenList& tokens, Token* pivotToken)
+{
+    TokenList rightList;
+    rightList.reserve(tokens.size());
+
+    for(int i=0; i<pivotToken->Position; i++)
+        rightList.push_back(tokens.at(i));
+    
+    RenumberTokenList(rightList);
+    return rightList;
 }

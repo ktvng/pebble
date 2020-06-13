@@ -1,7 +1,9 @@
+#include <cstdarg>
+
 #include "object.h"
 #include "diagnostics.h"
 
-Reference* MakeGeneric(String name, ObjectClass objClass)
+Reference* CreateReferenceInternal(String name, ObjectClass objClass)
 {
     Reference* ref = new Reference;
     Object* obj = new Object;
@@ -14,9 +16,9 @@ Reference* MakeGeneric(String name, ObjectClass objClass)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, int value)
+Reference* CreateReference(String name, ObjectClass objClass, int value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     int* i = new int;
     *i = value;
     ref->ToObject->Value = i;
@@ -24,9 +26,9 @@ Reference* Make(String name, ObjectClass objClass, int value)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, double value)
+Reference* CreateReference(String name, ObjectClass objClass, double value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     double* d = new double;
     *d = value;
     ref->ToObject->Value = d;
@@ -34,9 +36,9 @@ Reference* Make(String name, ObjectClass objClass, double value)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, bool value)
+Reference* CreateReference(String name, ObjectClass objClass, bool value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     bool* b = new bool;
     *b = value;
     ref->ToObject->Value = b;
@@ -44,9 +46,9 @@ Reference* Make(String name, ObjectClass objClass, bool value)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, const String value)
+Reference* CreateReference(String name, ObjectClass objClass, const String value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     std::string* s = new std::string;
     *s = value;
     ref->ToObject->Value = s;
@@ -54,7 +56,7 @@ Reference* Make(String name, ObjectClass objClass, const String value)
     return ref;
 }
 
-Reference* Make(String name, Object* obj)
+Reference* CreateReference(String name, Object* obj)
 {
     Reference* ref = new Reference;
     ref->Name = name;
@@ -63,7 +65,7 @@ Reference* Make(String name, Object* obj)
     return ref;
 }
 
-Reference* Make(const String name)
+Reference* CreateReference(const String name)
 {
     static Object nullObject;
     nullObject.Class = NullClass;
@@ -161,3 +163,39 @@ bool GetBoolValue(const Object& obj)
         return true;
     }
 }
+
+
+Reference* CreateReference(String name, Token* valueToken)
+{
+    String value = valueToken->Content;
+    bool b;
+
+    switch(valueToken->Type)
+    {
+        case TokenType::Integer:
+        return CreateReference(name, IntegerClass, std::stoi(value));
+
+        case TokenType::Boolean:
+        b = value == "true" ? true : false;
+        return CreateReference(name, BooleanClass, b);
+
+        case TokenType::String:
+        return CreateReference(name, StringClass, value);
+
+        case TokenType::Decimal:
+        return CreateReference(name, DecimalClass, std::stod(value));
+
+        default:
+        break;
+    }
+
+    // Does not support generic objects;
+    DebugPrint("Cannot create reference");
+    return CreateReference(name);
+}
+
+Reference* CreateReference(Token* nameToken, Token* valueToken)
+{
+    return CreateReference(nameToken->Content, valueToken);
+}
+

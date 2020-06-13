@@ -29,55 +29,7 @@ std::vector<Reference*> GlobalReferences;
 std::stringstream ErrorBuffer;
 static bool ErrorFlag = false;
 
-
-String Message(String message, ...)
-{
-    va_list vl;
-    va_start(vl, message);
-
-    String expandedMessage = "";
-
-    // expands message
-    bool expandFlag = false;
-    for(size_t i=0; i<message.size(); i++)
-    {
-        if(message.at(i) == '\\')
-        {
-            expandedMessage += message.at(i++);
-            continue;
-        }
-        if(message.at(i) == '%')
-        {
-            expandFlag = true;
-            continue;
-        }
-        if(expandFlag)
-        {
-            expandFlag = false;
-            switch(message.at(i))
-            {
-                case 'i':
-                expandedMessage += std::to_string(va_arg(vl, int));
-                break;
-
-                case 's':
-                expandedMessage += va_arg(vl, String);
-                break;
-
-                case 'd':
-                expandedMessage += std::to_string(va_arg(vl, double));
-                break;
-
-                default:
-                break;
-            }
-            continue;
-        }
-        expandedMessage += message.at(i);
-    }
-    return expandedMessage;
-}
-
+// adds an error to the error buffer
 void ReportError(String expandedMessage)
 {
     ErrorBuffer << expandedMessage << std::endl;
@@ -91,7 +43,7 @@ void ReportError(String expandedMessage)
 Reference* Assign(Reference& lRef, Reference& rRef)
 {
     lRef.ToObject = rRef.ToObject;
-    return Make(returnReferenceName, lRef.ToObject);
+    return CreateReference(returnReferenceName, lRef.ToObject);
 }
 
 /// 
@@ -106,7 +58,7 @@ Reference* Print(Reference& ref)
         std::cout << GetStringValue(*ref.ToObject) << "\n";
     }
 
-    return Make(returnReferenceName, ref.ToObject);
+    return CreateReference(returnReferenceName, ref.ToObject);
 }
 
 ///
@@ -120,21 +72,21 @@ Reference* Add(const Reference& lRef, const Reference& rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*lRef.ToObject) + GetIntValue(*rRef.ToObject);
-            resultRef = Make(returnReferenceName, IntegerClass, value);
+            resultRef = CreateReference(returnReferenceName, IntegerClass, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*(lRef.ToObject)) + GetDecimalValue(*(rRef.ToObject));
-            resultRef = Make(returnReferenceName, DecimalClass, value);
+            resultRef = CreateReference(returnReferenceName, DecimalClass, value);
         }
         else
         {
-            resultRef = Make(returnReferenceName);
+            resultRef = CreateReference(returnReferenceName);
         }
         return resultRef;
     }
 
-    resultRef = Make(returnReferenceName);
+    resultRef = CreateReference(returnReferenceName);
     ReportError(Message("cannot add types %s and %s", lRef.ToObject->Class, rRef.ToObject->Class));
     return resultRef;
 }
@@ -143,7 +95,7 @@ Reference* Add(const Reference& lRef, const Reference& rRef)
 Reference* And(const Reference& lRef, const Reference& rRef)
 {
     bool b = GetBoolValue(*lRef.ToObject) && GetBoolValue(*rRef.ToObject);
-    return Make(returnReferenceName, BooleanClass, b);
+    return CreateReference(returnReferenceName, BooleanClass, b);
 }
 
 
@@ -151,9 +103,11 @@ Reference* And(const Reference& lRef, const Reference& rRef)
 
 
 // Program execution
+
+// update when adding operations
 Reference* DoOperationOnReferences(Operation* op, std::vector<Reference*> operands)
 {
-    Reference* nullRef = Make(returnReferenceName);
+    Reference* nullRef = CreateReference(returnReferenceName);
     switch(op->Type)
     {
         case OperationType::Add:
@@ -179,7 +133,7 @@ Reference* DoOperation(Operation* op)
         return op->Value;
     else if (op->Type == OperationType::Define)
     {
-        return Make(returnReferenceName);
+        return CreateReference(returnReferenceName);
     }
     else
     {
@@ -203,7 +157,7 @@ void DoBlock(Block& codeBlock)
         DoOperation(op);
         if(ErrorFlag)
         {
-            ErrorPrint(op->LineNumber);
+            RuntimeErrorPrint(op->LineNumber);
         }
     }
 }
@@ -211,45 +165,235 @@ void DoBlock(Block& codeBlock)
 
 
 // Creating operations
-Operation* CreateReturnOperation(Reference* ref, int lineNumber)
+Operation* CreateReturnOperation(Reference* ref)
 {
     Operation* op = new Operation;
     op->Type = OperationType::Return;
     op->Value = ref;
-    op->LineNumber = lineNumber;
+    op->LineNumber = 0;
+    op->Operands = std::vector<Operation*>();
 
     return op;
 }
 
-Reference* CreateReference(std::string name, std::string type, std::string value)
-{
-    if(type == IntegerClass)
-    {
-        return Make(name, IntegerClass, std::stoi(value));
-    }
-    else if(type == DecimalClass)
-    {
-        return Make(name, DecimalClass, std::stod(value));
-    }
-    else if(type == BooleanClass)
-    {
-        bool b = value == "true" ? true : false;
-        return Make(name, BooleanClass, b);
-    }
-    else if(type == StringClass)
-    {
-        return Make(name, StringClass, value);
-    }
 
-    DebugPrint("Cannot create reference");
-    return Make(name);
+
+
+// Decide Probabilities
+void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    if(Token* pos = FindToken(tokens, "add"); pos != nullptr)
+    {
+        OperationTypeProbability addType = { OperationType::Add, 10.0/pos->Position };
+        typeProbabilities.push_back(addType);
+    }
+    
+}
+
+void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    if(Token* pos = FindToken(tokens, "define"); pos != nullptr)
+    {
+        OperationTypeProbability defineType = { OperationType::Define, 10.0/pos->Position };
+        typeProbabilities.push_back(defineType);
+    }
+}
+
+void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    if(Token* pos = FindToken(tokens, "print"); pos != nullptr)
+    {
+        OperationTypeProbability printType = { OperationType::Print, 10.0/pos->Position };
+        typeProbabilities.push_back(printType);
+    }
+}
+
+void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    if(Token* pos = FindToken(tokens, "="); pos != nullptr)
+    {
+        OperationTypeProbability assignType = { OperationType::Assign, 10.0/pos->Position };
+        typeProbabilities.push_back(assignType);
+    }
+}
+
+void DecideProbabilityReturn(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    OperationTypeProbability returnType = { OperationType::Return, 1 };
+    typeProbabilities.push_back(returnType);
+}
+
+void DecideProbabilityIsEqual(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+
+}
+
+void DecideProbabilityIsLessThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilityIsGreaterThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilitySubtract(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilityMultiply(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilityDivide(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
+}
+
+void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    
 }
 
 
 
 
 
-// Parsing + Deciding
+
+// Decide Operands
+// should edit token list remove used tokens
+void DecideOperandsAdd(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    Reference* arg1 = DecideReference(tokens.at(1)->Content);
+    Reference* arg2 = DecideReference(tokens.at(2)->Content);
+
+    Operation* op1 = CreateReturnOperation(arg1);
+    Operation* op2 = CreateReturnOperation(arg2);
+
+    operands.push_back(op1);
+    operands.push_back(op2);
+}
+
+void DecideOperandsDefine(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    Token* name = tokens.at(1);
+    Token* value = tokens.at(2);
+
+    Reference* r = CreateReference(name, value);
+
+    GlobalReferences.push_back(r);
+    return;
+}
+
+void DecideOperandsPrint(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    Reference* arg1 = DecideReference(tokens.at(1)->Content);
+    
+    Operation* op1 = CreateReturnOperation(arg1);
+    operands.push_back(op1);
+}
+
+void DecideOperandsAssign(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    Reference* arg1 = DecideReference(tokens.at(0)->Content);
+    Operation* op1 = CreateReturnOperation(arg1);
+
+    TokenList leftTokens = RightOfToken(tokens, tokens.at(1));
+    Operation* op2 = ParseLine(leftTokens);
+
+    operands.push_back(op1);
+    operands.push_back(op2);
+}
+
+void DecideOperandsIsEqual(TokenList& tokens, std::vector<Operation*>& operands)
+{
+
+}
+
+void DecideOperandsIsLessThan(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsIsGreaterThan(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsSubtract(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsMultiply(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsDivide(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsAnd(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsOr(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsNot(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsEvaluate(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    
+}
+
+void DecideOperandsReturn(TokenList& tokens, std::vector<Operation*>& operands)
+{
+    Reference* arg1;
+
+    if(tokens.at(0)->Type == TokenType::Reference)
+        arg1 = DecideReference(tokens.at(0)->Content);
+    else if(tokens.at(0)->Type != TokenType::Simple){
+        arg1 = CreateReference(returnReferenceName, tokens.at(0));
+    }
+
+    Operation* op1 = CreateReturnOperation(arg1);
+
+    operands.push_back(op1);
+}
+
+
+
+
+
+
+// Meta Parsing + Deciding
 Reference* DecideReference(std::string name)
 {
     for(Reference* ref: GlobalReferences)
@@ -259,97 +403,106 @@ Reference* DecideReference(std::string name)
         }
     }
     DebugPrint("Cannot decide reference");
-    return nullptr;
+    return CreateReference(returnReferenceName);
 }
 
-void DecideLineTypeProbabilities(std::vector<LineTypeProbability>& typeProbabilities, const std::string line)
+void DecideLineTypeProbabilities(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    size_t pos;
-    if(pos = line.rfind("add"); pos != std::string::npos)
-    {
-        LineTypeProbability addType = { OperationType::Add, 10.0/pos };
-        typeProbabilities.push_back(addType);
-    }
-    if(pos = line.rfind("define"); pos != std::string::npos)
-    {
-        LineTypeProbability defineType = { OperationType::Define, 10.0/pos };
-        typeProbabilities.push_back(defineType);
-    }
-    if(pos = line.rfind("print"); pos != std::string::npos)
-    {
-        LineTypeProbability printType = { OperationType::Print, 10.0/pos };
-        typeProbabilities.push_back(printType);
-    }
-    if(pos = line.rfind("="); pos != std::string::npos)
-    {
-        LineTypeProbability assignType = { OperationType::Assign, 10.0/pos };
-        typeProbabilities.push_back(assignType);
-    }
-    LineTypeProbability returnType = { OperationType::Return, 1 };
-    typeProbabilities.push_back(returnType);
+    DecideProbabilityDefine(typeProbabilities, tokens);
+    DecideProbabilityAssign(typeProbabilities, tokens);
+    DecideProbabilityIsEqual(typeProbabilities, tokens);
+    DecideProbabilityIsLessThan(typeProbabilities, tokens);
+    DecideProbabilityIsGreaterThan(typeProbabilities, tokens);
+    DecideProbabilityAdd(typeProbabilities, tokens);
+    DecideProbabilitySubtract(typeProbabilities, tokens);
+    DecideProbabilityMultiply(typeProbabilities, tokens);
+    DecideProbabilityDivide(typeProbabilities, tokens);
+    DecideProbabilityAnd(typeProbabilities, tokens);
+    DecideProbabilityOr(typeProbabilities, tokens);
+    DecideProbabilityNot(typeProbabilities, tokens);
+    DecideProbabilityEvaluate(typeProbabilities, tokens);
+    DecideProbabilityPrint(typeProbabilities, tokens);
+    DecideProbabilityReturn(typeProbabilities, tokens);
 }
 
-void DecideLineType(std::vector<LineTypeProbability>& typeProbabilities, OperationType& lineType)
+// TODO: figure out how to decide line type
+void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType)
+{
+    lineType = LineType::Atomic;
+}
+
+void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationType& lineType)
 {
     std::sort(typeProbabilities.begin(), typeProbabilities.end(),
-        [](const LineTypeProbability& ltp1, const LineTypeProbability& ltp2){
+        [](const OperationTypeProbability& ltp1, const OperationTypeProbability& ltp2){
             return ltp1.Probability > ltp2.Probability;
         });
     lineType = typeProbabilities.at(0).Type;
 }
 
-void DecideOperands(const OperationType& lineType, const std::string& line, std::vector<Operation*>& operands, int lineNumber)
+void DecideOperands(const OperationType& lineType, TokenList& tokens, std::vector<Operation*>& operands)
 {
-    std::istringstream iss(line);
-    std::vector<std::string> tokens { std::istream_iterator<std::string>(iss), 
-        std::istream_iterator<std::string>() };
-    if(lineType == OperationType::Define)
+    switch(lineType)
     {
-        std::string type = tokens.at(1);
-        std::string name = tokens.at(2);
-        std::string value = tokens.at(3);
+        case OperationType::Define:
+        DecideOperandsDefine(tokens, operands);
+        break;
 
-        Reference* r = CreateReference(name, type, value);
+        case OperationType::Assign:
+        DecideOperandsAssign(tokens, operands);
+        break;
 
-        GlobalReferences.push_back(r);
-        return;
-    }
-    else if(lineType == OperationType::Add)
-    {
-        Reference* arg1 = DecideReference(tokens.at(1));
-        Reference* arg2 = DecideReference(tokens.at(2));
+        case OperationType::IsEqual:
+        DecideOperandsIsEqual(tokens, operands);
+        break;
 
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
-        Operation* op2 = CreateReturnOperation(arg2, lineNumber);
+        case OperationType::IsLessThan:
+        DecideOperandsIsLessThan(tokens, operands);
+        break;
 
-        operands.push_back(op1);
-        operands.push_back(op2);
-    }
-    else if(lineType == OperationType::Print)
-    {
-        Reference* arg1 = DecideReference(tokens.at(1));
-        
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
-        operands.push_back(op1);
-    }
-    else if(lineType == OperationType::Assign)
-    {
-        Reference* arg1 = DecideReference(tokens.at(0));
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
+        case OperationType::IsGreaterThan:
+        DecideOperandsIsGreaterThan(tokens, operands);
+        break;
 
-        int pos = line.rfind("=");
-        Operation* op2 = ParseLine(line.substr(pos+1), lineNumber);
+        case OperationType::Add:
+        DecideOperandsAdd(tokens, operands);
+        break;
 
-        operands.push_back(op1);
-        operands.push_back(op2);
-        
-    }
-    else if(lineType == OperationType::Return)
-    {
-        Reference* arg1 = DecideReference(tokens.at(0));
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
+        case OperationType::Subtract:
+        DecideOperandsSubtract(tokens, operands);
+        break;
 
-        operands.push_back(op1);
+        case OperationType::Multiply:
+        DecideOperandsMultiply(tokens, operands);
+        break;
+
+        case OperationType::Divide:
+        DecideOperandsDivide(tokens, operands);
+        break;
+
+        case OperationType::And:
+        DecideOperandsAnd(tokens, operands);
+        break;
+
+        case OperationType::Or:
+        DecideOperandsOr(tokens, operands);
+        break;
+
+        case OperationType::Not:
+        DecideOperandsNot(tokens, operands);
+        break;
+
+        case OperationType::Evaluate:
+        DecideOperandsEvaluate(tokens, operands);
+        break;
+
+        case OperationType::Print:
+        DecideOperandsPrint(tokens, operands);
+        break;
+
+        case OperationType::Return:
+        DecideOperandsReturn(tokens, operands);
+        break;
     }
 }
 
@@ -376,56 +529,109 @@ std::string RemoveCommas(std::string line)
 }
 
 // commas allow line breaks TODO: WORK HERE
-std::string GetEffectiveLine(std::fstream& file, int& lineNumber)
+std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart)
 {
     std::string fullLine = "";
     std::string newLine;
+
     do
     {
         lineNumber++;
         if(!std::getline(file, newLine))
             break;
+        if(newLine != "")
+            lineStart = lineNumber - 1;
+        std::cout << "(" << newLine << ")";
         fullLine += newLine;
 
     } while (LastNonWhitespaceChar(newLine) == ',' || newLine.size() == 0);
     return RemoveCommas(fullLine);
 }
 
-Operation* ParseLine(const std::string& line, int lineNumber)
-{
-    std::vector<LineTypeProbability> typeProbabilities;
-    DecideLineTypeProbabilities(typeProbabilities, line);
 
-    OperationType lineType;
-    DecideLineType(typeProbabilities, lineType);
+
+
+
+Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& tokens)
+{
+    OperationType opType;
+    DecideOperationType(typeProbabilities, opType);
 
     std::vector<Operation*> operands;
-    DecideOperands(lineType, line, operands, lineNumber);
+    DecideOperands(opType, tokens, operands);
 
     Operation* op = new Operation;
-    op->Type = lineType;
+    op->Type = opType;
     op->Operands = operands;
-    op->LineNumber = lineNumber;
-    if(lineType == OperationType::Return)
+    if(opType == OperationType::Return)
     {
+        op->Operands = std::vector<Operation*>();
         op->Value = operands.at(0)->Value;
     }
 
     return op;
 }
 
-Block Parse(const std::string filepath, int& lineNumber){
+// TODO: Implement
+Operation* ParseComposite(PossibleOperationsList& typeProbabilities, TokenList& tokens)
+{
+    return nullptr;
+}
+
+
+
+void NumberOperation(Operation* op, int lineNumber)
+{
+    op->LineNumber = lineNumber;
+    for(Operation* operand: op->Operands)
+    {
+        NumberOperation(operand, lineNumber);
+    }
+}
+
+Operation* ParseLine(TokenList& tokens)
+{
+    PossibleOperationsList typeProbabilities;
+    DecideLineTypeProbabilities(typeProbabilities, tokens);
+
+    LineType lineType;
+    DecideLineType(typeProbabilities, tokens, lineType);
+
+    switch(lineType)
+    {
+        case LineType::Atomic:
+        return ParseOutAtomic(typeProbabilities, tokens);
+
+        case LineType::Composite:
+        return ParseComposite(typeProbabilities, tokens);
+
+        case LineType::If:
+
+        case LineType::While:
+
+        default:
+        DebugPrint("ParseLine is unimplemented for this case");
+        return nullptr;
+    }
+}
+
+Block ParseBlock(const std::string filepath, int& lineNumber){
     Block parsedBlock;
     std::fstream file;
     file.open(filepath, std::ios::in);
 
     int lineEndPos = lineNumber;
-    for(std::string line = GetEffectiveLine(file, lineEndPos); line != ""; line = GetEffectiveLine(file, lineEndPos))
+    int lineStart = lineNumber;
+    for(std::string line = GetEffectiveLine(file, lineEndPos, lineStart); line != ""; line = GetEffectiveLine(file, lineEndPos, lineStart))
     {
-        Operation* op = ParseLine(line, lineNumber);
+        TokenList tokens = LexLine(line);
+        Operation* op = ParseLine(tokens);
+
+        NumberOperation(op, lineStart);
         parsedBlock.Operations.push_back(op);
 
         lineNumber = lineEndPos;
+        std::cout << lineNumber;
     }
 
     return parsedBlock;
@@ -436,19 +642,26 @@ Block Parse(const std::string filepath, int& lineNumber){
 
 
 
+
+
 int main()
 {
+    bool PRINT_OPERATIONS = false;
+
     int lineNumber = 1;
-    Block b = Parse(".\\program", lineNumber);
+    Block b = ParseBlock(".\\program", lineNumber);
 
     // PRINT OPERATIONS
-    // for(Operation* op: b.Operations)
-    // {
-    //     PrintOperation(*op);
-    // }
+    if(PRINT_OPERATIONS)
+    {
+    for(Operation* op: b.Operations)
+        {
+            PrintDiagnostics(*op);
+        }
+    }
+
 
     std::cout << "####################\n";
-
     DoBlock(b);
 
     // PRINT GLOBALREFRENCES
@@ -458,9 +671,9 @@ int main()
     //     PrintReference(*elem);
     // }
 
-    std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
-    TokenList l = LexLine(line);
-    PrintDiagnostics(l);
+    // std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
+    // TokenList l = LexLine(line);
+    // PrintDiagnostics(l);
 
     return 0;
 }

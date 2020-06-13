@@ -7,30 +7,23 @@
 #include "main.h"
 
 // Structs
-enum class ControlType
-{
-    If,
-    While,
-    Statement
-};
-
 enum class OperationType
 {
-    Define,
-    Assign, //
-    IsEqual,
-    LessThan,
-    GreaterThan,
-    Add, //
-    Subtract,
-    Multiply,
-    Divide,
-    And, //
-    Or,
-    Not,
-    Evaluate,
-    Print,
-    Return,
+    Define, 
+    Assign, 
+    IsEqual, //
+    IsLessThan, //
+    IsGreaterThan, //
+    Add, 
+    Subtract, //
+    Multiply, //
+    Divide, //
+    And, 
+    Or, //
+    Not, //
+    Evaluate, //
+    Print, //
+    Return, //
 };
 
 struct Reference
@@ -59,13 +52,19 @@ struct Block
     std::vector<Operation*> Operations;
 };
 
-struct LineTypeProbability
+struct OperationTypeProbability
 {
     OperationType Type;
     double Probability;
 };
 
-
+enum LineType
+{
+    If,
+    While,
+    Composite,
+    Atomic,
+};
 
 enum class TokenType
 {
@@ -81,6 +80,7 @@ struct Token
 {
     TokenType Type;
     String Content;
+    int Position;
 };
 
 #endif

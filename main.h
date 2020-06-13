@@ -11,12 +11,12 @@ struct Object;
 struct Block;
 struct Operation;
 struct Token;
-struct LineTypeProbability;
+struct OperationTypeProbability;
 
-
-typedef std::vector<Token> TokenList;
+typedef std::vector<Token*> TokenList;
 typedef std::string ObjectClass;
 typedef std::string String;
+typedef std::vector<OperationTypeProbability> PossibleOperationsList;
 
 
 const ObjectClass IntegerClass = "Integer";
@@ -34,8 +34,9 @@ extern std::stringstream ErrorBuffer;
 
 
 void PrintReference(const Reference& ref);
-Operation* ParseLine(const std::string& line, int lineNumber);
+Operation* ParseLine(TokenList& tokens);
 std::string GetStringValue(const Object& obj);
 TokenList LexLine(const std::string& line);
+Reference* DecideReference(std::string name);
 
 #endif
