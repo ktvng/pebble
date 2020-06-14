@@ -24,6 +24,7 @@
 
 
 std::vector<Reference*> GlobalReferences;
+std::vector<ObjectReferenceMap*> ObjectsIndex;
 
 // Error reporting
 std::vector<SystemMessage> RuntimeMsgBuffer;
@@ -732,7 +733,7 @@ Block ParseBlock(const std::string filepath, int& lineNumber){
 int main()
 {
     bool PRINT_OPERATIONS = false;
-    bool PRINT_GLOBAL_REFS = false;
+    bool PRINT_GLOBAL_REFS = true;
     int lineNumber = 1;
     Block b = ParseBlock(".\\program", lineNumber);
 
@@ -762,15 +763,21 @@ int main()
         }
     }
     
-    // std::string line = "test Of the Token 334 parser = 3.1 haha \"this is awesome\" True";
-    // TokenList l = LexLine(line);
-    // std::cout << "######\n"; 
-    // int pos=0;
-    // Token* t;
-    // for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
-    // {
-    //     PrintDiagnostics(t);
-    // }
+    std::string line = "test Of the Token 334 parser = 3.1 haha \"this is awesome\" True";
+    TokenList l = LexLine(line);
+    std::cout << "######\n"; 
+    int pos=0;
+    Token* t;
+    for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
+    {
+        PrintDiagnostics(t);
+    }
+    PrintDiagnostics(l);
+
+    for(ObjectReferenceMap* map: ObjectsIndex)
+    {
+        PrintDiagnostics(map);
+    }
 
 
     return 0;

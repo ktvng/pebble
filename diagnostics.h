@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdarg>
 
+#include "main.h"
 #include "arch.h"
 
 
@@ -31,17 +32,19 @@ void CompileMsgPrint(int lineNumber);
 /// creates a String by expanding a [message] and its variable arguments
 String MSG(String message, ...);
 
-
 void PrintDiagnostics(const Object& obj);
 void PrintDiagnostics(const Reference& ref);
 void PrintDiagnostics(const Operation& op, int level=0);
 void PrintDiagnostics(const TokenList& tokenList);
 void PrintDiagnostics(const Token& token);
+void PrintDiagnostics(const ObjectReferenceMap& map);
 
 void PrintDiagnostics(const Object* obj);
 void PrintDiagnostics(const Reference* ref);
 void PrintDiagnostics(const Operation* op, int level=0);
 void PrintDiagnostics(const TokenList* tokenList);
 void PrintDiagnostics(const Token* token);
+void PrintDiagnostics(const ObjectReferenceMap* map);
+
 
 #endif

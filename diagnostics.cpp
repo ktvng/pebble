@@ -11,6 +11,9 @@
 #include "object.h"
 
 #include "diagnostics.h"
+#include <algorithm>
+
+
 
 // Error printing
 void DebugPrint(const std::string& value)
@@ -145,28 +148,172 @@ String MSG(String message, ...)
 }
 
 
+const String c_indentString = "  ";
+
+String IndentLevel(int level)
+{
+    if(level <= 0)
+        return "";
+    
+    String levelString;
+    for(int i=0; i<level; i++)
+    {
+        levelString += c_indentString;
+    }
+
+    return levelString;
+}
+
+String IndentStringToLevel(String str, int level, int margin=0)
+{
+    String leveledStr = "";
+    for(size_t i=0; i<str.size(); i++)
+    {
+        leveledStr += str.at(i);
+        if(str.at(i) == '\n')
+        {
+            leveledStr += IndentLevel(level);
+            for(int j=0; j<margin; j++)
+            {
+                leveledStr += " ";
+            }
+        }
+    }
+    return leveledStr;
+}
+
+String StringForAttrbute(String name, String value)
+{
+    return MSG("-[%s]: %s\n", name, value);
+}
+
+String StringForAttrbuteOneLine(String name, String value)
+{
+    return MSG("-[%s]: %s", name, value);
+}
+
+int ValueStartOffset(String name)
+{
+    return 5 + name.size();
+}
+
+
+template <typename T>
+String ToString(std::vector<T> list, String typeString)
+{
+    if(list.size() == 0)
+        return MSG("<List<%s>", typeString);
+    String listString = MSG("<List<%s>\n", typeString);
+    for(size_t i=0; i<list.size(); i++)
+    {
+        int offset = ValueStartOffset(std::to_string(i));
+        listString += IndentLevel(1) +
+             StringForAttrbuteOneLine(std::to_string(i), IndentStringToLevel(ToString(list.at(i)), 1, offset));
+    }
+    return listString;
+}
+
+String ToString(const String& str)
+{
+    return str;
+}
+
 
 // Diagnostic printing
+String ToString(const Object& obj)
+{
+    String objString = "<Object>\n";
+    
+    objString += IndentLevel(1) + 
+        StringForAttrbute("Class", obj.Class);
+
+    objString += IndentLevel(1) +
+        StringForAttrbute("Value", GetStringValue(obj));
+    
+    objString += IndentLevel(1) +
+        StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes, "Reference"), 1));
+
+    return objString;
+}
+
+String ToString(const Object* obj)
+{
+    return ToString(*obj);
+}
+
+String ToString(const Reference& ref)
+{
+    String refString = "<Reference>\n";
+
+    refString += IndentLevel(1) +
+        StringForAttrbute("Name", ref.Name);
+
+    refString += IndentLevel(1) +
+        StringForAttrbute("ToObject", IndentStringToLevel(ToString(ref.ToObject), 1));
+
+    return refString;
+}
+
+String ToString(const Reference* ref)
+{
+    return ToString(*ref);
+}
+
+String ToString(const Operation& op){
+    return "OP";
+}
+
+String ToString(const ObjectReferenceMap& map)
+{
+    String mapString = "<ObjectReferenceMap>\n";
+    mapString += IndentLevel(1) + 
+        StringForAttrbute("Object", IndentStringToLevel(ToString(*map.Object),1));
+
+    mapString += IndentLevel(1) + StringForAttrbute("Reference", "<List<Reference*>");
+    for(size_t i=0; i<map.References.size(); i++)
+    {
+        mapString += IndentLevel(2) + 
+            StringForAttrbute(std::to_string(i), map.References.at(i)->Name);
+    }
+
+    return mapString;
+}
+
+String ToString(const ObjectReferenceMap* map)
+{
+    return ToString(*map);
+}
+
+String ToString(const Token& token)
+{
+    return StringForAttrbute("Token", MSG("Type: %s\t Content: %s", 
+        GetStringTokenType(token.Type),
+        token.Content));
+}
+
+String ToString(const Token* token)
+{
+    return ToString(*token);
+}
+
 void PrintDiagnostics(const Object& obj)
 {
-    std::cout << "| Class: " << obj.Class << "\n| Value: " << GetStringValue(obj)  << "\n"; 
+    std::cout << ToString(obj);
 }
 
 void PrintDiagnostics(const Object* obj)
 {
-    PrintDiagnostics(*obj);
+    std::cout << ToString(obj);
 }
 
 void PrintDiagnostics(const Reference& ref)
 {
-    std::cout << "| Name: " << ref.Name << "\n";
-    PrintDiagnostics(*ref.ToObject);
-    std::cout << "\n";
+    std::cout << ToString(ref);
 }
 
 void PrintDiagnostics(const Reference* ref)
 {
-    PrintDiagnostics(*ref);
+    std::cout << ToString(ref);
 }
 
 void PrintDiagnostics(const Operation& op, int level)
@@ -215,7 +362,7 @@ void PrintDiagnostics(const Operation* op, int level)
 
 void PrintDiagnostics(const Token& token)
 {
-    std::cout << "| Type: " << GetStringTokenType(token.Type) << "\t Content: " << token.Content << "\n";
+    std::cout << ToString(token);
 }
 
 void PrintDiagnostics(const Token* token)
@@ -225,14 +372,20 @@ void PrintDiagnostics(const Token* token)
 
 void PrintDiagnostics(const TokenList& tokenList)
 {
-    std::cout << "TOKENS---\n";
-    for(const Token* t: tokenList)
-    {
-        PrintDiagnostics(t);
-    }
+    std::cout << ToString(tokenList, "Token*");
 }
 
 void PrintDiagnostics(const TokenList* tokenList)
 {
     PrintDiagnostics(*tokenList);
+}
+
+void PrintDiagnostics(const ObjectReferenceMap& map)
+{
+    std::cout << ToString(map);
+}
+
+void PrintDiagnostics(const ObjectReferenceMap* map)
+{
+    std::cout << ToString(*map);
 }

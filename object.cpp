@@ -3,10 +3,49 @@
 #include "object.h"
 #include "diagnostics.h"
 
+bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
+{
+    for(Reference* objRef: map->References)
+    {
+        if(ref == objRef)
+            return true;
+    }
+    return false;
+}
+
+ObjectReferenceMap* EntryInIndexOf(const Object* obj)
+{
+    for(ObjectReferenceMap* map: ObjectsIndex)
+    {
+        if(map->Object == obj)
+            return map;
+    }
+    return nullptr;
+}
+
+void IndexObject(Object* obj, Reference* ref)
+{
+    ObjectReferenceMap* map = EntryInIndexOf(obj);
+
+    if(map == nullptr)
+    {
+        ObjectReferenceMap* objMap = new ObjectReferenceMap;
+        std::vector<Reference*> refs = { ref };
+        
+        *objMap = ObjectReferenceMap{ obj, refs };
+        ObjectsIndex.push_back(objMap);
+        
+        return;
+    }
+    
+    map->References.push_back(ref);
+}
+
 Reference* CreateReferenceInternal(String name, ObjectClass objClass)
 {
     Reference* ref = new Reference;
     Object* obj = new Object;
+    IndexObject(obj, ref);
 
     ref->Name = name;
     ref->ToObject = obj;
@@ -56,9 +95,14 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
     return ref;
 }
 
+
+
+
 Reference* CreateReference(String name, Object* obj)
 {
     Reference* ref = new Reference;
+    IndexObject(obj, ref);
+
     ref->Name = name;
     ref->ToObject = obj;
 
@@ -71,6 +115,8 @@ Reference* CreateNullReference()
     nullObject.Class = NullClass;
     
     Reference* ref = new Reference { c_returnReferenceName, &nullObject };
+    IndexObject(&nullObject, ref);
+    
     return ref;
 }
 

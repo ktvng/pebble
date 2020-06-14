@@ -98,4 +98,10 @@ const std::vector<TokenType> ObjectTokenTypes {
     TokenType::Reference,
 };
 
+struct ObjectReferenceMap
+{
+    Object* Object;
+    std::vector<Reference*> References;
+};
+
 #endif

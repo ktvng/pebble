@@ -14,6 +14,7 @@ struct Operation;
 struct Token;
 struct OperationTypeProbability;
 struct SystemMessage;
+struct ObjectReferenceMap;
 
 typedef std::vector<Token*> TokenList;
 typedef std::string ObjectClass;
@@ -53,6 +54,10 @@ const bool c_ERROR = true;
 
 extern std::vector<SystemMessage> RuntimeMsgBuffer;
 extern std::vector<SystemMessage> CompileMsgBuffer;
+
+
+extern std::vector<ObjectReferenceMap*> ObjectsIndex;
+
 
 Operation* ParseLine(TokenList& tokens);
 TokenList LexLine(const std::string& line);
