@@ -1,7 +1,9 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include <cstdarg>
+#include <iostream>
+#include <fstream>
+#include <ctime>
 
 #include "main.h"
 #include "arch.h"
@@ -17,19 +19,84 @@ void DebugPrint(const std::string& value)
         std::cout << value << "\n";
 }
 
-void RuntimeErrorPrint(int lineNumber)
+String itos2(int i)
+{
+    if(i == 0)
+        return "00";
+    if(i < 10)
+        return MSG("0%i", i);
+    return MSG("%i", i);
+}
+
+void LogIt(LogSeverityType type, String method, String message)
+{
+    if(type < LogSeverityLevel)
+        return;
+    
+    time_t rawTime;
+    struct tm * timeInfo;
+
+    std::time(&rawTime);
+    timeInfo = std::localtime(&rawTime);
+
+
+    String timeString = MSG("[%i/%s/%s %s:%s:%s]", 
+        (1900 + timeInfo->tm_year), 
+        itos2(timeInfo->tm_mon), 
+        itos2(timeInfo->tm_mday), 
+        itos2(timeInfo->tm_hour), 
+        itos2(timeInfo->tm_min), 
+        itos2(timeInfo->tm_sec));
+
+    std::ofstream logfile;
+    logfile.open(".\\logs\\log");
+    logfile << timeString << MSG("[%s]", LogSeverityTypeString.at(type)) << MSG("[%s]: ", method) << message << std::endl;
+    logfile.close();
+}
+
+
+String SystemMessageTypeString(SystemMessageType type)
+{
+    switch(type)
+    {
+        case SystemMessageType::Exception:
+        return "Exception";
+
+        case SystemMessageType::Warning:
+        return "Warning";
+
+        case SystemMessageType::Advice:
+        return "Advice";
+
+        default:
+        LogIt(LogSeverityType::Sev1_Notify, "SystemMessageTypeString", "unimplemented SystemMessageType");
+        return "";
+    }
+}
+
+void ReportMsgInternal(std::vector<SystemMessage>& msgBuffer, int lineNumber)
 {
     if(!c_ERROR)
         return;
 
-    std::string line;
-    while(std::getline(ErrorBuffer, line))
+    for(SystemMessage msg: msgBuffer)
     {
-        std::cerr << "(!) Exception at line[" << lineNumber << "]: "  << line << "\n";
+        std::cerr << MSG("(!) %s at line[%i]: ", SystemMessageTypeString(msg.Type), lineNumber)  << msg.Content << "\n";
     }
+    msgBuffer.clear();
 }
 
-String Message(String message, ...)
+void RuntimeMsgPrint(int lineNumber)
+{
+    ReportMsgInternal(RuntimeMsgBuffer, lineNumber);
+}
+
+void CompileMsgPrint(int lineNumber)
+{
+    ReportMsgInternal(CompileMsgBuffer, lineNumber);
+}
+
+String MSG(String message, ...)
 {
     va_list vl;
     va_start(vl, message);

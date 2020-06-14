@@ -275,6 +275,12 @@ bool TokenMatchesContent(Token* token, std::vector<String> contents)
     return false;
 }
 
+bool TokenMatchesContent(Token* token, String content)
+{
+    std::vector<String> contents = { content };
+    return TokenMatchesContent(token, contents);
+}
+
 Token* NextTokenMatching(const TokenList& tokens, std::vector<TokenType> types, int& pos)
 {
     for(; static_cast<size_t>(pos)<tokens.size(); pos++)
@@ -335,3 +341,12 @@ Token* NextTokenMatching(const TokenList& tokens, String content)
 }
 
 
+bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> contents)
+{
+    for(Token* t: tokenList)
+    {
+        if(TokenMatchesContent(t, contents))
+            return true;
+    }
+    return false;
+}

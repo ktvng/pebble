@@ -49,4 +49,11 @@ Token* NextTokenMatching(const TokenList& tokens, String content);
 bool TokenMatchesType(Token* token, TokenType type);
 bool TokenMatchesType(Token* token, std::vector<TokenType> types);
 
+/// returns true if [token] is has content matching one of the Strings in [contents]
+bool TokenMatchesContent(Token* token, String content);
+bool TokenMatchesContent(Token* token, std::vector<String> contents);
+
+bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> contents);
+
+
 #endif

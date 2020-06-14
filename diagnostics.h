@@ -6,13 +6,30 @@
 
 #include "arch.h"
 
-extern std::stringstream ErrorBuffer;
 
-void DebugPrint(const std::string& value);
-void RuntimeErrorPrint(int lineNumber);
+
+enum class SystemMessageType
+{
+    Exception,
+    Warning,
+    Advice
+};
+
+struct SystemMessage
+{
+    String Content;
+    SystemMessageType Type;
+};
+
+extern std::vector<SystemMessage> RuntimeMsgBuffer;
+extern std::vector<SystemMessage> CompileMsgBuffer;
+
+void LogIt(LogSeverityType type, String method, String message);
+void RuntimeMsgPrint(int lineNumber);
+void CompileMsgPrint(int lineNumber);
 
 /// creates a String by expanding a [message] and its variable arguments
-String Message(String message, ...);
+String MSG(String message, ...);
 
 
 void PrintDiagnostics(const Object& obj);

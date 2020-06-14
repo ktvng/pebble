@@ -116,7 +116,7 @@ String GetStringValue(const Object& obj)
     {
         return "null";
     }
-    DebugPrint("unknown class");
+    LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";
 }
 
@@ -124,7 +124,7 @@ int GetIntValue(const Object& obj)
 {
     if(obj.Class != IntegerClass)
     {
-        DebugPrint("object has no integer value");
+        LogIt(LogSeverityType::Sev1_Notify, "GetIntValue", "only implemented for IntegerClass");
         return 0;
     }
     return *static_cast<int*>(obj.Value);
@@ -140,7 +140,7 @@ double GetDecimalValue(const Object& obj)
     {
         return static_cast<double>(*static_cast<int*>(obj.Value));
     }
-    DebugPrint("object has no decimal value");
+    LogIt(LogSeverityType::Sev1_Notify, "GetDecimalValue", "only implemented for Integer and Decimal classes");
     return 0;
 }
 
@@ -185,13 +185,11 @@ Reference* CreateReferenceToNewObject(String name, Token* valueToken)
         case TokenType::Decimal:
         return CreateReferenceToNewObject(name, DecimalClass, std::stod(value));
 
+        case TokenType::Reference:
         default:
-        break;
+        LogIt(LogSeverityType::Sev1_Notify, "CreateReferenceToNewObject", "unimplemented in this case (generic References/Simple)");
+        return CreateNullReference();
     }
-
-    // Does not support generic objects;
-    DebugPrint("Cannot create reference");
-    return CreateNullReference();
 }
 
 Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken)

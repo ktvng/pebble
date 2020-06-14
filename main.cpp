@@ -26,40 +26,41 @@
 std::vector<Reference*> GlobalReferences;
 
 // Error reporting
-std::stringstream ErrorBuffer;
-
-/// flag which is true whenever the ErrorBuffer contains a pending error message
-static bool ErrorFlag = false;
+std::vector<SystemMessage> RuntimeMsgBuffer;
+std::vector<SystemMessage> CompileMsgBuffer;
+/// flag which is true whenever the RuntimeMsgBuffer contains a pending error message
+static bool RuntimeMsgFlag = false;
+static bool CompileMsgFlag = false;
 
 /// adds an error to the error buffer which will be printed when RuntimeErrorPrint is called
-void ReportError(String expandedMessage)
+void ReportRuntimeMsg(SystemMessageType type, String message)
 {
-    ErrorBuffer << expandedMessage << std::endl;
-    ErrorFlag = true;
+    SystemMessage msg { message, type };
+    RuntimeMsgBuffer.push_back(msg);
+    RuntimeMsgFlag = true;
+}
+
+void ReportCompileMsg(SystemMessageType type, String message)
+{
+    SystemMessage msg { message, type };
+    CompileMsgBuffer.push_back(msg);
+    CompileMsgFlag = true;
 }
 
 
 
 // Atomic Operations
 ///
-Reference* Assign(Reference& lRef, Reference& rRef)
+Reference* OperationAssign(Reference& lRef, Reference& rRef)
 {
     lRef.ToObject = rRef.ToObject;
     return CreateReference(c_returnReferenceName, lRef.ToObject);
 }
 
 /// 
-Reference* Print(Reference& ref)
+Reference* OperationPrint(Reference& ref)
 {
-    if(ref.ToObject->Class == IntegerClass ||
-        ref.ToObject->Class == DecimalClass ||
-        ref.ToObject->Class == StringClass ||
-        ref.ToObject->Class == BooleanClass ||
-        ref.ToObject->Class == NullClass)
-    {
-        std::cout << GetStringValue(*ref.ToObject) << "\n";
-    }
-
+    std::cout << GetStringValue(*ref.ToObject) << "\n";
     return CreateReference(c_returnReferenceName, ref.ToObject);
 }
 
@@ -83,18 +84,19 @@ Reference* Add(const Reference& lRef, const Reference& rRef)
         }
         else
         {
+            LogIt(LogSeverityType::Sev1_Notify, "Add", "unimplemented");
             resultRef = CreateNullReference();
         }
         return resultRef;
     }
 
     resultRef = CreateNullReference();
-    ReportError(Message("cannot add types %s and %s", lRef.ToObject->Class, rRef.ToObject->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", lRef.ToObject->Class, rRef.ToObject->Class));
     return resultRef;
 }
 
 ///
-Reference* And(const Reference& lRef, const Reference& rRef)
+Reference* OperationAnd(const Reference& lRef, const Reference& rRef)
 {
     bool b = GetBoolValue(*lRef.ToObject) && GetBoolValue(*rRef.ToObject);
     return CreateReferenceToNewObject(c_returnReferenceName, BooleanClass, b);
@@ -116,13 +118,13 @@ Reference* DoOperationOnReferences(Operation* op, std::vector<Reference*> operan
         return Add(*operands.at(0), *operands.at(1));
 
         case OperationType::Print:
-        return Print(*operands.at(0));
+        return OperationPrint(*operands.at(0));
 
         case OperationType::Assign:
-        return Assign(*operands.at(0), *operands.at(1));
+        return OperationAssign(*operands.at(0), *operands.at(1));
 
         default:
-        DebugPrint("(DoOperationOnReference) unknown/unimplemented OperationType");
+        LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
         return CreateNullReference();
     }
 }
@@ -157,9 +159,10 @@ void DoBlock(Block& codeBlock)
         // PrintOperation(*op);
         // Reference* result = 
         DoOperation(op);
-        if(ErrorFlag)
+        if(RuntimeMsgFlag)
         {
-            RuntimeErrorPrint(op->LineNumber);
+            RuntimeMsgPrint(op->LineNumber);
+            RuntimeMsgFlag = false;
         }
     }
 }
@@ -196,9 +199,10 @@ void AddOperationTo(OperationsList& operands, Operation* op)
 // Decide Probabilities
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    if(Token* pos = FindToken(tokens, "add"); pos != nullptr)
+    std::vector<String> addKeyWords = { "add", "plus", "+", "adding", "declare" };
+    if(TokenListContainsContent(tokens, addKeyWords))
     {
-        OperationTypeProbability addType = { OperationType::Add, 10.0/pos->Position };
+        OperationTypeProbability addType = { OperationType::Add, 4.0 };
         typeProbabilities.push_back(addType);
     }
     
@@ -206,9 +210,10 @@ void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const Token
 
 void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    if(Token* pos = FindToken(tokens, "define"); pos != nullptr)
+    std::vector<String> defineKeyWords = { "define", "let", "make", "declare" };
+    if(TokenListContainsContent(tokens, defineKeyWords))
     {
-        OperationTypeProbability defineType = { OperationType::Define, 10.0/pos->Position };
+        OperationTypeProbability defineType = { OperationType::Define, 4.0};
         typeProbabilities.push_back(defineType);
     }
 }
@@ -307,18 +312,28 @@ void DecideOperandsAdd(TokenList& tokens, OperationsList& operands) // EDIT
 
 void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
 {
+    Reference* ref; 
     Token* name = NextTokenMatching(tokens, TokenType::Reference);
     Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
-
-    if(name == nullptr)
-        DebugPrint("Unknown reference");
+    if(name == nullptr){
+        LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
+        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
+        return;
+    }
+    
     if(value == nullptr)
-        DebugPrint("Unknown value");
+    {
+        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
+        ref = CreateNullReference(); 
+    }
+    else
+    {
+        ref = CreateReferenceToNewObject(name, value);
+    }
+    
 
-    Reference* r = CreateReferenceToNewObject(name, value);
 
-
-    GlobalReferences.push_back(r);
+    GlobalReferences.push_back(ref);
 }
 
 void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
@@ -418,7 +433,7 @@ Reference* DecideExistingReferenceFor(Token* token) // MAJOR: Add scope
             if(TokenMatchesReference(token, ref))
                 return ref;
         }
-        DebugPrint("cannot resolve reference for token");
+        ReportCompileMsg(SystemMessageType::Exception, MSG("cannot resolve reference [%s]", token->Content));
     }
     return nullptr;
 }
@@ -586,6 +601,8 @@ std::string RemoveCommas(std::string line)
 }
 
 // commas allow line breaks TODO: WORK HERE
+/// returns a line of code and sets lineNumber to that of the next line and lineStart to
+/// the starting position of the returned line
 std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart)
 {
     std::string fullLine = "";
@@ -632,6 +649,7 @@ Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& 
 /// parses a composite operation into an Operation tree
 Operation* ParseComposite(PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
+    
     return nullptr;
 }
 
@@ -657,7 +675,7 @@ Operation* ParseLine(TokenList& tokens)
 
     LineType lineType;
     DecideLineType(typeProbabilities, tokens, lineType);
-
+    
     switch(lineType)
     {
         case LineType::Atomic:
@@ -671,7 +689,7 @@ Operation* ParseLine(TokenList& tokens)
         case LineType::While:
 
         default:
-        DebugPrint("ParseLine is unimplemented for this case");
+        LogIt(LogSeverityType::Sev1_Notify, "ParseLine", "unimplemented in case");
         return nullptr;
     }
 }
@@ -688,6 +706,12 @@ Block ParseBlock(const std::string filepath, int& lineNumber){
     {
         TokenList tokens = LexLine(line);
         Operation* op = ParseLine(tokens);
+
+        if(CompileMsgFlag)
+        {
+            CompileMsgPrint(lineStart);
+            CompileMsgFlag = false;
+        }
 
         NumberOperation(op, lineStart);
         parsedBlock.Operations.push_back(op);

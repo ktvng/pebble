@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 
 
@@ -12,6 +13,7 @@ struct Block;
 struct Operation;
 struct Token;
 struct OperationTypeProbability;
+struct SystemMessage;
 
 typedef std::vector<Token*> TokenList;
 typedef std::string ObjectClass;
@@ -28,12 +30,29 @@ const ObjectClass NullClass = "Null";
 
 const std::string c_returnReferenceName = "ReturnedObject";
 
+/// defines how severe a log event is. due to enum -> int casting, definition order is important
+enum LogSeverityType
+{
+    Sev1_Notify,
+    Sev2_Important,
+    Sev3_Critical,
+};
+
+const std::map<LogSeverityType, String> LogSeverityTypeString =
+{
+    { LogSeverityType::Sev3_Critical, "Sev3" },
+    { LogSeverityType::Sev2_Important, "Sev2" },
+    { LogSeverityType::Sev1_Notify, "Sev1" },
+};
+/// log all messages at or above this level
+const LogSeverityType LogSeverityLevel = LogSeverityType::Sev1_Notify;
+
 
 const bool c_DEBUG = true;
 const bool c_ERROR = true;
 
-extern std::stringstream ErrorBuffer;
-
+extern std::vector<SystemMessage> RuntimeMsgBuffer;
+extern std::vector<SystemMessage> CompileMsgBuffer;
 
 Operation* ParseLine(TokenList& tokens);
 TokenList LexLine(const std::string& line);
