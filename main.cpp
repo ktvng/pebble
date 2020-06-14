@@ -205,7 +205,6 @@ void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const Token
         OperationTypeProbability addType = { OperationType::Add, 4.0 };
         typeProbabilities.push_back(addType);
     }
-    
 }
 
 void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
@@ -220,9 +219,10 @@ void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const To
 
 void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    if(Token* pos = FindToken(tokens, "print"); pos != nullptr)
+    std::vector<String> printKeyWords = { "print", "display", "show", "output" };
+    if(TokenListContainsContent(tokens, printKeyWords))
     {
-        OperationTypeProbability printType = { OperationType::Print, 10.0/pos->Position };
+        OperationTypeProbability printType = { OperationType::Print, 4.0 };
         typeProbabilities.push_back(printType);
     }
 }
@@ -762,12 +762,12 @@ int main()
         }
     }
     
-    // std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
+    // std::string line = "test Of the Token 334 parser = 3.1 haha \"this is awesome\" True";
     // TokenList l = LexLine(line);
     // std::cout << "######\n"; 
     // int pos=0;
     // Token* t;
-    // for(t = NextTokenMatchingType(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatchingType(l, ObjectTokenTypes, pos))
+    // for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
     // {
     //     PrintDiagnostics(t);
     // }

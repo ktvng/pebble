@@ -67,7 +67,7 @@ bool IsBoolean(const std::string& tokenString)
 
 bool IsReference(const std::string& tokenString)
 {
-    return tokenString.at(0) == std::toupper(tokenString.at(0));
+    return (tokenString.at(0) >= 65 && tokenString.at(0) <= 90);
 }
 
 TokenType TypeOfTokenString(const std::string& tokenString)
