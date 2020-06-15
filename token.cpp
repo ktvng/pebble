@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <cctype>
 
 #include "main.h"
 #include "arch.h"
