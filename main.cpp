@@ -363,11 +363,11 @@ void DecideOperationValue(Scope* scope, const OperationType& opType, TokenList& 
 
 
 
-char LastNonWhitespaceChar(std::string& line)
+char LastNonWhitespaceChar(String& line)
 {
-    int i;
-    for(i=line.size()-1; i>=0 && line.at(i) != ' '; i--);
-    return i; 
+    int i = line.size();
+    while (i--, i >= 0 && line.at(i) == ' ');
+    return (i >= 0 ? line.at(i) : '\0');
 }
 
 String RemoveCommas(String line)
