@@ -27,14 +27,14 @@ typedef std::vector<OperationTypeProbability> PossibleOperationsList;
 typedef std::vector<Operation*> OperationsList;
 
 
-const ObjectClass IntegerClass = "Integer";
-const ObjectClass DecimalClass = "Decimal";
-const ObjectClass StringClass = "String";
-const ObjectClass BooleanClass = "Boolean";
-const ObjectClass NullClass = "Null";
+inline const ObjectClass IntegerClass = "Integer";
+inline const ObjectClass DecimalClass = "Decimal";
+inline const ObjectClass StringClass = "String";
+inline const ObjectClass BooleanClass = "Boolean";
+inline const ObjectClass NullClass = "Null";
 
-const std::string c_returnReferenceName = "ReturnedObject";
-const std::string c_primitiveObjectName = "PrimitiveObject";
+inline const std::string c_returnReferenceName = "ReturnedObject";
+inline const std::string c_primitiveObjectName = "PrimitiveObject";
 
 /// defines how severe a log event is. due to enum -> int casting, definition order is important
 enum LogSeverityType

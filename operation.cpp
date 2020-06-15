@@ -154,7 +154,7 @@ void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const To
 {
     if(Token* pos = FindToken(tokens, "="); pos != nullptr)
     {
-        OperationTypeProbability assignType = { OperationType::Assign, 10.0/pos->Position };
+        OperationTypeProbability assignType = { OperationType::Assign, 10 };
         typeProbabilities.push_back(assignType);
     }
 }

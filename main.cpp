@@ -416,7 +416,7 @@ Operation* ParseOutAtomic(Scope* scope, PossibleOperationsList& typeProbabilitie
     DecideOperationType(typeProbabilities, opType);
     op->Type = opType;
 
-
+    LogItDebug(MSG("operation type is %s", ToString(opType)), "ParseOutAtomic");
     // these operands act on references!
     if(opType == OperationType::Return || opType == OperationType::Define || opType == OperationType::Assign)
     {

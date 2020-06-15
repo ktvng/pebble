@@ -184,10 +184,9 @@ std::string GetStringTokenType(TokenType type)
     return typeString;
 }
 
-bool SameLetter(char c1, char c2)
+bool SameLetterOrChar(char c1, char c2)
 {
-    int diff = std::abs(static_cast<int>(c1) - static_cast<int>(c2));
-    return diff == 0 || diff == 32;
+    return std::toupper(c1) == std::toupper(c2);
 }
 
 bool StringCaseInsensitiveEquals(const std::string& str1, const std::string& str2)
@@ -197,7 +196,7 @@ bool StringCaseInsensitiveEquals(const std::string& str1, const std::string& str
 
     for(size_t pos=0; pos<str1.size(); pos++)
     {
-        if(!SameLetter(str1.at(pos), str2.at(pos)))
+        if(!SameLetterOrChar(str1.at(pos), str2.at(pos)))
             return false;
     }
     
