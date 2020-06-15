@@ -1,10 +1,56 @@
+#include <cstdarg>
+#include <iostream>
+
 #include "object.h"
 #include "diagnostics.h"
+#include "program.h"
 
-Reference* MakeGeneric(String name, ObjectClass objClass)
+bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
+{
+    for(Reference* objRef: map->References)
+    {
+        if(ref == objRef)
+            return true;
+    }
+    return false;
+}
+
+/// returns the ObjectReferenceMap corresonding to [obj] or nullptr if not found
+ObjectReferenceMap* EntryInIndexOf(const Object* obj)
+{
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    {
+        if(map->Object == obj)
+            return map;
+    }
+    return nullptr;
+}
+
+void IndexObject(Object* obj, Reference* ref)
+{
+    ObjectReferenceMap* map = EntryInIndexOf(obj);
+
+    if(map == nullptr)
+    {
+        ObjectReferenceMap* objMap = new ObjectReferenceMap;
+        std::vector<Reference*> refs = { ref };
+        
+        *objMap = ObjectReferenceMap{ obj, refs };
+        PROGRAM->ObjectsIndex.push_back(objMap);
+        
+        LogItDebug("reference added for new object", "IndexObject");
+        return;
+    }
+    
+    LogItDebug("reference added for existing object", "IndexObject");
+    map->References.push_back(ref);
+}
+
+Reference* CreateReferenceInternal(String name, ObjectClass objClass)
 {
     Reference* ref = new Reference;
     Object* obj = new Object;
+    IndexObject(obj, ref);
 
     ref->Name = name;
     ref->ToObject = obj;
@@ -14,9 +60,9 @@ Reference* MakeGeneric(String name, ObjectClass objClass)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, int value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     int* i = new int;
     *i = value;
     ref->ToObject->Value = i;
@@ -24,9 +70,9 @@ Reference* Make(String name, ObjectClass objClass, int value)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, double value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     double* d = new double;
     *d = value;
     ref->ToObject->Value = d;
@@ -34,9 +80,9 @@ Reference* Make(String name, ObjectClass objClass, double value)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, bool value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     bool* b = new bool;
     *b = value;
     ref->ToObject->Value = b;
@@ -44,9 +90,9 @@ Reference* Make(String name, ObjectClass objClass, bool value)
     return ref;
 }
 
-Reference* Make(String name, ObjectClass objClass, const String value)
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value)
 {
-    Reference* ref = MakeGeneric(name, objClass);
+    Reference* ref = CreateReferenceInternal(name, objClass);
     std::string* s = new std::string;
     *s = value;
     ref->ToObject->Value = s;
@@ -54,23 +100,36 @@ Reference* Make(String name, ObjectClass objClass, const String value)
     return ref;
 }
 
-Reference* Make(String name, Object* obj)
+
+
+
+Reference* CreateReference(String name, Object* obj)
 {
     Reference* ref = new Reference;
+    IndexObject(obj, ref);
+
     ref->Name = name;
     ref->ToObject = obj;
 
     return ref;
 }
 
-Reference* Make(const String name)
+Reference* CreateNullReference(String name)
 {
     static Object nullObject;
     nullObject.Class = NullClass;
     
     Reference* ref = new Reference { name, &nullObject };
+    IndexObject(&nullObject, ref);
+    
     return ref;
 }
+
+Reference* CreateNullReference()
+{
+    return CreateNullReference(c_returnReferenceName);
+}
+
 
 
 
@@ -114,7 +173,7 @@ String GetStringValue(const Object& obj)
     {
         return "null";
     }
-    DebugPrint("unknown class");
+    LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";
 }
 
@@ -122,7 +181,7 @@ int GetIntValue(const Object& obj)
 {
     if(obj.Class != IntegerClass)
     {
-        DebugPrint("object has no integer value");
+        LogIt(LogSeverityType::Sev1_Notify, "GetIntValue", "only implemented for IntegerClass");
         return 0;
     }
     return *static_cast<int*>(obj.Value);
@@ -138,7 +197,7 @@ double GetDecimalValue(const Object& obj)
     {
         return static_cast<double>(*static_cast<int*>(obj.Value));
     }
-    DebugPrint("object has no decimal value");
+    LogIt(LogSeverityType::Sev1_Notify, "GetDecimalValue", "only implemented for Integer and Decimal classes");
     return 0;
 }
 
@@ -161,3 +220,37 @@ bool GetBoolValue(const Object& obj)
         return true;
     }
 }
+
+
+Reference* CreateReferenceToNewObject(String name, Token* valueToken)
+{
+    String value = valueToken->Content;
+    bool b;
+
+    switch(valueToken->Type)
+    {
+        case TokenType::Integer:
+        return CreateReferenceToNewObject(name, IntegerClass, std::stoi(value));
+
+        case TokenType::Boolean:
+        b = value == "true" ? true : false;
+        return CreateReferenceToNewObject(name, BooleanClass, b);
+
+        case TokenType::String:
+        return CreateReferenceToNewObject(name, StringClass, value);
+
+        case TokenType::Decimal:
+        return CreateReferenceToNewObject(name, DecimalClass, std::stod(value));
+
+        case TokenType::Reference:
+        default:
+        LogIt(LogSeverityType::Sev1_Notify, "CreateReferenceToNewObject", "unimplemented in this case (generic References/Simple)");
+        return CreateNullReference();
+    }
+}
+
+Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken)
+{
+    return CreateReferenceToNewObject(nameToken->Content, valueToken);
+}
+

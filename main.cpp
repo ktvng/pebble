@@ -18,132 +18,45 @@
 
 #include "main.h"
 #include "arch.h"
+#include "program.h"
 #include "token.h"
 #include "object.h"
 #include "diagnostics.h"
+#include "operation.h"
 
-
-std::vector<Reference*> GlobalReferences;
-
-// Error reporting
-std::stringstream ErrorBuffer;
-static bool ErrorFlag = false;
-
-
-String Message(String message, ...)
+// Scoping
+void RemoveReferenceFromObjectIndex(Reference* ref)
 {
-    va_list vl;
-    va_start(vl, message);
-
-    String expandedMessage = "";
-
-    // expands message
-    bool expandFlag = false;
-    for(size_t i=0; i<message.size(); i++)
+    ObjectReferenceMap* map = EntryInIndexOf(ref->ToObject);
+    if(map == nullptr)
     {
-        if(message.at(i) == '\\')
-        {
-            expandedMessage += message.at(i++);
-            continue;
-        }
-        if(message.at(i) == '%')
-        {
-            expandFlag = true;
-            continue;
-        }
-        if(expandFlag)
-        {
-            expandFlag = false;
-            switch(message.at(i))
-            {
-                case 'i':
-                expandedMessage += std::to_string(va_arg(vl, int));
-                break;
-
-                case 's':
-                expandedMessage += va_arg(vl, String);
-                break;
-
-                case 'd':
-                expandedMessage += std::to_string(va_arg(vl, double));
-                break;
-
-                default:
-                break;
-            }
-            continue;
-        }
-        expandedMessage += message.at(i);
-    }
-    return expandedMessage;
-}
-
-void ReportError(String expandedMessage)
-{
-    ErrorBuffer << expandedMessage << std::endl;
-    ErrorFlag = true;
-}
-
-
-
-// Atomic Operations
-///
-Reference* Assign(Reference& lRef, Reference& rRef)
-{
-    lRef.ToObject = rRef.ToObject;
-    return Make(returnReferenceName, lRef.ToObject);
-}
-
-/// 
-Reference* Print(Reference& ref)
-{
-    if(ref.ToObject->Class == IntegerClass ||
-        ref.ToObject->Class == DecimalClass ||
-        ref.ToObject->Class == StringClass ||
-        ref.ToObject->Class == BooleanClass ||
-        ref.ToObject->Class == NullClass)
-    {
-        std::cout << GetStringValue(*ref.ToObject) << "\n";
+        LogIt(LogSeverityType::Sev3_Critical, "RemoveReferenceFromObjectIndex", "cannot find reference in ObjectIndex");
+        return;
     }
 
-    return Make(returnReferenceName, ref.ToObject);
+    size_t refLoc;
+    for(refLoc=0; refLoc<map->References.size() && ref != map->References.at(refLoc); refLoc++);
+    map->References.erase(map->References.begin()+refLoc);
 }
 
-///
-Reference* Add(const Reference& lRef, const Reference& rRef)
+void RemoveReferenceFromScope(Scope* scope, Reference* ref)
 {
-    Reference* resultRef;
-
-    if(IsNumeric(lRef) && IsNumeric(rRef))
-    {  
-        ObjectClass type = GetPrecedenceClass(*(lRef.ToObject), *(rRef.ToObject));
-        if(type == IntegerClass)
-        {
-            int value = GetIntValue(*lRef.ToObject) + GetIntValue(*rRef.ToObject);
-            resultRef = Make(returnReferenceName, IntegerClass, value);
-        }
-        else if(type == DecimalClass)
-        {
-            double value = GetDecimalValue(*(lRef.ToObject)) + GetDecimalValue(*(rRef.ToObject));
-            resultRef = Make(returnReferenceName, DecimalClass, value);
-        }
-        else
-        {
-            resultRef = Make(returnReferenceName);
-        }
-        return resultRef;
-    }
-
-    resultRef = Make(returnReferenceName);
-    ReportError(Message("cannot add types %s and %s", lRef.ToObject->Class, rRef.ToObject->Class));
-    return resultRef;
+    size_t refLoc;
+    for(refLoc = 0; refLoc<scope->ReferencesIndex.size() && scope->ReferencesIndex.at(refLoc) != ref; refLoc++);
+    scope->ReferencesIndex.erase(scope->ReferencesIndex.begin()+refLoc);
 }
 
-///
-Reference* And(const Reference& lRef, const Reference& rRef)
+void Dereference(Scope* scope, Reference* ref)
 {
-    bool b = GetBoolValue(*lRef.ToObject) && GetBoolValue(*rRef.ToObject);
-    return Make(returnReferenceName, BooleanClass, b);
+    RemoveReferenceFromObjectIndex(ref);
+    RemoveReferenceFromScope(scope, ref);
+}
+
+
+
+Reference* OperationReturn(Reference* ref, Scope* scope)
+{
+    return CreateReference(c_returnReferenceName, ref->ToObject);
 }
 
 
@@ -151,205 +64,300 @@ Reference* And(const Reference& lRef, const Reference& rRef)
 
 
 // Program execution
-Reference* DoOperationOnReferences(Operation* op, std::vector<Reference*> operands)
+
+/// executes an operation [op] on the ordered list of reference [operands]. should only be called
+/// through DoOperation
+Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Reference*> operands)
 {
-    Reference* nullRef = Make(returnReferenceName);
     switch(op->Type)
     {
+        case OperationType::Return:
+        return OperationReturn(op->Value, scope);
+
         case OperationType::Add:
-        return Add(*operands.at(0), *operands.at(1));
+        return OperationAdd(operands.at(0), operands.at(1));
 
         case OperationType::Print:
-        Print(*operands.at(0));
-        return nullRef;
+        return OperationPrint(operands.at(0));
 
         case OperationType::Assign:
-        Assign(*operands.at(0), *operands.at(1));
-        return nullRef;
+        return OperationAssign(op->Value, operands.at(0));
+  
+
+        case OperationType::Define:
+        return OperationDefine(op->Value, scope);
 
         default:
-        break;
+        LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
+        return CreateNullReference();
     }
-    return nullRef;
 }
 
-Reference* DoOperation(Operation* op)
+/// executes an operation [op]
+Reference* DoOperation(Scope* scope, Operation* op)
 {
-    if(op->Type == OperationType::Return)
-        return op->Value;
-    else if (op->Type == OperationType::Define)
+    std::vector<Reference*> operandReferences;
+    for(Operation* operand: op->Operands)
     {
-        return Make(returnReferenceName);
-    }
-    else
-    {
-        std::vector<Reference*> operandReferences;
-        for(Operation* operand: op->Operands)
-        {
-            Reference* operandRef = DoOperation(operand);
-            operandReferences.push_back(operandRef);
-        }
-        return DoOperationOnReferences(op, operandReferences);
+        Reference* operandRef = DoOperation(scope, operand);
+        operandReferences.push_back(operandRef);
     }
     
+    Reference* returnRef = DoOperationOnReferences(scope, op, operandReferences);
+    
+    for(Reference* ref: operandReferences)
+    {
+        if(ref->Name == c_returnReferenceName)
+        {
+            LogItDebug(MSG("line[%i] operation %s dereferenced %s", op->LineNumber, ToString(op->Type), ref->Name), "DoOperation");
+            Dereference(scope, ref);
+        }
+    }
+    LogItDebug(MSG("line[%i] operation %s added a new reference to scope", op->LineNumber, ToString(op->Type)), "DoOperation");
+
+    AddReferenceToScope(returnRef, scope);
+    return returnRef;
 }
 
+/// executes a [codeBlock]
 void DoBlock(Block& codeBlock)
 {
+    Reference* result = nullptr;
+    Reference* previousResult = nullptr;
+
     for(Operation* op: codeBlock.Operations)
     {
-        // PrintOperation(*op);
-        // Reference* result = 
-        DoOperation(op);
-        if(ErrorFlag)
+        LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
+        Reference* result = DoOperation(codeBlock.LocalScope, op);
+
+        if(previousResult != nullptr)
+            Dereference(codeBlock.LocalScope, previousResult);
+        previousResult = result;
+        LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
+
+        for(auto ref: codeBlock.LocalScope->ReferencesIndex)
+            LogDiagnostics(ref, MSG("scope at %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
+
+        if(RuntimeMsgFlag)
         {
-            ErrorPrint(op->LineNumber);
+            RuntimeMsgPrint(op->LineNumber);
+            RuntimeMsgFlag = false;
         }
     }
+    if(result != nullptr)
+        Dereference(codeBlock.LocalScope, result);
 }
 
-
-
-// Creating operations
-Operation* CreateReturnOperation(Reference* ref, int lineNumber)
+void DoProgram(Program& program)
 {
-    Operation* op = new Operation;
-    op->Type = OperationType::Return;
-    op->Value = ref;
-    op->LineNumber = lineNumber;
-
-    return op;
-}
-
-Reference* CreateReference(std::string name, std::string type, std::string value)
-{
-    if(type == IntegerClass)
+    for(Block block: program.Blocks)
     {
-        return Make(name, IntegerClass, std::stoi(value));
+        DoBlock(block);
     }
-    else if(type == DecimalClass)
-    {
-        return Make(name, DecimalClass, std::stod(value));
-    }
-    else if(type == BooleanClass)
-    {
-        bool b = value == "true" ? true : false;
-        return Make(name, BooleanClass, b);
-    }
-    else if(type == StringClass)
-    {
-        return Make(name, StringClass, value);
-    }
-
-    DebugPrint("Cannot create reference");
-    return Make(name);
 }
 
 
 
 
 
-// Parsing + Deciding
-Reference* DecideReference(std::string name)
+
+
+// Meta Parsing + Deciding
+/// returns true if [token] corresponds to [ref]
+bool TokenMatchesReference(Token* token, Reference* ref) // MAJOR
 {
-    for(Reference* ref: GlobalReferences)
+    return token->Content == ref->Name;
+}
+
+bool TokenMatchesPrimitive(Token* token, Reference* ref)
+{
+    return token->Content == GetStringValue(*ref->ToObject);
+}
+
+/// returns a pointer to a Reference if [token] corresponds to an existing reference and nullptr if 
+/// no matching token can be resolved;
+Reference* DecideExistingReferenceFor(Token* token, Scope* scope) // MAJOR: Add scope
+{
+    if(TokenMatchesType(token, TokenType::Reference))
     {
-        if(ref->Name == name){
-            return ref;
+        for(Scope* lookInScope = scope; lookInScope != nullptr; lookInScope = lookInScope->InheritedScope)
+        {
+            for(Reference* ref: scope->ReferencesIndex)
+            {
+                if(TokenMatchesReference(token, ref))
+                    return ref;
+            }
         }
+        ReportCompileMsg(SystemMessageType::Exception, MSG("cannot resolve reference [%s]", token->Content));
     }
-    DebugPrint("Cannot decide reference");
     return nullptr;
 }
 
-void DecideLineTypeProbabilities(std::vector<LineTypeProbability>& typeProbabilities, const std::string line)
+/// returns a new primitive reference if [token] is a PrimitiveTokenType, otherwise nullptr
+Reference* DecideNewReferenceFor(Token* token)
 {
-    size_t pos;
-    if(pos = line.rfind("add"); pos != std::string::npos)
+    if(TokenMatchesType(token, PrimitiveTokenTypes))
     {
-        LineTypeProbability addType = { OperationType::Add, 10.0/pos };
-        typeProbabilities.push_back(addType);
+        return CreateReferenceToNewObject(c_primitiveObjectName, token);
     }
-    if(pos = line.rfind("define"); pos != std::string::npos)
-    {
-        LineTypeProbability defineType = { OperationType::Define, 10.0/pos };
-        typeProbabilities.push_back(defineType);
-    }
-    if(pos = line.rfind("print"); pos != std::string::npos)
-    {
-        LineTypeProbability printType = { OperationType::Print, 10.0/pos };
-        typeProbabilities.push_back(printType);
-    }
-    if(pos = line.rfind("="); pos != std::string::npos)
-    {
-        LineTypeProbability assignType = { OperationType::Assign, 10.0/pos };
-        typeProbabilities.push_back(assignType);
-    }
-    LineTypeProbability returnType = { OperationType::Return, 1 };
-    typeProbabilities.push_back(returnType);
+    return nullptr;
 }
 
-void DecideLineType(std::vector<LineTypeProbability>& typeProbabilities, OperationType& lineType)
+/// given a Token* [token], will return either an existing reference (or null reference if none match)
+/// or a new reference to a primitive object
+Reference* DecideReferenceOf(Scope* scope, Token* token)
+{
+    if(token == nullptr)
+        return CreateNullReference();
+
+    Reference* tokenRef;
+
+    tokenRef = DecideExistingReferenceFor(token, scope);
+    if(tokenRef != nullptr)
+    {
+        LogItDebug("found existing object", "DecideReferenceOf");
+        return tokenRef;
+    }
+
+    tokenRef = DecideNewReferenceFor(token);
+    if(tokenRef != nullptr)
+    {
+        LogItDebug("created a new object", "DecideReferenceOf");
+        return tokenRef;
+    }
+
+
+    return CreateNullReference();
+}
+
+
+
+
+/// decide the probability that a line represented by [tokens] corresponds to each of the atomic operations and stores
+/// this in [typeProbabilities]
+void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    DecideProbabilityDefine(typeProbabilities, tokens);
+    DecideProbabilityAssign(typeProbabilities, tokens);
+    DecideProbabilityIsEqual(typeProbabilities, tokens);
+    DecideProbabilityIsLessThan(typeProbabilities, tokens);
+    DecideProbabilityIsGreaterThan(typeProbabilities, tokens);
+    DecideProbabilityAdd(typeProbabilities, tokens);
+    DecideProbabilitySubtract(typeProbabilities, tokens);
+    DecideProbabilityMultiply(typeProbabilities, tokens);
+    DecideProbabilityDivide(typeProbabilities, tokens);
+    DecideProbabilityAnd(typeProbabilities, tokens);
+    DecideProbabilityOr(typeProbabilities, tokens);
+    DecideProbabilityNot(typeProbabilities, tokens);
+    DecideProbabilityEvaluate(typeProbabilities, tokens);
+    DecideProbabilityPrint(typeProbabilities, tokens);
+    DecideProbabilityReturn(typeProbabilities, tokens);
+}
+
+// TODO: figure out how to decide line type
+/// assign [lineType] based on [typeProbabitlites] for each atomic operation
+void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType) // MAJOR
+{
+    lineType = LineType::Atomic;
+}
+
+/// given pre-completed [typeProbabilities], decides what operation is most likey
+void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationType& opType) // MAJOR
 {
     std::sort(typeProbabilities.begin(), typeProbabilities.end(),
-        [](const LineTypeProbability& ltp1, const LineTypeProbability& ltp2){
+        [](const OperationTypeProbability& ltp1, const OperationTypeProbability& ltp2){
             return ltp1.Probability > ltp2.Probability;
         });
-    lineType = typeProbabilities.at(0).Type;
+    opType = typeProbabilities.at(0).Type;
 }
 
-void DecideOperands(const OperationType& lineType, const std::string& line, std::vector<Operation*>& operands, int lineNumber)
+/// decides and adds the operations for the Operation of [opType] to [operands] 
+void DecideOperands(Scope* scope, const OperationType& opType, TokenList& tokens, OperationsList& operands)
 {
-    std::istringstream iss(line);
-    std::vector<std::string> tokens { std::istream_iterator<std::string>(iss), 
-        std::istream_iterator<std::string>() };
-    if(lineType == OperationType::Define)
+    switch(opType)
     {
-        std::string type = tokens.at(1);
-        std::string name = tokens.at(2);
-        std::string value = tokens.at(3);
+        case OperationType::Define:
+        DecideOperandsDefine(scope, tokens, operands);
+        break;
 
-        Reference* r = CreateReference(name, type, value);
+        case OperationType::Assign:
+        DecideOperandsAssign(scope, tokens, operands);
+        break;
 
-        GlobalReferences.push_back(r);
+        case OperationType::IsEqual:
+        DecideOperandsIsEqual(scope, tokens, operands);
+        break;
+
+        case OperationType::IsLessThan:
+        DecideOperandsIsLessThan(scope, tokens, operands);
+        break;
+
+        case OperationType::IsGreaterThan:
+        DecideOperandsIsGreaterThan(scope, tokens, operands);
+        break;
+
+        case OperationType::Add:
+        DecideOperandsAdd(scope, tokens, operands);
+        break;
+
+        case OperationType::Subtract:
+        DecideOperandsSubtract(scope, tokens, operands);
+        break;
+
+        case OperationType::Multiply:
+        DecideOperandsMultiply(scope, tokens, operands);
+        break;
+
+        case OperationType::Divide:
+        DecideOperandsDivide(scope, tokens, operands);
+        break;
+
+        case OperationType::And:
+        DecideOperandsAnd(scope, tokens, operands);
+        break;
+
+        case OperationType::Or:
+        DecideOperandsOr(scope, tokens, operands);
+        break;
+
+        case OperationType::Not:
+        DecideOperandsNot(scope, tokens, operands);
+        break;
+
+        case OperationType::Evaluate:
+        DecideOperandsEvaluate(scope, tokens, operands);
+        break;
+
+        case OperationType::Print:
+        DecideOperandsPrint(scope, tokens, operands);
+        break;
+
+        case OperationType::Return:
+        DecideOperandsReturn(scope, tokens, operands);
+        break;
+    }
+}
+
+void DecideOperationValue(Scope* scope, const OperationType& opType, TokenList& tokens, Reference** refValue)
+{
+    switch(opType)
+    {
+        case OperationType::Define:
+        DecideValueDefine(scope, tokens, refValue);
         return;
-    }
-    else if(lineType == OperationType::Add)
-    {
-        Reference* arg1 = DecideReference(tokens.at(1));
-        Reference* arg2 = DecideReference(tokens.at(2));
 
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
-        Operation* op2 = CreateReturnOperation(arg2, lineNumber);
+        case OperationType::Return:
+        DecideValueReturn(scope, tokens, refValue);
+        return;
 
-        operands.push_back(op1);
-        operands.push_back(op2);
-    }
-    else if(lineType == OperationType::Print)
-    {
-        Reference* arg1 = DecideReference(tokens.at(1));
-        
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
-        operands.push_back(op1);
-    }
-    else if(lineType == OperationType::Assign)
-    {
-        Reference* arg1 = DecideReference(tokens.at(0));
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
+        case OperationType::Assign:
+        DecideValueAssign(scope, tokens, refValue);
+        return;
 
-        int pos = line.rfind("=");
-        Operation* op2 = ParseLine(line.substr(pos+1), lineNumber);
-
-        operands.push_back(op1);
-        operands.push_back(op2);
-        
-    }
-    else if(lineType == OperationType::Return)
-    {
-        Reference* arg1 = DecideReference(tokens.at(0));
-        Operation* op1 = CreateReturnOperation(arg1, lineNumber);
-
-        operands.push_back(op1);
+        default:
+        *refValue = CreateNullReference();
+        LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
+        return;
     }
 }
 
@@ -376,91 +384,223 @@ String RemoveCommas(String line)
 }
 
 // commas allow line breaks TODO: WORK HERE
-std::string GetEffectiveLine(std::fstream& file, int& lineNumber)
+/// returns a line of code and sets lineNumber to that of the next line and lineStart to
+/// the starting position of the returned line
+std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart)
 {
     std::string fullLine = "";
     std::string newLine;
+
     do
     {
         lineNumber++;
         if(!std::getline(file, newLine))
             break;
+        if(newLine != "")
+            lineStart = lineNumber - 1;
         fullLine += newLine;
 
     } while (LastNonWhitespaceChar(newLine) == ',' || newLine.size() == 0);
     return RemoveCommas(fullLine);
 }
 
-Operation* ParseLine(const std::string& line, int lineNumber)
+
+
+
+/// parses an atomic operation into an Operation tree
+Operation* ParseOutAtomic(Scope* scope, PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
-    std::vector<LineTypeProbability> typeProbabilities;
-    DecideLineTypeProbabilities(typeProbabilities, line);
+    Operation* op = CreateOperation();
 
-    OperationType lineType;
-    DecideLineType(typeProbabilities, lineType);
+    OperationType opType;
+    DecideOperationType(typeProbabilities, opType);
+    op->Type = opType;
 
-    std::vector<Operation*> operands;
-    DecideOperands(lineType, line, operands, lineNumber);
-
-    Operation* op = new Operation;
-    op->Type = lineType;
-    op->Operands = operands;
-    op->LineNumber = lineNumber;
-    if(lineType == OperationType::Return)
+    LogItDebug(MSG("operation type is %s", ToString(opType)), "ParseOutAtomic");
+    // these operands act on references!
+    if(opType == OperationType::Return || opType == OperationType::Define || opType == OperationType::Assign)
     {
-        op->Value = operands.at(0)->Value;
+        Reference* refValue;
+        DecideOperationValue(scope, opType, tokens, &refValue);
+        op->Value = refValue;
     }
+
+    OperationsList operands;
+    DecideOperands(scope, opType, tokens, operands);
+    op->Operands = operands;
 
     return op;
 }
 
-Block Parse(const std::string filepath, int& lineNumber){
-    Block parsedBlock;
-    std::fstream file;
-    file.open(filepath, std::ios::in);
+// TODO: Implement
+/// parses a composite operation into an Operation tree
+Operation* ParseComposite(Scope* scope, PossibleOperationsList& typeProbabilities, TokenList& tokens)
+{
+    
+    return nullptr;
+}
 
-    int lineEndPos = lineNumber;
-    for(std::string line = GetEffectiveLine(file, lineEndPos); line != ""; line = GetEffectiveLine(file, lineEndPos))
+
+/// assigns [lineNumber] to be the LineNumber for each operation in the Operation tree of [op]
+void NumberOperation(Operation* op, int lineNumber)
+{
+    op->LineNumber = lineNumber;
+    for(Operation* operand: op->Operands)
     {
-        Operation* op = ParseLine(line, lineNumber);
-        parsedBlock.Operations.push_back(op);
+        NumberOperation(operand, lineNumber);
+    }
+}
 
-        lineNumber = lineEndPos;
+
+
+
+/// parses a line of code
+Operation* ParseLine(Scope* scope, TokenList& tokens)
+{
+    PossibleOperationsList typeProbabilities;
+    DecideOperationTypeProbabilities(typeProbabilities, tokens);
+
+    LineType lineType;
+    DecideLineType(typeProbabilities, tokens, lineType);
+    
+    switch(lineType)
+    {
+        case LineType::Atomic:
+        return ParseOutAtomic(scope, typeProbabilities, tokens);
+
+        case LineType::Composite:
+        return ParseComposite(scope, typeProbabilities, tokens);
+
+        case LineType::If:
+
+        case LineType::While:
+
+        default:
+        LogIt(LogSeverityType::Sev1_Notify, "ParseLine", "unimplemented in case");
+        return nullptr;
+    }
+}
+
+Block ParseBlock(
+    std::vector<CodeLine>::iterator it, 
+    std::vector<CodeLine>::iterator end, 
+    Scope* inheritedScope)
+{
+    Block parsedBlock;
+    parsedBlock.LocalScope = new Scope;
+    parsedBlock.LocalScope->InheritedScope = inheritedScope;
+
+    Scope* compileTimeBlockScope = new Scope;
+
+    for(; it != end; it++)
+    {
+        LogItDebug(MSG("starting compile line [%i]", it->LineNumber), "ParseBlock");
+        Operation* op = ParseLine(compileTimeBlockScope, it->Tokens);
+        NumberOperation(op, it->LineNumber);
+        LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
+
+        if(CompileMsgFlag)
+        {
+            CompileMsgPrint(it->LineNumber);
+            CompileMsgFlag = false;
+        }
+
+        parsedBlock.Operations.push_back(op);
     }
 
     return parsedBlock;
 }
 
+Program* ParseProgram(const std::string filepath)
+{
+    PROGRAM = new Program;
+    PROGRAM->GlobalScope = new Scope;
+    PROGRAM->GlobalScope->InheritedScope = nullptr;
 
+
+    std::fstream file;
+    file.open(filepath, std::ios::in);
+
+    int lineEndPos = 1;
+    int lineStart = 1;
+    for(std::string line = GetEffectiveLine(file, lineEndPos, lineStart); line != ""; line = GetEffectiveLine(file, lineEndPos, lineStart))
+    {
+        TokenList tokens = LexLine(line);
+        CodeLine ls = { tokens , lineStart };
+        PROGRAM->Lines.push_back(ls);
+    }
+
+    // TODO: Allow different blocks
+    Block b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end(), PROGRAM->GlobalScope);
+    PROGRAM->Blocks.push_back(b);
+
+    return PROGRAM;
+}
 
 
 
 
 int main()
 {
-    int lineNumber = 1;
-    Block b = Parse(".\\program", lineNumber);
+    PurgeLog();
 
+    bool PRINT_OPERATIONS = false;
+    bool PRINT_GLOBAL_REFS = false;
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
+    ParseProgram(".\\program");
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
+    
+    for(auto op: PROGRAM->Blocks.at(0).Operations)
+        LogDiagnostics(op, "operation log", "main");
+
+    PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex.clear();
+    
     // PRINT OPERATIONS
-    // for(Operation* op: b.Operations)
-    // {
-    //     PrintOperation(*op);
-    // }
+    if(PRINT_OPERATIONS)
+    {
+    }
+
+
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    {
+        LogDiagnostics(map, "initial object reference state", "main");
+    }
+
+    // for(auto elem: PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex)
+    //     LogDiagnostics(elem);
 
     std::cout << "####################\n";
-
-    DoBlock(b);
-
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
+    DoProgram(*PROGRAM);
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
+    std::cout << "####################\n";
+    
     // PRINT GLOBALREFRENCES
-    // for(auto elem: GlobalReferences)
+    if(PRINT_GLOBAL_REFS)
+    {
+        // for(auto elem: GlobalScope.ReferencesIndex)
+        // {
+        //     std::cout << &elem << "\n";
+        //     LogDiagnostics(*elem);
+        // }
+    }
+    
+    // std::string line = "test Of the Token 334 parser = 3.1 haha \"this is awesome\" True";
+    // TokenList l = LexLine(line);
+    // std::cout << "######\n"; 
+    // int pos=0;
+    // Token* t;
+    // for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
     // {
-    //     std::cout << &elem << "\n";
-    //     PrintReference(*elem);
+    //     LogDiagnostics(t);
     // }
+    // LogDiagnostics(l);
 
-    std::string line = "test Of the Token 334 parser 3.1 haha \"this is awesome\" True";
-    TokenList l = LexLine(line);
-    PrintDiagnostics(l);
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    {
+        LogDiagnostics(map, "final object reference state", "main");
+    }
 
+    LogItDebug("end reached.", "main");
     return 0;
 }
