@@ -10,8 +10,8 @@
 // Structs
 enum class OperationType
 {
-    Define, 
-    Assign, 
+    Define, // defines a new reference in the scope special
+    Assign, // special
     IsEqual, //
     IsLessThan, //
     IsGreaterThan, //
@@ -24,7 +24,7 @@ enum class OperationType
     Not, //
     Evaluate, //
     Print, //
-    Return, //
+    Return, // special
 };
 
 struct Reference

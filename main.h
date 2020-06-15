@@ -34,6 +34,7 @@ const ObjectClass BooleanClass = "Boolean";
 const ObjectClass NullClass = "Null";
 
 const std::string c_returnReferenceName = "ReturnedObject";
+const std::string c_primitiveObjectName = "PrimitiveObject";
 
 /// defines how severe a log event is. due to enum -> int casting, definition order is important
 enum LogSeverityType

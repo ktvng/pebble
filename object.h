@@ -12,6 +12,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
 Reference* CreateReference(String name, Object* obj);
 Reference* CreateNullReference();
+Reference* CreateNullReference(String name);
 
 Reference* CreateReferenceToNewObject(String name, Token* valueToken);
 Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);

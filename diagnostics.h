@@ -33,15 +33,19 @@ void CompileMsgPrint(int lineNumber);
 /// creates a String by expanding a [message] and its variable arguments
 String MSG(String message, ...);
 
+String ToString(const OperationType& type);
+String ToString(const Operation& op, int level=0);
+String ToString(const Operation* op, int level=0);
+
 void LogDiagnostics(const Object& obj, String message="object dump", String method="unspecified");
-void PrintDiagnostics(const Operation& op, int level=0); // TODO: Change to log
+void LogDiagnostics(const Operation& op, String message="object dump", String method="unspecified");
 void LogDiagnostics(const TokenList& tokenList, String message="object dump", String method="unspecified");
 void LogDiagnostics(const Token& token, String message="object dump", String method="unspecified");
 void LogDiagnostics(const ObjectReferenceMap& map, String message="object dump", String method="unspecified");
 
 void LogDiagnostics(const Object* obj, String message="object dump", String method="unspecified");
 void LogDiagnostics(const Reference* ref, String message="object dump", String method="unspecified");
-void PrintDiagnostics(const Operation* op, int level=0);
+void LogDiagnostics(const Operation* op, String message="object dump", String method="unspecified");
 void LogDiagnostics(const TokenList* tokenList, String message="object dumpLogItDebug", String method="unspecified");
 void LogDiagnostics(const Token* token, String message="object dumpLogItDebug", String method="unspecified");
 void LogDiagnostics(const ObjectReferenceMap* map, String message="object dumpLogItDebug", String method="unspecified");

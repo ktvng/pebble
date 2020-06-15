@@ -54,7 +54,10 @@ void Dereference(Scope* scope, Reference* ref)
 
 
 
-
+Reference* OperationReturn(Reference* ref, Scope* scope)
+{
+    return CreateReference(c_returnReferenceName, ref->ToObject);
+}
 
 
 
@@ -66,9 +69,11 @@ void Dereference(Scope* scope, Reference* ref)
 /// through DoOperation
 Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Reference*> operands)
 {
-    Reference* result;
     switch(op->Type)
     {
+        case OperationType::Return:
+        return OperationReturn(op->Value, scope);
+
         case OperationType::Add:
         return OperationAdd(operands.at(0), operands.at(1));
 
@@ -76,17 +81,11 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         return OperationPrint(operands.at(0));
 
         case OperationType::Assign:
-        // Dereference(scope, operands.at(0));
-        result = OperationAssign(operands.at(0), operands.at(1));
-        // Dereference(scope, operands.at(1));
-        // AddReferenceToScope(operands.at(0), scope);
-        for(auto ref: scope->ReferencesIndex)
-            LogDiagnostics(ref, "scope here", "DoOperationOnReferences");
-
-        return result;
+        return OperationAssign(op->Value, operands.at(0));
+  
 
         case OperationType::Define:
-        return OperationDefine(op->Value);
+        return OperationDefine(op->Value, scope);
 
         default:
         LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
@@ -97,33 +96,27 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
 /// executes an operation [op]
 Reference* DoOperation(Scope* scope, Operation* op)
 {
-    if(op->Type == OperationType::Return)
+    std::vector<Reference*> operandReferences;
+    for(Operation* operand: op->Operands)
     {
-        LogDiagnostics(op->Value, "added a reference", "DoOperation");
-        AddReferenceToScope(op->Value, scope);
-        return op->Value;
+        Reference* operandRef = DoOperation(scope, operand);
+        operandReferences.push_back(operandRef);
     }
-    else
+    
+    Reference* returnRef = DoOperationOnReferences(scope, op, operandReferences);
+    
+    for(Reference* ref: operandReferences)
     {
-        std::vector<Reference*> operandReferences;
-        for(Operation* operand: op->Operands)
+        if(ref->Name == c_returnReferenceName)
         {
-            Reference* operandRef = DoOperation(scope, operand);
-            operandReferences.push_back(operandRef);
+            LogItDebug(MSG("line[%i] operation %s dereferenced %s", op->LineNumber, ToString(op->Type), ref->Name), "DoOperation");
+            Dereference(scope, ref);
         }
-        
-        Reference* returnRef = DoOperationOnReferences(scope, op, operandReferences);
-        
-        for(Reference* ref: operandReferences)
-        {
-            if(ref->Name == c_returnReferenceName)
-            {
-                Dereference(scope, ref);
-            }
-        }
-        AddReferenceToScope(returnRef, scope);
-        return returnRef;
     }
+    LogItDebug(MSG("line[%i] operation %s added a new reference to scope", op->LineNumber, ToString(op->Type)), "DoOperation");
+
+    AddReferenceToScope(returnRef, scope);
+    return returnRef;
 }
 
 /// executes a [codeBlock]
@@ -136,12 +129,14 @@ void DoBlock(Block& codeBlock)
     {
         LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
         Reference* result = DoOperation(codeBlock.LocalScope, op);
-        LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
-        
-   
+
         if(previousResult != nullptr)
             Dereference(codeBlock.LocalScope, previousResult);
         previousResult = result;
+        LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
+
+        for(auto ref: codeBlock.LocalScope->ReferencesIndex)
+            LogDiagnostics(ref, MSG("scope at %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
 
         if(RuntimeMsgFlag)
         {
@@ -174,11 +169,15 @@ bool TokenMatchesReference(Token* token, Reference* ref) // MAJOR
     return token->Content == ref->Name;
 }
 
+bool TokenMatchesPrimitive(Token* token, Reference* ref)
+{
+    return token->Content == GetStringValue(*ref->ToObject);
+}
+
 /// returns a pointer to a Reference if [token] corresponds to an existing reference and nullptr if 
 /// no matching token can be resolved;
 Reference* DecideExistingReferenceFor(Token* token, Scope* scope) // MAJOR: Add scope
 {
-    // URGENT
     if(TokenMatchesType(token, TokenType::Reference))
     {
         for(Scope* lookInScope = scope; lookInScope != nullptr; lookInScope = lookInScope->InheritedScope)
@@ -199,7 +198,7 @@ Reference* DecideNewReferenceFor(Token* token)
 {
     if(TokenMatchesType(token, PrimitiveTokenTypes))
     {
-        return CreateReferenceToNewObject(c_returnReferenceName, token);
+        return CreateReferenceToNewObject(c_primitiveObjectName, token);
     }
     return nullptr;
 }
@@ -215,11 +214,18 @@ Reference* DecideReferenceOf(Scope* scope, Token* token)
 
     tokenRef = DecideExistingReferenceFor(token, scope);
     if(tokenRef != nullptr)
+    {
+        LogItDebug("found existing object", "DecideReferenceOf");
         return tokenRef;
+    }
 
     tokenRef = DecideNewReferenceFor(token);
     if(tokenRef != nullptr)
+    {
+        LogItDebug("created a new object", "DecideReferenceOf");
         return tokenRef;
+    }
+
 
     return CreateNullReference();
 }
@@ -332,7 +338,28 @@ void DecideOperands(Scope* scope, const OperationType& opType, TokenList& tokens
     }
 }
 
+void DecideOperationValue(Scope* scope, const OperationType& opType, TokenList& tokens, Reference** refValue)
+{
+    switch(opType)
+    {
+        case OperationType::Define:
+        DecideValueDefine(scope, tokens, refValue);
+        return;
 
+        case OperationType::Return:
+        DecideValueReturn(scope, tokens, refValue);
+        return;
+
+        case OperationType::Assign:
+        DecideValueAssign(scope, tokens, refValue);
+        return;
+
+        default:
+        *refValue = CreateNullReference();
+        LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
+        return;
+    }
+}
 
 
 
@@ -383,20 +410,24 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
 /// parses an atomic operation into an Operation tree
 Operation* ParseOutAtomic(Scope* scope, PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
+    Operation* op = CreateOperation();
+
     OperationType opType;
     DecideOperationType(typeProbabilities, opType);
+    op->Type = opType;
+
+
+    // these operands act on references!
+    if(opType == OperationType::Return || opType == OperationType::Define || opType == OperationType::Assign)
+    {
+        Reference* refValue;
+        DecideOperationValue(scope, opType, tokens, &refValue);
+        op->Value = refValue;
+    }
 
     OperationsList operands;
     DecideOperands(scope, opType, tokens, operands);
-
-    Operation* op = new Operation;
-    op->Type = opType;
     op->Operands = operands;
-    if(opType == OperationType::Return)
-    {
-        op->Operands = OperationsList();
-        op->Value = operands.at(0)->Value;
-    }
 
     return op;
 }
@@ -450,44 +481,21 @@ Operation* ParseLine(Scope* scope, TokenList& tokens)
     }
 }
 
-/// parses a block of code
-// Block ParseBlock(const std::string filepath, int& lineNumber){
-//     Block parsedBlock;
-//     std::fstream file;
-//     file.open(filepath, std::ios::in);
-
-//     int lineEndPos = lineNumber;
-//     int lineStart = lineNumber;
-//     for(std::string line = GetEffectiveLine(file, lineEndPos, lineStart); line != ""; line = GetEffectiveLine(file, lineEndPos, lineStart))
-//     {
-//         TokenList tokens = LexLine(line);
-//         Operation* op = ParseLine(tokens);
-
-//         if(CompileMsgFlag)
-//         {
-//             CompileMsgPrint(lineStart);
-//             CompileMsgFlag = false;
-//         }
-
-//         NumberOperation(op, lineStart);
-//         parsedBlock.Operations.push_back(op);
-
-//     }
-
-//     return parsedBlock;
-// }
-
-Block ParseBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::iterator end, Scope* inheritedScope)
+Block ParseBlock(
+    std::vector<CodeLine>::iterator it, 
+    std::vector<CodeLine>::iterator end, 
+    Scope* inheritedScope)
 {
     Block parsedBlock;
     parsedBlock.LocalScope = new Scope;
     parsedBlock.LocalScope->InheritedScope = inheritedScope;
-    parsedBlock.LocalScope->ReferencesIndex = {};
+
+    Scope* compileTimeBlockScope = new Scope;
 
     for(; it != end; it++)
     {
         LogItDebug(MSG("starting compile line [%i]", it->LineNumber), "ParseBlock");
-        Operation* op = ParseLine(parsedBlock.LocalScope, it->Tokens);
+        Operation* op = ParseLine(compileTimeBlockScope, it->Tokens);
         NumberOperation(op, it->LineNumber);
         LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
 
@@ -542,11 +550,20 @@ int main()
     ParseProgram(".\\program");
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
     
+    for(auto op: PROGRAM->Blocks.at(0).Operations)
+        LogDiagnostics(op, "operation log", "main");
+
     PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex.clear();
     
     // PRINT OPERATIONS
     if(PRINT_OPERATIONS)
     {
+    }
+
+
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    {
+        LogDiagnostics(map, "initial object reference state", "main");
     }
 
     // for(auto elem: PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex)
@@ -584,6 +601,6 @@ int main()
         LogDiagnostics(map, "final object reference state", "main");
     }
 
-
+    LogItDebug("end reached.", "main");
     return 0;
 }

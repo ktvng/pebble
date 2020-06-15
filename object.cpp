@@ -37,10 +37,12 @@ void IndexObject(Object* obj, Reference* ref)
         
         *objMap = ObjectReferenceMap{ obj, refs };
         PROGRAM->ObjectsIndex.push_back(objMap);
-
+        
+        LogItDebug("reference added for new object", "IndexObject");
         return;
     }
     
+    LogItDebug("reference added for existing object", "IndexObject");
     map->References.push_back(ref);
 }
 
@@ -112,16 +114,22 @@ Reference* CreateReference(String name, Object* obj)
     return ref;
 }
 
-Reference* CreateNullReference()
+Reference* CreateNullReference(String name)
 {
     static Object nullObject;
     nullObject.Class = NullClass;
     
-    Reference* ref = new Reference { c_returnReferenceName, &nullObject };
+    Reference* ref = new Reference { name, &nullObject };
     IndexObject(&nullObject, ref);
     
     return ref;
 }
+
+Reference* CreateNullReference()
+{
+    return CreateNullReference(c_returnReferenceName);
+}
+
 
 
 

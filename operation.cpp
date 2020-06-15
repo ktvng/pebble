@@ -2,12 +2,23 @@
 
 #include "operation.h"
 #include "program.h"
+#include "object.h"
 
 void AddReferenceToScope(Reference* ref, Scope* scope)
 {
     scope->ReferencesIndex.push_back(ref);
 }
 
+Operation* CreateOperation()
+{
+    Operation* op = new Operation;
+    op->LineNumber = -1;
+    op->Operands = OperationsList();
+    op->Type = OperationType::Return;
+    op->Value = nullptr;
+
+    return op;
+}
 
 // Creating operations
 
@@ -51,7 +62,7 @@ Reference* OperationAssign(Reference* lRef, Reference* rRef)
 }
 
 /// 
-Reference* OperationPrint(Reference* ref)
+Reference* OperationPrint(const Reference* ref)
 {
     std::cout << GetStringValue(*ref->ToObject) << "\n";
     return CreateReference(c_returnReferenceName, ref->ToObject);
@@ -96,9 +107,13 @@ Reference* OperationAnd(const Reference* lRef, const Reference* rRef)
 }
 
 ///
-Reference* OperationDefine(Reference* ref)
+Reference* OperationDefine(Reference* ref, Scope* scope)
 {
-    return CreateNullReference();
+    LogItDebug(MSG("added reference [%s] to scope", ref->Name), "OperationDefine");
+    AddReferenceToScope(ref, scope);
+
+    Reference* returnRef = CreateReference(c_returnReferenceName, ref->ToObject);
+    return returnRef;
 }
 
 
@@ -203,6 +218,58 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 
 
 
+// Decide Values
+void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    Reference* ref; 
+
+    Token* name = NextTokenMatching(tokens, TokenType::Reference);
+    Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
+
+    if(name == nullptr){
+        LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
+        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
+        // TODO: should be critical error
+        *refValue = CreateNullReference(); 
+        return;
+    }
+    
+    if(value == nullptr)
+    {
+        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
+        ref = CreateNullReference(name->Content);
+    }
+    else
+    {
+        ref = CreateReferenceToNewObject(name, value);
+    }
+    LogItDebug(MSG("defined a new reference: %s", ref->Name), "DecideValueDefine");
+
+    *refValue = ref;
+    AddReferenceToScope(ref, scope);
+}
+
+void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
+    *refValue = arg1;
+}
+
+void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    int pos = 0;
+    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, TokenType::Reference, pos));
+
+    TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
+    tokens = rightTokens;
+
+    *refValue = arg1;
+}
+
+
+
+
+
 
 
 // Decide Operands
@@ -220,26 +287,7 @@ void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands
 
 void DecideOperandsDefine(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    Reference* ref; 
-    Token* name = NextTokenMatching(tokens, TokenType::Reference);
-    Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
-    if(name == nullptr){
-        LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
-        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
-        return;
-    }
-    
-    if(value == nullptr)
-    {
-        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
-        ref = CreateNullReference(); 
-    }
-    else
-    {
-        ref = CreateReferenceToNewObject(name, value);
-    }
-    LogDiagnostics(ref, "added a reference", "DecideOperandsDefine");
-    AddReferenceToScope(ref, scope);
+    // no operands
 }
 
 void DecideOperandsPrint(Scope* scope, TokenList& tokens, OperationsList& operands)
@@ -250,13 +298,7 @@ void DecideOperandsPrint(Scope* scope, TokenList& tokens, OperationsList& operan
 
 void DecideOperandsAssign(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    int pos = 0;
-    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, TokenType::Reference, pos));
-
-    TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
-    Operation* op2 = ParseLine(scope, rightTokens);
-
-    AddReferenceReturnOperationTo(operands, arg1);
+    Operation* op2 = ParseLine(scope, tokens);
     AddOperationTo(operands, op2);
 }
 
@@ -312,6 +354,5 @@ void DecideOperandsEvaluate(Scope* scope, TokenList& tokens, OperationsList& ope
 
 void DecideOperandsReturn(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
-    AddReferenceReturnOperationTo(operands, arg1);
+    // no operands
 }

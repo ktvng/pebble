@@ -8,13 +8,18 @@
 #include "diagnostics.h"
 
 void AddReferenceToScope(Reference* ref, Scope* scope);
-
+Operation* CreateOperation();
 
 Reference* OperationAssign(Reference* lRef, Reference* rRef);
-Reference* OperationPrint(Reference* ref);
+Reference* OperationPrint(const Reference* ref);
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef);
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
-Reference* OperationDefine(Reference* ref);
+Reference* OperationDefine(Reference* ref, Scope* scope);
+
+
+void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** value);
+void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue);
+void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue);
 
 // Decide Probabilities
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens);

@@ -266,6 +266,10 @@ String Compact(String str)
     return compactString;
 }
 
+
+
+
+
 template <typename T>
 String ToString(std::vector<T> list, String typeString)
 {
@@ -322,10 +326,6 @@ String ToString(const Reference* ref)
     return refString;
 }
 
-String ToString(const Operation& op){
-    return "OP";
-}
-
 String ToString(const ObjectReferenceMap& map)
 {
     String mapString = "<ObjectReferenceMap>\n";
@@ -370,6 +370,79 @@ String ToString(const TokenList* tokenList)
     return ToString(*tokenList);
 }
 
+String ToString(const OperationType& type)
+{
+    switch(type){
+        case OperationType::Add:
+        return "Add";
+
+        case OperationType::Return:
+        return "Return";
+
+        case OperationType::Print:
+        return "Print";
+
+        case OperationType::Assign:
+        return "Assign";
+
+        case OperationType::Define:
+        return "Define";
+
+        default:
+        return "unimplemented";
+    }
+}
+
+String ToString(const Operation& op, int level)
+{
+    String opString = "<Operation> " + ((level==0) ? "Base" : "Operand L" + std::to_string(level)) + "\n";
+    opString.reserve(256);
+
+    if(op.Type == OperationType::Return)
+    {
+        opString += IndentLevel(level) + 
+            StringForAttrbute(
+                "OperationType", 
+                MSG("Return <Reference> %s to %s %s", 
+                    op.Value->Name, 
+                    op.Value->ToObject->Class,
+                    GetStringValue(*op.Value->ToObject)));
+
+        return opString;
+    }
+
+    opString += IndentLevel(level+1) + StringForAttrbute(
+        "OperationType", ToString(op.Type)
+        );
+
+    if(op.Value != nullptr)
+    {
+        opString += IndentLevel(level+1) + StringForAttrbute(
+            "Value",
+            MSG(
+                "<Reference> %s to %s %s",
+                op.Value->Name, 
+                op.Value->ToObject->Class,
+                GetStringValue(*op.Value->ToObject
+                )));
+    }
+
+    for(Operation* operand: op.Operands)
+    {
+        opString += IndentLevel(level+1) + IndentStringToLevel(
+            ToString(operand, level+1),
+            level+1) + "\n";
+    }
+    
+    return opString;
+}
+
+String ToString(const Operation* op, int level)
+{
+    return ToString(*op, level);
+}
+
+
 template <typename T>
 String DisplayString(T obj)
 {
@@ -397,48 +470,14 @@ void LogDiagnostics(const Reference* ref, String message, String method)
     DebugDumpObjectToLog(DisplayString(ref), message, method);
 }
 
-void PrintDiagnostics(const Operation& op, int level)
+void LogDiagnostics(const Operation& op, String message, String method)
 {
-    std::string type;
-    switch(op.Type){
-        case OperationType::Add:
-        type = "Add";
-        break;
-
-        case OperationType::Return:
-        type = "Return";
-        break;
-
-        case OperationType::Print:
-        type = "Print";
-        break;
-
-        case OperationType::Assign:
-        type = "Assign";
-        break;
-
-        case OperationType::Define:
-        type = "Define";
-        break;
-
-        default:
-        type = "unimplemented";
-        break;
-    }
-    std::cout << "OP---" << level << "\nType " << type << "\n";
-    if(op.Type == OperationType::Return)
-    {
-        LogDiagnostics(op.Value);
-    }
-    for(Operation* operand: op.Operands)
-    {
-        PrintDiagnostics(*operand, level+1);
-    }
+    DebugDumpObjectToLog(DisplayString(op), message, method);
 }
 
-void PrintDiagnostics(const Operation* op, int level)
+void LogDiagnostics(const Operation* op, String message, String method)
 {
-    PrintDiagnostics(*op);
+    LogDiagnostics(*op, message, method);
 }
 
 void LogDiagnostics(const Token& token, String message, String method)
