@@ -4,12 +4,18 @@
 #include "main.h"
 #include "arch.h"
 
-Reference* Make(String name, ObjectClass objClass, bool value);
-Reference* Make(String name, ObjectClass objClass, int value);
-Reference* Make(String name, ObjectClass objClass, const String value);
-Reference* Make(String name, ObjectClass objClass, double value);
-Reference* Make(String name, Object* obj);
-Reference* Make(const String value);
+ObjectReferenceMap* EntryInIndexOf(const Object* obj);
+
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value);
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value);
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value);
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
+Reference* CreateReference(String name, Object* obj);
+Reference* CreateNullReference();
+Reference* CreateNullReference(String name);
+
+Reference* CreateReferenceToNewObject(String name, Token* valueToken);
+Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);
 
 
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2);
