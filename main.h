@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 
+#include "utils.h"
 
 
 struct Reference;
@@ -15,6 +16,9 @@ struct Token;
 struct OperationTypeProbability;
 struct SystemMessage;
 struct ObjectReferenceMap;
+struct Scope;
+struct CodeLine;
+struct Program;
 
 typedef std::vector<Token*> TokenList;
 typedef std::string ObjectClass;
@@ -34,6 +38,7 @@ const std::string c_returnReferenceName = "ReturnedObject";
 /// defines how severe a log event is. due to enum -> int casting, definition order is important
 enum LogSeverityType
 {
+    Sev0_Debug,
     Sev1_Notify,
     Sev2_Important,
     Sev3_Critical,
@@ -41,26 +46,15 @@ enum LogSeverityType
 
 const std::map<LogSeverityType, String> LogSeverityTypeString =
 {
-    { LogSeverityType::Sev3_Critical, "Sev3" },
-    { LogSeverityType::Sev2_Important, "Sev2" },
-    { LogSeverityType::Sev1_Notify, "Sev1" },
+    { LogSeverityType::Sev3_Critical, "Critical" },
+    { LogSeverityType::Sev2_Important, "Important" },
+    { LogSeverityType::Sev1_Notify, "Notify" },
+    { LogSeverityType::Sev0_Debug, "Debug" }
 };
-/// log all messages at or above this level
-const LogSeverityType LogSeverityLevel = LogSeverityType::Sev1_Notify;
 
 
-const bool c_DEBUG = true;
-const bool c_ERROR = true;
-
-extern std::vector<SystemMessage> RuntimeMsgBuffer;
-extern std::vector<SystemMessage> CompileMsgBuffer;
-
-
-extern std::vector<ObjectReferenceMap*> ObjectsIndex;
-
-
-Operation* ParseLine(TokenList& tokens);
+Operation* ParseLine(Scope* scope, TokenList& tokens);
 TokenList LexLine(const std::string& line);
-Reference* DecideReferenceOf(Token* token);
+Reference* DecideReferenceOf(Scope* scope, Token* token);
 
 #endif

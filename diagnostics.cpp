@@ -1,27 +1,75 @@
+#ifndef __DIAGNOSTICS_CPP
+#define __DIAGNOSTICS_CPP
+
 #include <string>
 #include <iostream>
 #include <sstream>
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <algorithm>
 
 #include "main.h"
 #include "arch.h"
 #include "token.h"
 #include "object.h"
-
 #include "diagnostics.h"
-#include <algorithm>
+#include "program.h"
 
+
+
+// indent formatting
+const String c_indentString = "  ";
+
+String IndentLevel(int level)
+{
+    if(level <= 0)
+        return "";
+    
+    String levelString;
+    for(int i=0; i<level; i++)
+    {
+        levelString += c_indentString;
+    }
+
+    return levelString;
+}
+
+String IndentStringToLevel(String str, int level, int margin=0)
+{
+    String leveledStr = "";
+    for(size_t i=0; i<str.size(); i++)
+    {
+        leveledStr += str.at(i);
+        if(str.at(i) == '\n')
+        {
+            leveledStr += IndentLevel(level);
+            for(int j=0; j<margin; j++)
+            {
+                leveledStr += " ";
+            }
+        }
+    }
+    return leveledStr;
+}
+
+const String c_rightEdge = "    || ";
+
+String AddRightEdge(String str)
+{
+    String formattedStr = c_rightEdge;
+    formattedStr.reserve(str.size());
+    for(size_t i=0; i<str.size(); i++)
+    {
+        formattedStr += str.at(i);
+        if(str.at(i) == '\n')
+            formattedStr += c_rightEdge;
+    }
+    return formattedStr;
+}
 
 
 // Error printing
-void DebugPrint(const std::string& value)
-{
-    if(c_DEBUG)
-        std::cout << value << "\n";
-}
-
 String itos2(int i)
 {
     if(i == 0)
@@ -31,9 +79,17 @@ String itos2(int i)
     return MSG("%i", i);
 }
 
+void PurgeLog()
+{
+    std::ofstream logfile;
+    logfile.open(".\\logs\\log");
+    logfile << "";
+    logfile.close();
+}
+
 void LogIt(LogSeverityType type, String method, String message)
 {
-    if(type < LogSeverityLevel)
+    if(type < LogAtLevel)
         return;
     
     time_t rawTime;
@@ -52,11 +108,21 @@ void LogIt(LogSeverityType type, String method, String message)
         itos2(timeInfo->tm_sec));
 
     std::ofstream logfile;
-    logfile.open(".\\logs\\log");
+    logfile.open(".\\logs\\log", std::ios::app);
     logfile << timeString << MSG("[%s]", LogSeverityTypeString.at(type)) << MSG("[%s]: ", method) << message << std::endl;
     logfile.close();
 }
 
+void LogItDebug(String message, String method)
+{
+    LogIt(LogSeverityType::Sev0_Debug, method, message);
+}
+
+void DebugDumpObjectToLog(String object, String message, String method="unspecified")
+{
+    String formattedMessage = message + "\n" + AddRightEdge(object);
+    LogIt(LogSeverityType::Sev0_Debug, method, formattedMessage);
+}
 
 String SystemMessageTypeString(SystemMessageType type)
 {
@@ -122,6 +188,8 @@ String MSG(String message, ...)
         }
         if(expandFlag)
         {
+            std::stringstream ss;
+            String pointerString;
             expandFlag = false;
             switch(message.at(i))
             {
@@ -137,6 +205,12 @@ String MSG(String message, ...)
                 expandedMessage += std::to_string(va_arg(vl, double));
                 break;
 
+                case 'p':
+                ss << va_arg(vl, void*);
+                ss >> pointerString;
+                expandedMessage += pointerString;
+                break;
+
                 default:
                 break;
             }
@@ -148,48 +222,11 @@ String MSG(String message, ...)
 }
 
 
-const String c_indentString = "  ";
 
-String IndentLevel(int level)
-{
-    if(level <= 0)
-        return "";
-    
-    String levelString;
-    for(int i=0; i<level; i++)
-    {
-        levelString += c_indentString;
-    }
-
-    return levelString;
-}
-
-String IndentStringToLevel(String str, int level, int margin=0)
-{
-    String leveledStr = "";
-    for(size_t i=0; i<str.size(); i++)
-    {
-        leveledStr += str.at(i);
-        if(str.at(i) == '\n')
-        {
-            leveledStr += IndentLevel(level);
-            for(int j=0; j<margin; j++)
-            {
-                leveledStr += " ";
-            }
-        }
-    }
-    return leveledStr;
-}
 
 String StringForAttrbute(String name, String value)
 {
     return MSG("-[%s]: %s\n", name, value);
-}
-
-String StringForAttrbuteOneLine(String name, String value)
-{
-    return MSG("-[%s]: %s", name, value);
 }
 
 int ValueStartOffset(String name)
@@ -197,6 +234,37 @@ int ValueStartOffset(String name)
     return 5 + name.size();
 }
 
+// if str has effectively two '\n' characters with no text between, return the index of the 
+// second newline. -1 otherwise;
+int HasDoubledNewLine(String& str, size_t pos)
+{
+    if(str.at(pos) != '\n')
+        return -1;
+
+    for(int i=pos+1; static_cast<size_t>(i)<str.size(); i++)
+    {
+        if(str.at(i) == '\n')
+            return i;
+        if(str.at(i) != ' ')
+            return -1;
+    }
+    return -1;
+}
+
+String Compact(String str)
+{
+    String compactString;
+    compactString.reserve(str.size());
+    for(size_t i=0; i<str.size()-1; i++)
+    {
+        if(int nextPos = HasDoubledNewLine(str, i); nextPos > 0){
+            i = static_cast<size_t>(nextPos);
+        }
+
+        compactString+= str.at(i);
+    }
+    return compactString;
+}
 
 template <typename T>
 String ToString(std::vector<T> list, String typeString)
@@ -208,7 +276,7 @@ String ToString(std::vector<T> list, String typeString)
     {
         int offset = ValueStartOffset(std::to_string(i));
         listString += IndentLevel(1) +
-             StringForAttrbuteOneLine(std::to_string(i), IndentStringToLevel(ToString(list.at(i)), 1, offset));
+             StringForAttrbute(std::to_string(i), IndentStringToLevel(ToString(list.at(i)), 1, offset));
     }
     return listString;
 }
@@ -241,22 +309,17 @@ String ToString(const Object* obj)
     return ToString(*obj);
 }
 
-String ToString(const Reference& ref)
-{
-    String refString = "<Reference>\n";
-
-    refString += IndentLevel(1) +
-        StringForAttrbute("Name", ref.Name);
-
-    refString += IndentLevel(1) +
-        StringForAttrbute("ToObject", IndentStringToLevel(ToString(ref.ToObject), 1));
-
-    return refString;
-}
-
 String ToString(const Reference* ref)
 {
-    return ToString(*ref);
+    String refString = MSG("<Reference> @ %p\n", &ref);
+
+    refString += IndentLevel(1) +
+        StringForAttrbute("Name", ref->Name);
+
+    refString += IndentLevel(1) +
+        StringForAttrbute("ToObject", IndentStringToLevel(ToString(ref->ToObject), 1));
+
+    return refString;
 }
 
 String ToString(const Operation& op){
@@ -273,7 +336,8 @@ String ToString(const ObjectReferenceMap& map)
     for(size_t i=0; i<map.References.size(); i++)
     {
         mapString += IndentLevel(2) + 
-            StringForAttrbute(std::to_string(i), map.References.at(i)->Name);
+            StringForAttrbute(std::to_string(i), map.References.at(i)->Name 
+            + MSG(" @ %p", map.References.at(i)));
     }
 
     return mapString;
@@ -296,24 +360,41 @@ String ToString(const Token* token)
     return ToString(*token);
 }
 
-void PrintDiagnostics(const Object& obj)
+String ToString(const TokenList& tokenList)
 {
-    std::cout << ToString(obj);
+    return ToString(tokenList, "Token*");
 }
 
-void PrintDiagnostics(const Object* obj)
+String ToString(const TokenList* tokenList)
 {
-    std::cout << ToString(obj);
+    return ToString(*tokenList);
 }
 
-void PrintDiagnostics(const Reference& ref)
+template <typename T>
+String DisplayString(T obj)
 {
-    std::cout << ToString(ref);
+    return Compact(ToString(obj));
 }
 
-void PrintDiagnostics(const Reference* ref)
+
+
+
+
+
+
+void LogDiagnostics(const Object& obj, String message, String method)
 {
-    std::cout << ToString(ref);
+    DebugDumpObjectToLog(DisplayString(obj), message, method);
+}
+
+void LogDiagnostics(const Object* obj, String message, String method)
+{
+    LogDiagnostics(*obj, message, method);
+}
+
+void LogDiagnostics(const Reference* ref, String message, String method)
+{
+    DebugDumpObjectToLog(DisplayString(ref), message, method);
 }
 
 void PrintDiagnostics(const Operation& op, int level)
@@ -347,7 +428,7 @@ void PrintDiagnostics(const Operation& op, int level)
     std::cout << "OP---" << level << "\nType " << type << "\n";
     if(op.Type == OperationType::Return)
     {
-        PrintDiagnostics(*op.Value);
+        LogDiagnostics(op.Value);
     }
     for(Operation* operand: op.Operands)
     {
@@ -360,32 +441,36 @@ void PrintDiagnostics(const Operation* op, int level)
     PrintDiagnostics(*op);
 }
 
-void PrintDiagnostics(const Token& token)
+void LogDiagnostics(const Token& token, String message, String method)
 {
-    std::cout << ToString(token);
+    DebugDumpObjectToLog(DisplayString(token), message, method);
 }
 
-void PrintDiagnostics(const Token* token)
+void LogDiagnostics(const Token* token, String message, String method)
 {
-    PrintDiagnostics(*token);
+    LogDiagnostics(*token, message, method);
 }
 
-void PrintDiagnostics(const TokenList& tokenList)
+void LogDiagnostics(const TokenList& tokenList, String message, String method)
 {
-    std::cout << ToString(tokenList, "Token*");
+    DebugDumpObjectToLog(DisplayString(tokenList), message, method);
 }
 
-void PrintDiagnostics(const TokenList* tokenList)
+void LogDiagnostics(const TokenList* tokenList, String message, String method)
 {
-    PrintDiagnostics(*tokenList);
+    LogDiagnostics(*tokenList, message, method);
 }
 
-void PrintDiagnostics(const ObjectReferenceMap& map)
+void LogDiagnostics(const ObjectReferenceMap& map, String message, String method)
 {
-    std::cout << ToString(map);
+    DebugDumpObjectToLog(DisplayString(map), message, method);
 }
 
-void PrintDiagnostics(const ObjectReferenceMap* map)
+void LogDiagnostics(const ObjectReferenceMap* map, String message, String method)
 {
-    std::cout << ToString(*map);
+    LogDiagnostics(*map, message, method);
 }
+
+
+
+#endif

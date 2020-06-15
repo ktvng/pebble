@@ -4,6 +4,8 @@
 #include "main.h"
 #include "arch.h"
 
+ObjectReferenceMap* EntryInIndexOf(const Object* obj);
+
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value);

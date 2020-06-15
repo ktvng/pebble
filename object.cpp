@@ -1,7 +1,9 @@
 #include <cstdarg>
+#include <iostream>
 
 #include "object.h"
 #include "diagnostics.h"
+#include "program.h"
 
 bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
 {
@@ -13,9 +15,10 @@ bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
     return false;
 }
 
+/// returns the ObjectReferenceMap corresonding to [obj] or nullptr if not found
 ObjectReferenceMap* EntryInIndexOf(const Object* obj)
 {
-    for(ObjectReferenceMap* map: ObjectsIndex)
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
         if(map->Object == obj)
             return map;
@@ -33,8 +36,8 @@ void IndexObject(Object* obj, Reference* ref)
         std::vector<Reference*> refs = { ref };
         
         *objMap = ObjectReferenceMap{ obj, refs };
-        ObjectsIndex.push_back(objMap);
-        
+        PROGRAM->ObjectsIndex.push_back(objMap);
+
         return;
     }
     

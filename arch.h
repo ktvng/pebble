@@ -5,6 +5,7 @@
 #include <string>
 
 #include "main.h"
+#include "utils.h"
 
 // Structs
 enum class OperationType
@@ -35,7 +36,7 @@ struct Reference
 struct Object
 {
     ObjectClass Class;
-    std::vector<Reference> Attributes;
+    std::vector<Reference*> Attributes;
     void* Value;
 };
 
@@ -49,6 +50,7 @@ struct Operation
 
 struct Block
 {
+    Scope* LocalScope;
     std::vector<Operation*> Operations;
 };
 
@@ -102,6 +104,26 @@ struct ObjectReferenceMap
 {
     Object* Object;
     std::vector<Reference*> References;
+};
+
+struct Scope
+{
+    std::vector<Reference*> ReferencesIndex;
+    Scope* InheritedScope;
+};
+
+struct CodeLine
+{
+    TokenList Tokens;
+    int LineNumber;
+};
+
+struct Program
+{
+    std::vector<CodeLine> Lines;
+    Scope* GlobalScope;
+    std::vector<Block> Blocks;
+    std::vector<ObjectReferenceMap*> ObjectsIndex;
 };
 
 #endif

@@ -8,7 +8,6 @@
 #include "arch.h"
 
 
-
 enum class SystemMessageType
 {
     Exception,
@@ -25,26 +24,26 @@ struct SystemMessage
 extern std::vector<SystemMessage> RuntimeMsgBuffer;
 extern std::vector<SystemMessage> CompileMsgBuffer;
 
+void PurgeLog();
 void LogIt(LogSeverityType type, String method, String message);
+void LogItDebug(String message, String method="unspecified");
 void RuntimeMsgPrint(int lineNumber);
 void CompileMsgPrint(int lineNumber);
 
 /// creates a String by expanding a [message] and its variable arguments
 String MSG(String message, ...);
 
-void PrintDiagnostics(const Object& obj);
-void PrintDiagnostics(const Reference& ref);
-void PrintDiagnostics(const Operation& op, int level=0);
-void PrintDiagnostics(const TokenList& tokenList);
-void PrintDiagnostics(const Token& token);
-void PrintDiagnostics(const ObjectReferenceMap& map);
+void LogDiagnostics(const Object& obj, String message="object dump", String method="unspecified");
+void PrintDiagnostics(const Operation& op, int level=0); // TODO: Change to log
+void LogDiagnostics(const TokenList& tokenList, String message="object dump", String method="unspecified");
+void LogDiagnostics(const Token& token, String message="object dump", String method="unspecified");
+void LogDiagnostics(const ObjectReferenceMap& map, String message="object dump", String method="unspecified");
 
-void PrintDiagnostics(const Object* obj);
-void PrintDiagnostics(const Reference* ref);
+void LogDiagnostics(const Object* obj, String message="object dump", String method="unspecified");
+void LogDiagnostics(const Reference* ref, String message="object dump", String method="unspecified");
 void PrintDiagnostics(const Operation* op, int level=0);
-void PrintDiagnostics(const TokenList* tokenList);
-void PrintDiagnostics(const Token* token);
-void PrintDiagnostics(const ObjectReferenceMap* map);
-
+void LogDiagnostics(const TokenList* tokenList, String message="object dumpLogItDebug", String method="unspecified");
+void LogDiagnostics(const Token* token, String message="object dumpLogItDebug", String method="unspecified");
+void LogDiagnostics(const ObjectReferenceMap* map, String message="object dumpLogItDebug", String method="unspecified");
 
 #endif
