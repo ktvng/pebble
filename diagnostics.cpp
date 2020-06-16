@@ -274,8 +274,8 @@ template <typename T>
 String ToString(std::vector<T> list, String typeString)
 {
     if(list.size() == 0)
-        return MSG("<List<%s>", typeString);
-    String listString = MSG("<List<%s>\n", typeString);
+        return MSG("<List<%s>>", typeString);
+    String listString = MSG("<List<%s>>\n", typeString);
     for(size_t i=0; i<list.size(); i++)
     {
         int offset = ValueStartOffset(std::to_string(i));
@@ -372,6 +372,7 @@ String ToString(const TokenList* tokenList)
 
 String ToString(const OperationType& type)
 {
+    // at least in C#, you can cast enums to strings! and get rid of switch
     switch(type){
         case OperationType::Add:
         return "Add";
