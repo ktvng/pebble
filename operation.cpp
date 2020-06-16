@@ -251,6 +251,12 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 
 
 
+void UnimplementedValueFunction(const OperationType opType, Reference** refValue)
+{
+    *refValue = CreateNullReference();
+    LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
+}
+
 
 // Decide Values
 void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
@@ -283,12 +289,6 @@ void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
     AddReferenceToScope(ref, scope);
 }
 
-void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
-{
-    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
-    *refValue = arg1;
-}
-
 void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
 {
     int pos = 0;
@@ -299,6 +299,73 @@ void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
 
     *refValue = arg1;
 }
+void DecideValueIsEqual(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::IsEqual, refValue);
+}
+
+void DecideValueIsLessThan(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::IsLessThan, refValue);
+}
+
+void DecideValueIsGreaterThan(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::IsGreaterThan, refValue);
+}
+
+void DecideValueAdd(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Add, refValue);
+}
+
+void DecideValueSubtract(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Subtract, refValue);
+}
+
+void DecideValueMultiply(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Multiply, refValue);
+}
+
+void DecideValueDivide(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Divide, refValue);
+}
+
+void DecideValueAnd(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::And, refValue);
+}
+
+void DecideValueOr(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Or, refValue);
+}
+
+void DecideValueNot(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Not, refValue);
+}
+
+void DecideValueEvaluate(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Evaluate, refValue);
+}
+
+void DecideValuePrint(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Print, refValue);
+}
+
+void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
+    *refValue = arg1;
+}
+
+
 
 
 

@@ -312,29 +312,28 @@ void DecideOperands(Scope* scope, const OperationType& opType, TokenList& tokens
 
 //
 typedef void(*DecideValueFunctions)(Scope*, TokenList&, Reference**);
-DecideValueFunctions valueFunctions[] = {DecideValueDefine}; // need to add the rest of the functions pointers for it to be good
+DecideValueFunctions valueFunctions[] = 
+{
+    DecideValueDefine,
+    DecideValueAssign,
+    DecideValueIsEqual,
+    DecideValueIsLessThan,
+    DecideValueIsGreaterThan,
+    DecideValueAdd,
+    DecideValueSubtract,
+    DecideValueMultiply,
+    DecideValueDivide,
+    DecideValueAnd,
+    DecideValueOr,
+    DecideValueNot,
+    DecideValueEvaluate,
+    DecideValuePrint,
+    DecideValueReturn,
+}; // need to add the rest of the functions pointers for it to be good
 //
 void DecideOperationValue(Scope* scope, const OperationType& opType, TokenList& tokens, Reference** refValue)
 {
-    switch(opType)
-    {
-        case OperationType::Define:
-        DecideValueDefine(scope, tokens, refValue);
-        return;
-
-        case OperationType::Return:
-        DecideValueReturn(scope, tokens, refValue);
-        return;
-
-        case OperationType::Assign:
-        DecideValueAssign(scope, tokens, refValue);
-        return;
-
-        default:
-        *refValue = CreateNullReference();
-        LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
-        return;
-    }
+    valueFunctions[opType](scope, tokens, refValue);
 }
 
 
