@@ -8,27 +8,6 @@
 #include "utils.h"
 
 // Structs
-enum OperationType
-{
-    Define, // defines a new reference in the scope special
-    Assign, // special
-    IsEqual, //
-    IsLessThan, //
-    IsGreaterThan, //
-    Add, 
-    Subtract, //
-    Multiply, //
-    Divide, //
-    And, 
-    Or, //
-    Not, //
-    Evaluate, //
-    Print, //
-    Return, // special
-};
-
-
-
 struct Reference
 {
     std::string Name;
@@ -40,20 +19,6 @@ struct Object
     ObjectClass Class;
     std::vector<Reference*> Attributes;
     void* Value;
-};
-
-struct Operation
-{
-    OperationType Type;
-    std::vector<Operation*> Operands;
-    Reference* Value;
-    int LineNumber;
-};
-
-struct Block
-{
-    Scope* LocalScope;
-    std::vector<Operation*> Operations;
 };
 
 struct OperationTypeProbability
@@ -118,13 +83,14 @@ struct CodeLine
 {
     TokenList Tokens;
     int LineNumber;
+    int Level;
 };
 
 struct Program
 {
     std::vector<CodeLine> Lines;
     Scope* GlobalScope;
-    std::vector<Block> Blocks;
+    std::vector<Block*> Blocks;
     std::vector<ObjectReferenceMap*> ObjectsIndex;
 };
 

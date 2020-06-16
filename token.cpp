@@ -226,26 +226,26 @@ void RenumberTokenList(TokenList& tokens)
 
 TokenList RightOfToken(const TokenList& tokens, Token* pivotToken)
 {
-    TokenList leftList;
-    leftList.reserve(tokens.size());
-
-    for(int i=pivotToken->Position + 1; static_cast<size_t>(i)<tokens.size(); i++)
-        leftList.push_back(tokens.at(i));
-    
-    RenumberTokenList(leftList);
-    return leftList;
-}
-
-TokenList LeftOfToken(const TokenList& tokens, Token* pivotToken)
-{
     TokenList rightList;
     rightList.reserve(tokens.size());
 
-    for(int i=0; i<pivotToken->Position; i++)
+    for(int i=pivotToken->Position + 1; static_cast<size_t>(i)<tokens.size(); i++)
         rightList.push_back(tokens.at(i));
     
     RenumberTokenList(rightList);
     return rightList;
+}
+
+TokenList LeftOfToken(const TokenList& tokens, Token* pivotToken)
+{
+    TokenList leftList;
+    leftList.reserve(tokens.size());
+
+    for(int i=0; i<pivotToken->Position; i++)
+        leftList.push_back(tokens.at(i));
+    
+    RenumberTokenList(leftList);
+    return leftList;
 }
 
 

@@ -348,7 +348,8 @@ String ToString(const ObjectReferenceMap* map)
 
 String ToString(const Token& token)
 {
-    return StringForAttrbute("Token", MSG("Type: %s\t Content: %s", 
+    return StringForAttrbute("Token", MSG("Position: %i\n Type: %s\t Content: %s", 
+        token.Position,
         GetStringTokenType(token.Type),
         token.Content));
 }
@@ -389,6 +390,9 @@ String ToString(const OperationType& type)
 
         case OperationType::Subtract:
         return "Subtract";
+        
+        case OperationType::If:
+        return "If";
 
         case OperationType::And:
         return "And";
@@ -400,8 +404,13 @@ String ToString(const OperationType& type)
 
 String ToString(const Operation& op, int level)
 {
-    String opString = "<Operation> " + ((level==0) ? "Base" : "Operand L" + std::to_string(level)) + "\n";
+    String opString = "<Operation> L" + std::to_string(level) + "\n";
     opString.reserve(256);
+
+    opString += IndentLevel(level+1) +
+        StringForAttrbute(
+            "LineNumber",
+            MSG("%i", op.LineNumber));
 
     if(op.Type == OperationType::Return)
     {
@@ -447,6 +456,37 @@ String ToString(const Operation* op, int level)
     return ToString(*op, level);
 }
 
+String ToString(const Block* block, int level)
+{
+    String blockString = "<Block>\n";
+    blockString.reserve(512);
+    for(size_t i=0; i<block->Executables.size(); i++)
+    {
+        Executable* exec = block->Executables.at(i);
+
+        if(exec->ExecType == ExecutableType::Operation)
+        {
+            blockString += IndentLevel(1) + StringForAttrbute(std::to_string(i),
+                IndentStringToLevel(
+                    ToString(static_cast<Operation*>(exec)), 
+                    1, 
+                    ValueStartOffset(std::to_string(i))));
+        }
+        else if(exec->ExecType == ExecutableType::Block){
+            blockString += IndentLevel(1) + StringForAttrbute(std::to_string(i),
+                IndentStringToLevel(
+                    ToString(static_cast<Block*>(exec)), 
+                    1, 
+                    ValueStartOffset(std::to_string(i))));
+        }
+    }
+
+    return blockString;
+}
+
+
+
+
 
 template <typename T>
 String DisplayString(T obj)
@@ -458,7 +498,10 @@ String DisplayString(T obj)
 
 
 
-
+void LogDiagnostics(const Block* b, String message, String method)
+{
+    DebugDumpObjectToLog(DisplayString(b), message, method);
+}
 
 void LogDiagnostics(const Object& obj, String message, String method)
 {

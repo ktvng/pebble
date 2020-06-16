@@ -24,6 +24,26 @@
 #include "diagnostics.h"
 #include "operation.h"
 
+// Constructor
+Scope* ScopeConstructor(Scope* inheritedScope)
+{
+    Scope* s = new Scope;
+    s->InheritedScope = inheritedScope;
+    s->ReferencesIndex = {};
+
+    return s;
+}
+
+Block* BlockConstructor(Scope* inheritedScope)
+{
+    Block* b = new Block;
+    b->ExecType = ExecutableType::Block;
+    b->Executables = {};
+    b->LocalScope = ScopeConstructor(inheritedScope);
+
+    return b;
+}
+
 // Scoping
 void RemoveReferenceFromObjectIndex(Reference* ref)
 {
@@ -33,7 +53,6 @@ void RemoveReferenceFromObjectIndex(Reference* ref)
         LogIt(LogSeverityType::Sev3_Critical, "RemoveReferenceFromObjectIndex", "cannot find reference in ObjectIndex");
         return;
     }
-
     size_t refLoc;
     for(refLoc=0; refLoc<map->References.size() && ref != map->References.at(refLoc); refLoc++);
     map->References.erase(map->References.begin()+refLoc);
@@ -48,6 +67,7 @@ void RemoveReferenceFromScope(Scope* scope, Reference* ref)
 
 void Dereference(Scope* scope, Reference* ref)
 {
+    LogItDebug("method called", "Dereference");
     RemoveReferenceFromObjectIndex(ref);
     RemoveReferenceFromScope(scope, ref);
 }
@@ -89,9 +109,14 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Assign:
         return OperationAssign(op->Value, operands.at(0));
   
+        case OperationType::And:
+        return OperationAnd(operands.at(0), operands.at(1));
 
         case OperationType::Define:
         return OperationDefine(op->Value, scope);
+
+        case OperationType::If:
+        return OperationIf(operands.at(0));
 
         default:
         LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
@@ -125,38 +150,71 @@ Reference* DoOperation(Scope* scope, Operation* op)
     return returnRef;
 }
 
+void DoLineOfOperations()
+{
+ 
+}
+
 /// executes a [codeBlock]
-void DoBlock(Block& codeBlock)
+Reference* DoBlock(Block* codeBlock)
 {
     Reference* result = nullptr;
     Reference* previousResult = nullptr;
 
-    for(Operation* op: codeBlock.Operations)
+    for(size_t i=0; i<codeBlock->Executables.size(); i++)
     {
-        LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
-        Reference* result = DoOperation(codeBlock.LocalScope, op);
-
-        if(previousResult != nullptr)
-            Dereference(codeBlock.LocalScope, previousResult);
-        previousResult = result;
-        LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
-
-        for(auto ref: codeBlock.LocalScope->ReferencesIndex)
-            LogDiagnostics(ref, MSG("scope at %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
-
-        if(RuntimeMsgFlag)
+        auto exec = codeBlock->Executables.at(i);
+        if(exec->ExecType == ExecutableType::Operation)
         {
-            RuntimeMsgPrint(op->LineNumber);
-            RuntimeMsgFlag = false;
+            Operation* op = static_cast<Operation*>(exec);
+
+            Scope* localScope = codeBlock->LocalScope;
+            for(Scope* localScope = codeBlock->LocalScope; localScope != nullptr; localScope=localScope->InheritedScope)
+                for(auto ref: localScope->ReferencesIndex)
+                    LogDiagnostics(ref, MSG("scope before %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
+
+            LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
+
+            result = DoOperation(codeBlock->LocalScope, op);
+            if(op->Type == OperationType::If && !GetBoolValue(*result->ToObject))
+            {
+                i++;
+            }
+
+            if(previousResult != nullptr)
+                Dereference(codeBlock->LocalScope, previousResult);
+            previousResult = result;
+
+
+            LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
+
+            // for(Scope* localScope = codeBlock->LocalScope; localScope != nullptr; localScope=localScope->InheritedScope)
+            //     for(auto ref: localScope->ReferencesIndex)
+            //         LogDiagnostics(ref, MSG("scope at %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
+
+            if(RuntimeMsgFlag)
+            {
+                RuntimeMsgPrint(op->LineNumber);
+                RuntimeMsgFlag = false;
+            }
+        }
+        else if(exec->ExecType == ExecutableType::Block)
+        {
+            Block* childBlock = static_cast<Block*>(exec);
+            LogItDebug("discovered child block: starting" "DoBlock");
+            DoBlock(childBlock);
+            LogItDebug("exiting child block", "DoBlock");
         }
     }
     if(result != nullptr)
-        Dereference(codeBlock.LocalScope, result);
+        return result;
+    else
+        return CreateNullReference();
 }
 
 void DoProgram(Program& program)
 {
-    for(Block block: program.Blocks)
+    for(Block* block: program.Blocks)
     {
         DoBlock(block);
     }
@@ -188,7 +246,7 @@ Reference* DecideExistingReferenceFor(Token* token, Scope* scope) // MAJOR: Add 
     {
         for(Scope* lookInScope = scope; lookInScope != nullptr; lookInScope = lookInScope->InheritedScope)
         {
-            for(Reference* ref: scope->ReferencesIndex)
+            for(Reference* ref: lookInScope->ReferencesIndex)
             {
                 if(TokenMatchesReference(token, ref))
                     return ref;
@@ -273,7 +331,10 @@ void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities,
 /// assign [lineType] based on [typeProbabitlites] for each atomic operation
 void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType) // MAJOR
 {
-    lineType = LineType::Atomic;
+    if(FindToken(tokens, "if") != nullptr && FindToken(tokens, ":") != nullptr)
+        lineType = LineType::If;
+    else
+        lineType = LineType::Atomic;
 }
 
 /// given pre-completed [typeProbabilities], decides what operation is most likey
@@ -364,24 +425,95 @@ String RemoveCommas(String line)
     return returnString;
 }
 
-// commas allow line breaks TODO: WORK HERE
+String g_tabString;
+
+bool TabStringIsSet()
+{
+    return g_tabString.size() > 0;
+}
+
+void SetTabString(String str)
+{
+    if(str.size() == 0)
+        return;
+    if(TabStringIsSet())
+        return;
+
+    g_tabString = str;
+}
+
+bool IsTabCharacter(char c)
+{
+    return c == '\t' || c == ' ';
+}
+
+String DecideTabString(String line)
+{
+    String tabString;
+    tabString.reserve(8);
+
+    for(size_t i =0; i < line.size() && IsTabCharacter(line.at(i)); i++)
+        tabString += line.at(i);
+    
+    return tabString;
+}
+
+/// returns the level of the line or -1 if malformed
+int LevelOfLine(String line)
+{
+    if(line.size() == 0)
+        return -1;
+    if(!IsTabCharacter(line.at(0)))
+        return 0;
+
+    // if some spacing exists but the tabString is not set, the code is malformed
+    if(g_tabString.size() == 0)
+        return -1;
+
+    int level=0;
+    size_t i=0;
+    while(static_cast<size_t>(level) < line.size())
+    {
+        for(size_t j=0; j<g_tabString.size() && i<line.size(); j++, i++)
+        {
+            if(g_tabString.at(j) != line.at(i)){
+                return -1;
+            }
+        }
+        level++;
+        if(!IsTabCharacter(line.at(i)))
+            return level;
+    }
+    return -1;
+}
+
+
+
 /// returns a line of code and sets lineNumber to that of the next line and lineStart to
-/// the starting position of the returned line
+/// the starting position of the returned line. commas allw for a line to be split
 std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart)
 {
     std::string fullLine = "";
     std::string newLine;
 
+    bool FirstTime = true;
     do
     {
         lineNumber++;
         if(!std::getline(file, newLine))
             break;
-        if(newLine != "")
+        if(newLine != "" && FirstTime)
+        {
             lineStart = lineNumber - 1;
+            FirstTime = false;
+        }
         fullLine += newLine;
 
     } while (newLine.size() == 0 || LastNonWhitespaceChar(newLine) == ',');
+
+    if(!TabStringIsSet())
+        SetTabString(DecideTabString(newLine));
+
     return RemoveCommas(fullLine);
 }
 
@@ -391,24 +523,21 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
 /// parses an atomic operation into an Operation tree
 Operation* ParseOutAtomic(Scope* scope, PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
-    Operation* op = CreateOperation();
-
     OperationType opType;
     DecideOperationType(typeProbabilities, opType);
-    op->Type = opType;
 
     LogItDebug(MSG("operation type is %s", ToString(opType)), "ParseOutAtomic");
     // these operands act on references!
+    Reference* refValue = nullptr;
     if(opType == OperationType::Return || opType == OperationType::Define || opType == OperationType::Assign)
     {
-        Reference* refValue;
         DecideOperationValue(scope, opType, tokens, &refValue);
-        op->Value = refValue;
     }
 
     OperationsList operands;
     DecideOperands(scope, opType, tokens, operands);
-    op->Operands = operands;
+
+    Operation* op = OperationConstructor(opType, operands, refValue);
 
     return op;
 }
@@ -419,6 +548,25 @@ Operation* ParseComposite(Scope* scope, PossibleOperationsList& typeProbabilitie
 {
     
     return nullptr;
+}
+
+// TODO:
+Operation* ParseIf(Scope* scope, PossibleOperationsList& typeProbabilityes, TokenList& tokens)
+{
+    // Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
+
+    TokenList newList;
+    newList = RightOfToken(tokens, FindToken(tokens, "if"));
+    newList = LeftOfToken(newList, FindToken(newList, ":"));
+
+    LogDiagnostics(newList, "printing token list after removing if stuff");
+
+    Operation* condition = ParseLine(scope, newList);
+    Operation* op = OperationConstructor(
+        OperationType::If, 
+        { condition });
+
+    return op;
 }
 
 
@@ -457,6 +605,7 @@ Operation* ParseLine(Scope* scope, TokenList& tokens)
         return ParseComposite(scope, typeProbabilities, tokens);
 
         case LineType::If:
+        return ParseIf(scope, typeProbabilities, tokens);
 
         case LineType::While:
 
@@ -466,62 +615,87 @@ Operation* ParseLine(Scope* scope, TokenList& tokens)
     }
 }
 
-Block ParseBlock(
+int SizeOfBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::iterator end)
+{
+    int blockLevel = it->Level;
+    int blockSize = 0;
+    for(; it != end && it->Level >= blockLevel; it++) 
+        blockSize++;
+
+    return blockSize;
+}
+
+Block* ParseBlock(
     std::vector<CodeLine>::iterator it, 
     std::vector<CodeLine>::iterator end, 
-    Scope* inheritedScope)
+    Scope* blockInheritedScope,
+    Scope* compileTimeInheritedScope)
 {
-    Block parsedBlock;
-    parsedBlock.LocalScope = new Scope;
-    parsedBlock.LocalScope->InheritedScope = inheritedScope;
+    Block* thisBlock = BlockConstructor(blockInheritedScope);
+    Scope* thisBlockCompileScope = ScopeConstructor(compileTimeInheritedScope);
 
-    Scope* compileTimeBlockScope = new Scope;
+    int previousLineLevel = it->Level;
 
     for(; it != end; it++)
     {
-        LogItDebug(MSG("starting compile line [%i]", it->LineNumber), "ParseBlock");
-        Operation* op = ParseLine(compileTimeBlockScope, it->Tokens);
-        NumberOperation(op, it->LineNumber);
-        LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
-
-        if(CompileMsgFlag)
+        if(it->Level > previousLineLevel)
         {
-            CompileMsgPrint(it->LineNumber);
-            CompileMsgFlag = false;
-        }
+            LogItDebug(MSG("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
+            int blockSize = SizeOfBlock(it, end);
+            Block* b = ParseBlock(it, it+blockSize, thisBlock->LocalScope, thisBlockCompileScope);
+            LogItDebug(MSG("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
 
-        parsedBlock.Operations.push_back(op);
+            it += blockSize - 1;
+            thisBlock->Executables.push_back(b);
+        }
+        else
+        {
+            LogItDebug(MSG("starting compile line [%i]", it->LineNumber), "ParseBlock");
+            Operation* op = ParseLine(thisBlockCompileScope, it->Tokens);
+            NumberOperation(op, it->LineNumber);
+            LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
+
+            if(CompileMsgFlag)
+            {
+                CompileMsgPrint(it->LineNumber);
+                CompileMsgFlag = false;
+            }
+
+            thisBlock->Executables.push_back(op);
+        }
     }
 
-    return parsedBlock;
+    return thisBlock;
 }
 
 Program* ParseProgram(const std::string filepath)
 {
     PROGRAM = new Program;
-    PROGRAM->GlobalScope = new Scope;
-    PROGRAM->GlobalScope->InheritedScope = nullptr;
-
+    PROGRAM->GlobalScope = ScopeConstructor(nullptr);
+    Scope* compileTimeGlobalScope = ScopeConstructor(nullptr);
 
     std::fstream file;
     file.open(filepath, std::ios::in);
 
-    int lineEndPos = 1;
+    int lineLevel = 0;
+    int nextLinePos = 1;
     int lineStart = 1;
-    for(std::string line = GetEffectiveLine(file, lineEndPos, lineStart); line != ""; line = GetEffectiveLine(file, lineEndPos, lineStart))
+
+    for(std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
     {
         TokenList tokens = LexLine(line);
-        CodeLine ls = { tokens , lineStart };
+        lineLevel = LevelOfLine(line);
+
+        CodeLine ls = { tokens , lineStart, lineLevel };
         PROGRAM->Lines.push_back(ls);
     }
 
     // TODO: Allow different blocks
-    Block b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end(), PROGRAM->GlobalScope);
+    Block* b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end(), PROGRAM->GlobalScope, compileTimeGlobalScope);
     PROGRAM->Blocks.push_back(b);
 
     return PROGRAM;
 }
-
 
 
 
@@ -535,10 +709,9 @@ int main()
     ParseProgram(".\\program");
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
     
-    for(auto op: PROGRAM->Blocks.at(0).Operations)
-        LogDiagnostics(op, "operation log", "main");
-
-    PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex.clear();
+    for(Block* b: PROGRAM->Blocks)
+        LogDiagnostics(b, "initial program parse structure", "main");
+    
     
     // PRINT OPERATIONS
     if(PRINT_OPERATIONS)

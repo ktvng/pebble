@@ -7,11 +7,21 @@
 
 #include "utils.h"
 
+enum class ExecutableType
+{
+    Operation,
+    Block
+};
+
+class Executable 
+{
+    public:
+    ExecutableType ExecType;
+};
+
 
 struct Reference;
 struct Object;
-struct Block;
-struct Operation;
 struct Token;
 struct OperationTypeProbability;
 struct SystemMessage;
@@ -19,6 +29,46 @@ struct ObjectReferenceMap;
 struct Scope;
 struct CodeLine;
 struct Program;
+
+
+enum class OperationType
+{
+    Define, // defines a new reference in the scope special
+    Assign, // special
+    IsEqual, //
+    IsLessThan, //
+    IsGreaterThan, //
+    Add, 
+    Subtract, //
+    Multiply, //
+    Divide, //
+    And, 
+    Or, //
+    Not, //
+    Evaluate, //
+    Print, //
+    Return, // special
+
+    // More special
+    If,
+    EndLabel,
+};
+
+class Operation : public Executable 
+{
+    public:
+    OperationType Type;
+    std::vector<Operation*> Operands;
+    Reference* Value;
+    int LineNumber;
+};
+class Block : public Executable
+{
+    public:
+    Scope* LocalScope;
+    std::vector<Executable*> Executables;
+};
+
 
 typedef std::vector<Token*> TokenList;
 typedef std::string ObjectClass;

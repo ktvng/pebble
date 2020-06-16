@@ -36,6 +36,8 @@ String MSG(String message, ...);
 String ToString(const OperationType& type);
 String ToString(const Operation& op, int level=0);
 String ToString(const Operation* op, int level=0);
+String ToString(const Block* block, int level=0);
+String ToString(const Block& block, int level=0);
 
 void LogDiagnostics(const Object& obj, String message="object dump", String method="unspecified");
 void LogDiagnostics(const Operation& op, String message="object dump", String method="unspecified");
@@ -49,5 +51,7 @@ void LogDiagnostics(const Operation* op, String message="object dump", String me
 void LogDiagnostics(const TokenList* tokenList, String message="object dumpLogItDebug", String method="unspecified");
 void LogDiagnostics(const Token* token, String message="object dumpLogItDebug", String method="unspecified");
 void LogDiagnostics(const ObjectReferenceMap* map, String message="object dumpLogItDebug", String method="unspecified");
+
+void LogDiagnostics(const Block* b, String message, String method);
 
 #endif
