@@ -94,8 +94,14 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Return:
         return OperationReturn(op->Value, scope);
 
+        case OperationType::And:
+        return OperationAnd(operands.at(0), operands.at(1));
+
         case OperationType::Add:
         return OperationAdd(operands.at(0), operands.at(1));
+
+        case OperationType::Subtract:
+        return OperationSubtract(operands.at(0), operands.at(1));
 
         case OperationType::Print:
         return OperationPrint(operands.at(0));
@@ -290,26 +296,35 @@ Reference* DecideReferenceOf(Scope* scope, Token* token)
 
 
 
+// can put this somewhere
+typedef void (*ProbabilityFunctions)(PossibleOperationsList&, const TokenList&);
+ProbabilityFunctions decideProbabilities[] = 
+{
+    DecideProbabilityDefine,
+    DecideProbabilityAssign,
+    DecideProbabilityIsEqual,
+    DecideProbabilityIsLessThan,
+    DecideProbabilityIsGreaterThan,
+    DecideProbabilityAdd,
+    DecideProbabilitySubtract,
+    DecideProbabilityMultiply,
+    DecideProbabilityDivide,
+    DecideProbabilityAnd,
+    DecideProbabilityOr,
+    DecideProbabilityNot,
+    DecideProbabilityEvaluate,
+    DecideProbabilityPrint,
+    DecideProbabilityReturn,
+};
 
 /// decide the probability that a line represented by [tokens] corresponds to each of the atomic operations and stores
 /// this in [typeProbabilities]
 void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    DecideProbabilityDefine(typeProbabilities, tokens);
-    DecideProbabilityAssign(typeProbabilities, tokens);
-    DecideProbabilityIsEqual(typeProbabilities, tokens);
-    DecideProbabilityIsLessThan(typeProbabilities, tokens);
-    DecideProbabilityIsGreaterThan(typeProbabilities, tokens);
-    DecideProbabilityAdd(typeProbabilities, tokens);
-    DecideProbabilitySubtract(typeProbabilities, tokens);
-    DecideProbabilityMultiply(typeProbabilities, tokens);
-    DecideProbabilityDivide(typeProbabilities, tokens);
-    DecideProbabilityAnd(typeProbabilities, tokens);
-    DecideProbabilityOr(typeProbabilities, tokens);
-    DecideProbabilityNot(typeProbabilities, tokens);
-    DecideProbabilityEvaluate(typeProbabilities, tokens);
-    DecideProbabilityPrint(typeProbabilities, tokens);
-    DecideProbabilityReturn(typeProbabilities, tokens);
+    for(ProbabilityFunctions pFunc : decideProbabilities)
+    {
+        pFunc(typeProbabilities, tokens);
+    }
 }
 
 // TODO: figure out how to decide line type
@@ -332,94 +347,60 @@ void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationTyp
     opType = typeProbabilities.at(0).Type;
 }
 
+
+typedef void(*DecideOperandsFunction)(Scope*, TokenList& tokens, OperationsList&);
+DecideOperandsFunction decideOperands[] = 
+{
+    DecideOperandsDefine,
+    DecideOperandsAssign,
+    DecideOperandsIsEqual,
+    DecideOperandsIsLessThan,
+    DecideOperandsIsGreaterThan,
+    DecideOperandsAdd,
+    DecideOperandsSubtract,
+    DecideOperandsMultiply,
+    DecideOperandsDivide,
+    DecideOperandsAnd,
+    DecideOperandsOr,
+    DecideOperandsNot,
+    DecideOperandsEvaluate,
+    DecideOperandsPrint,
+    DecideOperandsReturn,
+};
+
 /// decides and adds the operations for the Operation of [opType] to [operands] 
 void DecideOperands(Scope* scope, const OperationType& opType, TokenList& tokens, OperationsList& operands)
 {
-    switch(opType)
-    {
-        case OperationType::Define:
-        DecideOperandsDefine(scope, tokens, operands);
-        break;
-
-        case OperationType::Assign:
-        DecideOperandsAssign(scope, tokens, operands);
-        break;
-
-        case OperationType::IsEqual:
-        DecideOperandsIsEqual(scope, tokens, operands);
-        break;
-
-        case OperationType::IsLessThan:
-        DecideOperandsIsLessThan(scope, tokens, operands);
-        break;
-
-        case OperationType::IsGreaterThan:
-        DecideOperandsIsGreaterThan(scope, tokens, operands);
-        break;
-
-        case OperationType::Add:
-        DecideOperandsAdd(scope, tokens, operands);
-        break;
-
-        case OperationType::Subtract:
-        DecideOperandsSubtract(scope, tokens, operands);
-        break;
-
-        case OperationType::Multiply:
-        DecideOperandsMultiply(scope, tokens, operands);
-        break;
-
-        case OperationType::Divide:
-        DecideOperandsDivide(scope, tokens, operands);
-        break;
-
-        case OperationType::And:
-        DecideOperandsAnd(scope, tokens, operands);
-        break;
-
-        case OperationType::Or:
-        DecideOperandsOr(scope, tokens, operands);
-        break;
-
-        case OperationType::Not:
-        DecideOperandsNot(scope, tokens, operands);
-        break;
-
-        case OperationType::Evaluate:
-        DecideOperandsEvaluate(scope, tokens, operands);
-        break;
-
-        case OperationType::Print:
-        DecideOperandsPrint(scope, tokens, operands);
-        break;
-
-        case OperationType::Return:
-        DecideOperandsReturn(scope, tokens, operands);
-        break;
-    }
+    // TODO fPtr
+    // makes going through a linear search to find what function to use instant with array indexing
+    decideOperands[opType](scope, tokens, operands);
 }
 
+
+//
+typedef void(*DecideValueFunctions)(Scope*, TokenList&, Reference**);
+DecideValueFunctions valueFunctions[] = 
+{
+    DecideValueDefine,
+    DecideValueAssign,
+    DecideValueIsEqual,
+    DecideValueIsLessThan,
+    DecideValueIsGreaterThan,
+    DecideValueAdd,
+    DecideValueSubtract,
+    DecideValueMultiply,
+    DecideValueDivide,
+    DecideValueAnd,
+    DecideValueOr,
+    DecideValueNot,
+    DecideValueEvaluate,
+    DecideValuePrint,
+    DecideValueReturn,
+}; // need to add the rest of the functions pointers for it to be good
+//
 void DecideOperationValue(Scope* scope, const OperationType& opType, TokenList& tokens, Reference** refValue)
 {
-    switch(opType)
-    {
-        case OperationType::Define:
-        DecideValueDefine(scope, tokens, refValue);
-        return;
-
-        case OperationType::Return:
-        DecideValueReturn(scope, tokens, refValue);
-        return;
-
-        case OperationType::Assign:
-        DecideValueAssign(scope, tokens, refValue);
-        return;
-
-        default:
-        *refValue = CreateNullReference();
-        LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
-        return;
-    }
+    valueFunctions[opType](scope, tokens, refValue);
 }
 
 
@@ -528,7 +509,7 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
         }
         fullLine += newLine;
 
-    } while (LastNonWhitespaceChar(newLine) == ',' || newLine.size() == 0);
+    } while (newLine.size() == 0 || LastNonWhitespaceChar(newLine) == ',');
 
     if(!TabStringIsSet())
         SetTabString(DecideTabString(newLine));
@@ -601,6 +582,9 @@ void NumberOperation(Operation* op, int lineNumber)
 
 
 
+// can use this if every plays 
+typedef Operation*(*LineTypeFunctions)(Scope*, PossibleOperationsList&, TokenList&);
+LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
 
 /// parses a line of code
 Operation* ParseLine(Scope* scope, TokenList& tokens)
@@ -611,6 +595,7 @@ Operation* ParseLine(Scope* scope, TokenList& tokens)
     LineType lineType;
     DecideLineType(typeProbabilities, tokens, lineType);
     
+    // fPtr
     switch(lineType)
     {
         case LineType::Atomic:
