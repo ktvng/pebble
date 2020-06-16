@@ -251,12 +251,13 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 
 
 
+
+
 void UnimplementedValueFunction(const OperationType opType, Reference** refValue)
 {
     *refValue = CreateNullReference();
     LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
 }
-
 
 // Decide Values
 void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
@@ -418,9 +419,21 @@ void DecideOperandsIsGreaterThan(Scope* scope, TokenList& tokens, OperationsList
     
 }
 
+// 
 void DecideOperandsSubtract(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    
+    int pos = 0;
+ 
+    Reference* arg1 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+    Reference* arg2 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+
+    LogDiagnostics(tokens, "debug", "DecideOperandsSbtract");
+    LogDiagnostics(arg1, "debug", "DecideOperandsSbtract");
+    LogDiagnostics(arg2, "debug", "DecideOperandsSbtract");
+
+
+    AddReferenceReturnOperationTo(operands, arg1);
+    AddReferenceReturnOperationTo(operands, arg2);
 }
 
 void DecideOperandsMultiply(Scope* scope, TokenList& tokens, OperationsList& operands)

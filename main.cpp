@@ -77,6 +77,9 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Add:
         return OperationAdd(operands.at(0), operands.at(1));
 
+        case OperationType::Subtract:
+        return OperationSubtract(operands.at(0), operands.at(1));
+
         case OperationType::Print:
         return OperationPrint(operands.at(0));
 
