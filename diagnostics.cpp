@@ -390,6 +390,9 @@ String ToString(const OperationType& type)
         case OperationType::Subtract:
         return "Subtract";
 
+        case OperationType::And:
+        return "And";
+
         default:
         return "unimplemented";
     }
