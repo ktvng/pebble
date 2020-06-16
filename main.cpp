@@ -280,74 +280,40 @@ void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationTyp
     opType = typeProbabilities.at(0).Type;
 }
 
+
+typedef void(*DecideOperandsFunction)(Scope*, TokenList& tokens, OperationsList&);
+DecideOperandsFunction decideOperands[] = 
+{
+    DecideOperandsDefine,
+    DecideOperandsAssign,
+    DecideOperandsIsEqual,
+    DecideOperandsIsLessThan,
+    DecideOperandsIsGreaterThan,
+    DecideOperandsAdd,
+    DecideOperandsSubtract,
+    DecideOperandsMultiply,
+    DecideOperandsDivide,
+    DecideOperandsAnd,
+    DecideOperandsOr,
+    DecideOperandsNot,
+    DecideOperandsEvaluate,
+    DecideOperandsPrint,
+    DecideOperandsReturn,
+};
+
 /// decides and adds the operations for the Operation of [opType] to [operands] 
 void DecideOperands(Scope* scope, const OperationType& opType, TokenList& tokens, OperationsList& operands)
 {
     // TODO fPtr
-    switch(opType)
-    {
-        case OperationType::Define:
-        DecideOperandsDefine(scope, tokens, operands);
-        break;
-
-        case OperationType::Assign:
-        DecideOperandsAssign(scope, tokens, operands);
-        break;
-
-        case OperationType::IsEqual:
-        DecideOperandsIsEqual(scope, tokens, operands);
-        break;
-
-        case OperationType::IsLessThan:
-        DecideOperandsIsLessThan(scope, tokens, operands);
-        break;
-
-        case OperationType::IsGreaterThan:
-        DecideOperandsIsGreaterThan(scope, tokens, operands);
-        break;
-
-        case OperationType::Add:
-        DecideOperandsAdd(scope, tokens, operands);
-        break;
-
-        case OperationType::Subtract:
-        DecideOperandsSubtract(scope, tokens, operands);
-        break;
-
-        case OperationType::Multiply:
-        DecideOperandsMultiply(scope, tokens, operands);
-        break;
-
-        case OperationType::Divide:
-        DecideOperandsDivide(scope, tokens, operands);
-        break;
-
-        case OperationType::And:
-        DecideOperandsAnd(scope, tokens, operands);
-        break;
-
-        case OperationType::Or:
-        DecideOperandsOr(scope, tokens, operands);
-        break;
-
-        case OperationType::Not:
-        DecideOperandsNot(scope, tokens, operands);
-        break;
-
-        case OperationType::Evaluate:
-        DecideOperandsEvaluate(scope, tokens, operands);
-        break;
-
-        case OperationType::Print:
-        DecideOperandsPrint(scope, tokens, operands);
-        break;
-
-        case OperationType::Return:
-        DecideOperandsReturn(scope, tokens, operands);
-        break;
-    }
+    // makes going through a linear search to find what function to use instant with array indexing
+    decideOperands[opType](scope, tokens, operands);
 }
 
+
+//
+typedef void(*DecideValueFunctions)(Scope*, TokenList&, Reference**);
+DecideValueFunctions valueFunctions[] = {DecideValueDefine}; // need to add the rest of the functions pointers for it to be good
+//
 void DecideOperationValue(Scope* scope, const OperationType& opType, TokenList& tokens, Reference** refValue)
 {
     switch(opType)
@@ -463,7 +429,7 @@ void NumberOperation(Operation* op, int lineNumber)
 
 
 
-
+// can use this if every plays 
 typedef Operation*(*LineTypeFunctions)(Scope*, PossibleOperationsList&, TokenList&);
 LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
 

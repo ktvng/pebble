@@ -9,7 +9,7 @@
 
 
 /** /
-typedef Reference* (*OperationFunction)(Reference*, Reference*);
+typedef Reference* (*OperationFunction)(OperationInfo*);
 OperationFunction operations[] = 
 {
     OperationDefine,
@@ -28,8 +28,16 @@ OperationFunction operations[] =
     OperationPrint,
     OperationReturn, 
 };
-/**/ 
+/** / 
 
+struct OperationInfo
+{
+    Reference *mainRef;
+    Reference *secondRef;
+    TokenList *tokens;
+    Scope *scope;
+};
+/**/
 void AddReferenceToScope(Reference* ref, Scope* scope);
 Operation* CreateOperation();
 
