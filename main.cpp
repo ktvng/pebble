@@ -108,9 +108,6 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
 
         case OperationType::Assign:
         return OperationAssign(op->Value, operands.at(0));
-  
-        case OperationType::And:
-        return OperationAnd(operands.at(0), operands.at(1));
 
         case OperationType::Define:
         return OperationDefine(op->Value, scope);
@@ -332,7 +329,7 @@ void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities,
 void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType) // MAJOR
 {
     if(FindToken(tokens, "if") != nullptr && FindToken(tokens, ":") != nullptr)
-        lineType = LineType::If;
+        lineType = LineType::IfLine;
     else
         lineType = LineType::Atomic;
 }
@@ -604,7 +601,7 @@ Operation* ParseLine(Scope* scope, TokenList& tokens)
         case LineType::Composite:
         return ParseComposite(scope, typeProbabilities, tokens);
 
-        case LineType::If:
+        case LineType::IfLine:
         return ParseIf(scope, typeProbabilities, tokens);
 
         case LineType::While:
