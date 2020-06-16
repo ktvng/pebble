@@ -123,6 +123,35 @@ Reference* OperationDefine(Reference* ref, Scope* scope)
     return returnRef;
 }
 
+Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
+{
+    Reference* resultRef;
+
+    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    {  
+        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        if(type == IntegerClass)
+        {
+            int value = GetIntValue(*lRef->ToObject) - GetIntValue(*rRef->ToObject);
+            resultRef = CreateReferenceToNewObject(c_returnReferenceName, IntegerClass, value);
+        }
+        else if(type == DecimalClass)
+        {
+            double value = GetDecimalValue(*lRef->ToObject) - GetDecimalValue(*rRef->ToObject);
+            resultRef = CreateReferenceToNewObject(c_returnReferenceName, DecimalClass, value);
+        }
+        else
+        {
+            LogIt(LogSeverityType::Sev1_Notify, "Subtract", "unimplemented");
+            resultRef = CreateNullReference();
+        }
+        return resultRef;
+    }
+
+    resultRef = CreateNullReference();
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s from %s", rRef->ToObject->Class, lRef->ToObject->Class));
+    return resultRef;
+}
 
 
 Reference* OperationIf(Reference* ref)
@@ -134,7 +163,7 @@ Reference* OperationIf(Reference* ref)
 // Decide Probabilities
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    std::vector<String> addKeyWords = { "add", "plus", "+", "adding", "declare" };
+    std::vector<String> addKeyWords = { "add", "plus", "+", "adding" };
     if(TokenListContainsContent(tokens, addKeyWords))
     {
         OperationTypeProbability addType = { OperationType::Add, 4.0 };
@@ -194,7 +223,12 @@ void DecideProbabilityIsGreaterThan(PossibleOperationsList& typeProbabilities, c
 
 void DecideProbabilitySubtract(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    
+    std::vector<String> subKeyWords = { "sub", "subtract", "minus", "-", "subtracting" };
+    if(TokenListContainsContent(tokens, subKeyWords))
+    {
+        OperationTypeProbability subType = { OperationType::Subtract, 4.0 };
+        typeProbabilities.push_back(subType);
+    }
 }
 
 void DecideProbabilityMultiply(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
@@ -217,6 +251,7 @@ void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const Token
     }
 }
 
+
 void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
@@ -234,6 +269,13 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 
 
 
+
+
+void UnimplementedValueFunction(const OperationType opType, Reference** refValue)
+{
+    *refValue = CreateNullReference();
+    LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
+}
 
 // Decide Values
 void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
@@ -266,12 +308,6 @@ void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
     AddReferenceToScope(ref, scope);
 }
 
-void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
-{
-    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
-    *refValue = arg1;
-}
-
 void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
 {
     int pos = 0;
@@ -282,6 +318,71 @@ void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
 
     *refValue = arg1;
 }
+void DecideValueIsEqual(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::IsEqual, refValue);
+}
+
+void DecideValueIsLessThan(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::IsLessThan, refValue);
+}
+
+void DecideValueIsGreaterThan(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::IsGreaterThan, refValue);
+}
+
+void DecideValueAdd(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Add, refValue);
+}
+
+void DecideValueSubtract(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Subtract, refValue);
+}
+
+void DecideValueMultiply(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Multiply, refValue);
+}
+
+void DecideValueDivide(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Divide, refValue);
+}
+
+void DecideValueAnd(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::And, refValue);
+}
+
+void DecideValueOr(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Or, refValue);
+}
+
+void DecideValueNot(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Not, refValue);
+}
+
+void DecideValueEvaluate(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Evaluate, refValue);
+}
+
+void DecideValuePrint(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Print, refValue);
+}
+
+void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
+{
+    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
+    *refValue = arg1;
+}
 
 
 
@@ -289,9 +390,7 @@ void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
 
 
 
-// Decide Operands
-// should edit token list remove used tokens
-void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands) // EDIT
+void GetTwoOperands(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
     int pos = 0;
  
@@ -300,6 +399,13 @@ void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands
 
     AddReferenceReturnOperationTo(operands, arg1);
     AddReferenceReturnOperationTo(operands, arg2);
+}
+
+// Decide Operands
+// should edit token list remove used tokens
+void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands) // EDIT
+{
+    GetTwoOperands(scope, tokens, operands);
 }
 
 void DecideOperandsDefine(Scope* scope, TokenList& tokens, OperationsList& operands)
@@ -334,9 +440,10 @@ void DecideOperandsIsGreaterThan(Scope* scope, TokenList& tokens, OperationsList
     
 }
 
+// 
 void DecideOperandsSubtract(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    
+    GetTwoOperands(scope, tokens, operands);
 }
 
 void DecideOperandsMultiply(Scope* scope, TokenList& tokens, OperationsList& operands)
@@ -351,13 +458,7 @@ void DecideOperandsDivide(Scope* scope, TokenList& tokens, OperationsList& opera
 
 void DecideOperandsAnd(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    int pos = 0;
- 
-    Reference* arg1 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
-    Reference* arg2 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
-
-    AddReferenceReturnOperationTo(operands, arg1);
-    AddReferenceReturnOperationTo(operands, arg2);
+    GetTwoOperands(scope, tokens, operands);
 }
 
 void DecideOperandsOr(Scope* scope, TokenList& tokens, OperationsList& operands)
