@@ -72,8 +72,6 @@ String AddRightEdge(String str)
 // Error printing
 String itos2(int i)
 {
-    if(i == 0)
-        return "00";
     if(i < 10)
         return MSG("0%i", i);
     return MSG("%i", i);
