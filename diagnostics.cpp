@@ -350,7 +350,8 @@ String ToString(const ObjectReferenceMap* map)
 
 String ToString(const Token& token)
 {
-    return StringForAttrbute("Token", MSG("Type: %s\t Content: %s", 
+    return StringForAttrbute("Token", MSG("Position: %i\n Type: %s\t Content: %s", 
+        token.Position,
         GetStringTokenType(token.Type),
         token.Content));
 }
@@ -390,6 +391,9 @@ String ToString(const OperationType& type)
 
         case OperationType::If:
         return "If";
+
+        case OperationType::And:
+        return "And";
 
         default:
         return "unimplemented";

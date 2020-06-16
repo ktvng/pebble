@@ -103,6 +103,8 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Assign:
         return OperationAssign(op->Value, operands.at(0));
   
+        case OperationType::And:
+        return OperationAnd(operands.at(0), operands.at(1));
 
         case OperationType::Define:
         return OperationDefine(op->Value, scope);
@@ -570,20 +572,18 @@ Operation* ParseComposite(Scope* scope, PossibleOperationsList& typeProbabilitie
 // TODO:
 Operation* ParseIf(Scope* scope, PossibleOperationsList& typeProbabilityes, TokenList& tokens)
 {
-    Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
-    if(condition == nullptr)
-    {
-        ReportCompileMsg(SystemMessageType::Exception, "unable to determine boolean expression");
-        return nullptr;
-        // TODO
-    }
-    
-    Reference* conditionRef = DecideReferenceOf(scope, condition);
+    // Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
 
+    TokenList newList;
+    newList = RightOfToken(tokens, FindToken(tokens, "if"));
+    newList = LeftOfToken(newList, FindToken(newList, ":"));
 
+    LogDiagnostics(newList, "printing token list after removing if stuff");
+
+    Operation* condition = ParseLine(scope, newList);
     Operation* op = OperationConstructor(
         OperationType::If, 
-        { OperationConstructor(OperationType::Return, conditionRef) });
+        { condition });
 
     return op;
 }

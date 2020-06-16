@@ -209,7 +209,12 @@ void DecideProbabilityDivide(PossibleOperationsList& typeProbabilities, const To
 
 void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    
+    std::vector<String> andKeyWords = { "and", "&&", "together", "with" };
+    if(TokenListContainsContent(tokens, andKeyWords))
+    {
+        OperationTypeProbability andType = { OperationType::And, 4.0 };
+        typeProbabilities.push_back(andType);
+    }
 }
 
 void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
@@ -346,7 +351,13 @@ void DecideOperandsDivide(Scope* scope, TokenList& tokens, OperationsList& opera
 
 void DecideOperandsAnd(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    
+    int pos = 0;
+ 
+    Reference* arg1 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+    Reference* arg2 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+
+    AddReferenceReturnOperationTo(operands, arg1);
+    AddReferenceReturnOperationTo(operands, arg2);
 }
 
 void DecideOperandsOr(Scope* scope, TokenList& tokens, OperationsList& operands)
