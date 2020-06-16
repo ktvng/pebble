@@ -712,28 +712,6 @@ Program* ParseProgram(const std::string filepath)
     return PROGRAM;
 }
 
-    // std::vector<CodeLine>::iterator blockBegin;
-    // std::vector<CodeLine>::iterator blockEnd;
-
-    // Scope* blockScope = PROGRAM->GlobalScope;
-    // Scope* childBlockScope = nullptr;
-        // if(lineLevel > previousLineLevel) // TODO
-        // {
-        //     blockBegin = PROGRAM->Lines.begin() + lineStart-1;
-        //     previousLineLevel = lineLevel;
-
-        //     childBlockScope = new Scope;
-        //     childBlockScope->InheritedScope = blockScope;
-        //     blockScope = childBlockScope;
-
-        //     // enter child block
-        // }
-        // else if(lineLevel < previousLineLevel)
-        // {
-        //     blockEnd = PROGRAM->Lines.begin() + nextLinePos;
-        //     Block b = ParseBlock(blockBegin, blockEnd, blockScope);
-            
-        // }
 
 
 int main()
