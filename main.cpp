@@ -74,6 +74,9 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Return:
         return OperationReturn(op->Value, scope);
 
+        case OperationType::And:
+        return OperationAnd(operands.at(0), operands.at(1));
+
         case OperationType::Add:
         return OperationAdd(operands.at(0), operands.at(1));
 

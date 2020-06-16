@@ -387,6 +387,9 @@ String ToString(const OperationType& type)
         case OperationType::Define:
         return "Define";
 
+        case OperationType::Subtract:
+        return "Subtract";
+
         default:
         return "unimplemented";
     }

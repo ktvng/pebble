@@ -231,8 +231,14 @@ void DecideProbabilityDivide(PossibleOperationsList& typeProbabilities, const To
 
 void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    
+    std::vector<String> andKeyWords = { "and", "&&", "together", "with" };
+    if(TokenListContainsContent(tokens, andKeyWords))
+    {
+        OperationTypeProbability andType = { OperationType::And, 4.0 };
+        typeProbabilities.push_back(andType);
+    }
 }
+
 
 void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
@@ -372,11 +378,7 @@ void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
 
 
 
-
-
-// Decide Operands
-// should edit token list remove used tokens
-void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands) // EDIT
+void GetTwoOperands(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
     int pos = 0;
  
@@ -385,6 +387,13 @@ void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands
 
     AddReferenceReturnOperationTo(operands, arg1);
     AddReferenceReturnOperationTo(operands, arg2);
+}
+
+// Decide Operands
+// should edit token list remove used tokens
+void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands) // EDIT
+{
+    GetTwoOperands(scope, tokens, operands);
 }
 
 void DecideOperandsDefine(Scope* scope, TokenList& tokens, OperationsList& operands)
@@ -422,18 +431,7 @@ void DecideOperandsIsGreaterThan(Scope* scope, TokenList& tokens, OperationsList
 // 
 void DecideOperandsSubtract(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    int pos = 0;
- 
-    Reference* arg1 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
-    Reference* arg2 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
-
-    LogDiagnostics(tokens, "debug", "DecideOperandsSbtract");
-    LogDiagnostics(arg1, "debug", "DecideOperandsSbtract");
-    LogDiagnostics(arg2, "debug", "DecideOperandsSbtract");
-
-
-    AddReferenceReturnOperationTo(operands, arg1);
-    AddReferenceReturnOperationTo(operands, arg2);
+    GetTwoOperands(scope, tokens, operands);
 }
 
 void DecideOperandsMultiply(Scope* scope, TokenList& tokens, OperationsList& operands)
@@ -448,7 +446,7 @@ void DecideOperandsDivide(Scope* scope, TokenList& tokens, OperationsList& opera
 
 void DecideOperandsAnd(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    
+    GetTwoOperands(scope, tokens, operands);
 }
 
 void DecideOperandsOr(Scope* scope, TokenList& tokens, OperationsList& operands)
