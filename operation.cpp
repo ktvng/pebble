@@ -116,13 +116,42 @@ Reference* OperationDefine(Reference* ref, Scope* scope)
     return returnRef;
 }
 
+Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
+{
+    Reference* resultRef;
+
+    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    {  
+        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        if(type == IntegerClass)
+        {
+            int value = GetIntValue(*lRef->ToObject) - GetIntValue(*rRef->ToObject);
+            resultRef = CreateReferenceToNewObject(c_returnReferenceName, IntegerClass, value);
+        }
+        else if(type == DecimalClass)
+        {
+            double value = GetDecimalValue(*lRef->ToObject) - GetDecimalValue(*rRef->ToObject);
+            resultRef = CreateReferenceToNewObject(c_returnReferenceName, DecimalClass, value);
+        }
+        else
+        {
+            LogIt(LogSeverityType::Sev1_Notify, "Subtract", "unimplemented");
+            resultRef = CreateNullReference();
+        }
+        return resultRef;
+    }
+
+    resultRef = CreateNullReference();
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s from %s", rRef->ToObject->Class, lRef->ToObject->Class));
+    return resultRef;
+}
 
 
 
 // Decide Probabilities
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    std::vector<String> addKeyWords = { "add", "plus", "+", "adding", "declare" };
+    std::vector<String> addKeyWords = { "add", "plus", "+", "adding" };
     if(TokenListContainsContent(tokens, addKeyWords))
     {
         OperationTypeProbability addType = { OperationType::Add, 4.0 };
@@ -182,7 +211,12 @@ void DecideProbabilityIsGreaterThan(PossibleOperationsList& typeProbabilities, c
 
 void DecideProbabilitySubtract(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    
+    std::vector<String> subKeyWords = { "sub", "subtract", "minus", "-", "subtracting" };
+    if(TokenListContainsContent(tokens, subKeyWords))
+    {
+        OperationTypeProbability subType = { OperationType::Subtract, 4.0 };
+        typeProbabilities.push_back(subType);
+    }
 }
 
 void DecideProbabilityMultiply(PossibleOperationsList& typeProbabilities, const TokenList& tokens)

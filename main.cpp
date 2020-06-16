@@ -232,26 +232,35 @@ Reference* DecideReferenceOf(Scope* scope, Token* token)
 
 
 
+// can put this somewhere
+typedef void (*ProbabilityFunctions)(PossibleOperationsList&, const TokenList&);
+ProbabilityFunctions decideProbabilities[] = 
+{
+    DecideProbabilityDefine,
+    DecideProbabilityAssign,
+    DecideProbabilityIsEqual,
+    DecideProbabilityIsLessThan,
+    DecideProbabilityIsGreaterThan,
+    DecideProbabilityAdd,
+    DecideProbabilitySubtract,
+    DecideProbabilityMultiply,
+    DecideProbabilityDivide,
+    DecideProbabilityAnd,
+    DecideProbabilityOr,
+    DecideProbabilityNot,
+    DecideProbabilityEvaluate,
+    DecideProbabilityPrint,
+    DecideProbabilityReturn,
+};
 
 /// decide the probability that a line represented by [tokens] corresponds to each of the atomic operations and stores
 /// this in [typeProbabilities]
 void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    DecideProbabilityDefine(typeProbabilities, tokens);
-    DecideProbabilityAssign(typeProbabilities, tokens);
-    DecideProbabilityIsEqual(typeProbabilities, tokens);
-    DecideProbabilityIsLessThan(typeProbabilities, tokens);
-    DecideProbabilityIsGreaterThan(typeProbabilities, tokens);
-    DecideProbabilityAdd(typeProbabilities, tokens);
-    DecideProbabilitySubtract(typeProbabilities, tokens);
-    DecideProbabilityMultiply(typeProbabilities, tokens);
-    DecideProbabilityDivide(typeProbabilities, tokens);
-    DecideProbabilityAnd(typeProbabilities, tokens);
-    DecideProbabilityOr(typeProbabilities, tokens);
-    DecideProbabilityNot(typeProbabilities, tokens);
-    DecideProbabilityEvaluate(typeProbabilities, tokens);
-    DecideProbabilityPrint(typeProbabilities, tokens);
-    DecideProbabilityReturn(typeProbabilities, tokens);
+    for(ProbabilityFunctions pFunc : decideProbabilities)
+    {
+        pFunc(typeProbabilities, tokens);
+    }
 }
 
 // TODO: figure out how to decide line type
@@ -274,6 +283,7 @@ void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationTyp
 /// decides and adds the operations for the Operation of [opType] to [operands] 
 void DecideOperands(Scope* scope, const OperationType& opType, TokenList& tokens, OperationsList& operands)
 {
+    // TODO fPtr
     switch(opType)
     {
         case OperationType::Define:
@@ -400,7 +410,7 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
             lineStart = lineNumber - 1;
         fullLine += newLine;
 
-    } while (LastNonWhitespaceChar(newLine) == ',' || newLine.size() == 0);
+    } while (newLine.size() == 0 || LastNonWhitespaceChar(newLine) == ',');
     return RemoveCommas(fullLine);
 }
 
@@ -454,6 +464,9 @@ void NumberOperation(Operation* op, int lineNumber)
 
 
 
+typedef Operation*(*LineTypeFunctions)(Scope*, PossibleOperationsList&, TokenList&);
+LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
+
 /// parses a line of code
 Operation* ParseLine(Scope* scope, TokenList& tokens)
 {
@@ -463,6 +476,7 @@ Operation* ParseLine(Scope* scope, TokenList& tokens)
     LineType lineType;
     DecideLineType(typeProbabilities, tokens, lineType);
     
+    // fPtr
     switch(lineType)
     {
         case LineType::Atomic:

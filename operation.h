@@ -7,6 +7,29 @@
 #include "object.h"
 #include "diagnostics.h"
 
+
+/** /
+typedef Reference* (*OperationFunction)(Reference*, Reference*);
+OperationFunction operations[] = 
+{
+    OperationDefine,
+    OperationAssign,
+    OperationIsEqual,
+    OperationIsLessThan,
+    OperationIsGreaterThan,
+    OperationAdd, 
+    OperationSubtract,
+    OperationMultiply,
+    OperationDivide,
+    OperationAnd, 
+    OperationOr,
+    OperationNot,
+    OperationEvaluate,
+    OperationPrint,
+    OperationReturn, 
+};
+/**/ 
+
 void AddReferenceToScope(Reference* ref, Scope* scope);
 Operation* CreateOperation();
 
@@ -15,6 +38,7 @@ Reference* OperationPrint(const Reference* ref);
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef);
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
 Reference* OperationDefine(Reference* ref, Scope* scope);
+
 
 
 void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** value);

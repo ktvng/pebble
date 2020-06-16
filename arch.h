@@ -8,7 +8,7 @@
 #include "utils.h"
 
 // Structs
-enum class OperationType
+enum OperationType
 {
     Define, // defines a new reference in the scope special
     Assign, // special
@@ -26,6 +26,8 @@ enum class OperationType
     Print, //
     Return, // special
 };
+
+
 
 struct Reference
 {
