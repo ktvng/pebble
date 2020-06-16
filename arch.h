@@ -29,7 +29,7 @@ struct OperationTypeProbability
 
 enum LineType
 {
-    If,
+    IfLine,
     While,
     Composite,
     Atomic,
