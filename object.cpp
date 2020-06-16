@@ -5,6 +5,27 @@
 #include "diagnostics.h"
 #include "program.h"
 
+Reference* ReferenceConstructor()
+{
+    LogItDebug("space allocated for new reference", "ReferenceConstructor");
+    Reference* ref = new Reference; 
+    ref->Name = "";
+    ref->ToObject = nullptr;
+
+    return ref;
+}
+
+Object* ObjectConstructor()
+{
+    LogItDebug("space allocated for new object", "ObjectConstructor");
+    Object* obj = new Object;
+    obj->Attributes = {};
+    obj->Class = NullClass;
+    obj->Value = nullptr;
+
+    return obj;
+}
+
 bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
 {
     for(Reference* objRef: map->References)
@@ -48,8 +69,9 @@ void IndexObject(Object* obj, Reference* ref)
 
 Reference* CreateReferenceInternal(String name, ObjectClass objClass)
 {
-    Reference* ref = new Reference;
-    Object* obj = new Object;
+    Reference* ref = ReferenceConstructor();
+    Object* obj = ObjectConstructor();
+
     IndexObject(obj, ref);
 
     ref->Name = name;
@@ -105,7 +127,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
 
 Reference* CreateReference(String name, Object* obj)
 {
-    Reference* ref = new Reference;
+    Reference* ref = ReferenceConstructor();
     IndexObject(obj, ref);
 
     ref->Name = name;
@@ -119,7 +141,10 @@ Reference* CreateNullReference(String name)
     static Object nullObject;
     nullObject.Class = NullClass;
     
-    Reference* ref = new Reference { name, &nullObject };
+    Reference* ref = ReferenceConstructor();
+    ref->Name = name;
+    ref->ToObject = &nullObject;
+
     IndexObject(&nullObject, ref);
     
     return ref;

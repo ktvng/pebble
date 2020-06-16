@@ -9,33 +9,40 @@ void AddReferenceToScope(Reference* ref, Scope* scope)
     scope->ReferencesIndex.push_back(ref);
 }
 
-Operation* CreateOperation()
+
+// Creating operations
+Operation* OperationConstructor(
+    OperationType type, 
+    OperationsList operands, 
+    Reference* value)
 {
     Operation* op = new Operation;
     op->LineNumber = -1;
-    op->Operands = OperationsList();
-    op->Type = OperationType::Return;
-    op->Value = nullptr;
+    op->Operands = operands;
+    op->Type = type;
+    op->Value = value;
+
+    op->ExecType = ExecutableType::Operation;
 
     return op;
 }
 
-// Creating operations
-
-/// creates a Operation with OperationType::Return to return [ref]
-Operation* CreateReturnOperation(Reference* ref)
+Operation* OperationConstructor(
+    OperationType type, 
+    Reference* value,
+    OperationsList operands)
 {
-    Operation* op = new Operation;
-    op->Type = OperationType::Return;
-    op->Value = ref;
-
-    return op;
+    return OperationConstructor(type, operands, value);
 }
+
+
+
+
 
 /// adds a new return Operation for [ref] to [operands]
 void AddReferenceReturnOperationTo(OperationsList& operands, Reference* ref)
 {
-    operands.push_back(CreateReturnOperation(ref));
+    operands.push_back(OperationConstructor(OperationType::Return, ref));
 }
 
 /// adds an existing Operation [op] to [operands]
@@ -118,6 +125,11 @@ Reference* OperationDefine(Reference* ref, Scope* scope)
 
 
 
+Reference* OperationIf(Reference* ref)
+{
+    return CreateReference(c_returnReferenceName, ref->ToObject);
+}
+
 
 // Decide Probabilities
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
@@ -197,7 +209,12 @@ void DecideProbabilityDivide(PossibleOperationsList& typeProbabilities, const To
 
 void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    
+    std::vector<String> andKeyWords = { "and", "&&", "together", "with" };
+    if(TokenListContainsContent(tokens, andKeyWords))
+    {
+        OperationTypeProbability andType = { OperationType::And, 4.0 };
+        typeProbabilities.push_back(andType);
+    }
 }
 
 void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
@@ -334,7 +351,13 @@ void DecideOperandsDivide(Scope* scope, TokenList& tokens, OperationsList& opera
 
 void DecideOperandsAnd(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    
+    int pos = 0;
+ 
+    Reference* arg1 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+    Reference* arg2 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+
+    AddReferenceReturnOperationTo(operands, arg1);
+    AddReferenceReturnOperationTo(operands, arg2);
 }
 
 void DecideOperandsOr(Scope* scope, TokenList& tokens, OperationsList& operands)

@@ -8,14 +8,25 @@
 #include "diagnostics.h"
 
 void AddReferenceToScope(Reference* ref, Scope* scope);
-Operation* CreateOperation();
+
+Operation* OperationConstructor(
+    OperationType type, 
+    Reference* value = nullptr,
+    OperationsList operands = {}
+);
+
+Operation* OperationConstructor(
+    OperationType type, 
+    OperationsList operands = {},
+    Reference* value = nullptr
+);
 
 Reference* OperationAssign(Reference* lRef, Reference* rRef);
 Reference* OperationPrint(const Reference* ref);
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef);
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
 Reference* OperationDefine(Reference* ref, Scope* scope);
-
+Reference* OperationIf(Reference* ref);
 
 void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** value);
 void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue);
