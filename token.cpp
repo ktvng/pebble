@@ -100,25 +100,111 @@ TokenType TypeOfTokenString(const std::string& tokenString)
     
 }
 
+const String StringStartChars = "\"'";
+const char DecimalPoint = '.';
+const String SingletonChars = "!@#$%^*()-+=[]{}\\:;<>,./?~`&|";
+const String DoubledChars = "&&||";
+
+bool IsSingleTonChar(char c)
+{
+    for(size_t i=0; i<SingletonChars.size(); i++)
+        if(c == SingletonChars.at(i))
+            return true;
+
+    return false;
+}
+
+Token* GetSingletonCharToken(const String& line, size_t& position, int tokenNumber)
+{
+    String tokenString = "";
+    tokenString += line.at(position++);
+    return new Token { TokenType::Simple, tokenString, tokenNumber };
+}
+
+bool IsDoubleCharToken(size_t& position, const String& line)
+{
+    if(position + 1 >= line.size())
+        return false;
+    
+    for(size_t i=0; i<DoubledChars.size(); i+=2)
+    {
+        if(line.at(position) == DoubledChars.at(i) && line.at(position+1) == DoubledChars.at(i+1))
+            return true;
+    }
+
+    return false;
+}
+
+Token* GetDoubleCharToken(const String& line, size_t& position, int tokenNumber)
+{
+    String tokenString = "";
+    tokenString += line.at(position);
+    tokenString += line.at(position+1);
+    position += 2;
+    
+    return new Token { TokenType::Simple, tokenString, tokenNumber };
+}
+
+bool IsStringStartChar(char c)
+{
+    return c == '"';
+}
+
+Token* GetStringToken(const String& line, size_t& position, int tokenNumber)
+{
+    String tokenString;
+    while(++position < line.size() && line.at(position) != '"')
+    {
+        tokenString += line.at(position);
+    }
+    position++; // get rid of end quote
+    return new Token { TokenType::String, tokenString, tokenNumber };
+}
+
+
+bool IsNumericChar(char c)
+{
+    return 48 <= static_cast<int>(c) && 57 >= static_cast<int>(c);
+}
+
+bool IsActuallyDecimalPoint(const size_t& position, const String& line)
+{
+    return (position > 0 && IsNumericChar(line.at(position-1))) &&
+        (position + 1 < line.size() && IsNumericChar(line.at(position+1)));
+}
+
 Token* GetToken(const std::string& line, size_t& position, int tokenNumber)
 {
-    Token* token;
+
     SkipWhiteSpace(line, position);
-    std::string tokenString = "";
-    
+
+
     // special case for string
-    if(line.at(position) == '"')
+    if(IsStringStartChar(line.at(position)))
     {
-        while(++position < line.size() && line.at(position) != '"')
-        {
-            tokenString += line.at(position);
-        }
-        position++; // get rid of end quote
-        token = new Token { TokenType::String, tokenString, tokenNumber };
-        return token;
+        return GetStringToken(line, position, tokenNumber);
     }
+    else if(IsDoubleCharToken(position, line))
+    {
+        return GetDoubleCharToken(line, position, tokenNumber);
+    }
+    else if(IsSingleTonChar(line.at(position)))
+    {
+        return GetSingletonCharToken(line, position, tokenNumber);
+    }
+
+    Token* token;
+    std::string tokenString = "";
+
     for(; position < line.size() && line.at(position) != ' '; position++)
     {
+        if(line.at(position) != DecimalPoint && IsSingleTonChar(line.at(position)))
+            break;
+        else if(line.at(position) == DecimalPoint)
+        {
+            if(!IsActuallyDecimalPoint(position, line))
+                break;
+        }
         tokenString += line.at(position);    
     }
 

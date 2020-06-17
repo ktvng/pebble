@@ -348,7 +348,7 @@ String ToString(const ObjectReferenceMap* map)
 
 String ToString(const Token& token)
 {
-    return StringForAttrbute("Token", MSG("Position: %i\n Type: %s\t Content: %s", 
+    return StringForAttrbute("Token", MSG("Position: %i\t Type: %s\t Content: %s", 
         token.Position,
         GetStringTokenType(token.Type),
         token.Content));

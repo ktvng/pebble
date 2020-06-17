@@ -1001,7 +1001,7 @@ int main()
         // }
     }
     
-    // std::string line = "test Of the Token 334 parser = 3.1 haha \"this is awesome\" True";
+    // std::string line = "test Of the Token: ;::;4 : 334 par.ser=4 &.&.3&&& = 3.1 haha \"this is awesome\" True";
     // TokenList l = LexLine(line);
     // std::cout << "######\n"; 
     // int pos=0;
