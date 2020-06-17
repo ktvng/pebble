@@ -126,6 +126,7 @@ Token* GetToken(const std::string& line, size_t& position, int tokenNumber)
         return nullptr;
     
     token = new Token { TypeOfTokenString(tokenString), tokenString, tokenNumber };
+
     return token;
 }
 

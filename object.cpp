@@ -122,6 +122,26 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
     return ref;
 }
 
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value){
+    if(objClass == StringClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<String*>(value));
+    }
+    else if(objClass == DecimalClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<double*>(value));
+    }
+    else if(objClass == BooleanClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<bool*>(value));
+    }
+    else if(objClass == IntegerClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<int*>(value));
+    }
+    return CreateNullReference();
+}
+
 
 
 

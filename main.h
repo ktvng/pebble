@@ -84,6 +84,7 @@ inline const ObjectClass NullClass = "Null";
 
 inline const std::string c_returnReferenceName = "ReturnedObject";
 inline const std::string c_primitiveObjectName = "PrimitiveObject";
+inline const std::string c_operationReferenceName = "OperationReference";
 
 /// defines how severe a log event is. due to enum -> int casting, definition order is important
 enum LogSeverityType
@@ -105,6 +106,25 @@ const std::map<LogSeverityType, String> LogSeverityTypeString =
 
 Operation* ParseLine(Scope* scope, TokenList& tokens);
 TokenList LexLine(const std::string& line);
-Reference* DecideReferenceOf(Scope* scope, Token* token);
+Reference* DoOperation(Scope* scope, Operation* op);
+
+void ReassignReference(Reference* ref, Object* newObj);
+
+
+Reference* DefineNewReference(String refName, int value, Scope* scope);
+Reference* DefineNewReference(String refName, bool value, Scope* scope);
+Reference* DefineNewReference(String refName, double value, Scope* scope);
+Reference* DefineNewReference(String refName, String value, Scope* scope);
+
+Reference* DefineNewReference(String refName, Object* obj, Scope* scope);
+Reference* DefineNewReference(String refName, Token* valueToken, Scope* scope);
+
+Reference* DefineNullReference(String refName, Scope* scope);
+Reference* DefineNullReference(Scope* scope);
+
+void AddReferenceToScope(Reference* ref, Scope* scope);
+
+
+Reference* ReferenceFor(Token* token, Scope* scope, String refName = c_returnReferenceName);
 
 #endif

@@ -5,11 +5,14 @@
 #include "arch.h"
 
 ObjectReferenceMap* EntryInIndexOf(const Object* obj);
+void IndexObject(Object* obj, Reference* ref);
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value);
+
 Reference* CreateReference(String name, Object* obj);
 Reference* CreateNullReference();
 Reference* CreateNullReference(String name);

@@ -7,39 +7,6 @@
 #include "object.h"
 #include "diagnostics.h"
 
-
-/** /
-typedef Reference* (*OperationFunction)(OperationInfo*);
-OperationFunction operations[] = 
-{
-    OperationDefine,
-    OperationAssign,
-    OperationIsEqual,
-    OperationIsLessThan,
-    OperationIsGreaterThan,
-    OperationAdd, 
-    OperationSubtract,
-    OperationMultiply,
-    OperationDivide,
-    OperationAnd, 
-    OperationOr,
-    OperationNot,
-    OperationEvaluate,
-    OperationPrint,
-    OperationReturn, 
-};
-/** / 
-
-struct OperationInfo
-{
-    Reference *mainRef;
-    Reference *secondRef;
-    TokenList *tokens;
-    Scope *scope;
-};
-/**/
-void AddReferenceToScope(Reference* ref, Scope* scope);
-
 Operation* OperationConstructor(
     OperationType type, 
     Reference* value = nullptr,
@@ -52,13 +19,14 @@ Operation* OperationConstructor(
     Reference* value = nullptr
 );
 
-Reference* OperationAssign(Reference* lRef, Reference* rRef);
-Reference* OperationPrint(const Reference* ref);
-Reference* OperationAdd(const Reference* lRef, const Reference* rRef);
-Reference* OperationSubtract(const Reference* lRef, const Reference* rRef);
-Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
+Reference* OperationAssign(Reference* lRef, Reference* rRef, Scope* scope);
+Reference* OperationPrint(const Reference* ref, Scope* scope);
+Reference* OperationAdd(const Reference* lRef, const Reference* rRef, Scope* scope);
+Reference* OperationSubtract(const Reference* lRef, const Reference* rRef, Scope* scope);
+Reference* OperationAnd(const Reference* lRef, const Reference* rRef, Scope* scope);
 Reference* OperationDefine(Reference* ref, Scope* scope);
-Reference* OperationIf(Reference* ref);
+Reference* OperationIf(Reference* ref, Scope* scope);
+Reference* OperationReturn(Reference* ref, Scope* scope);
 
 
 void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** value);

@@ -1,6 +1,9 @@
 #ifndef __TOKEN_H
 #define __TOKEN_H
 
+
+String ToLowerCase(const String& str);
+
 // takes in a single line (no newlines) and returns a list of tokens representing the line
 TokenList LexLine(const String& line);
 

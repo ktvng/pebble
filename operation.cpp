@@ -4,12 +4,7 @@
 #include "program.h"
 #include "object.h"
 
-void AddReferenceToScope(Reference* ref, Scope* scope)
-{
-    scope->ReferencesIndex.push_back(ref);
-}
-
-
+// ---------------------------------------------------------------------------------------------------------------------
 // Creating operations
 Operation* OperationConstructor(
     OperationType type, 
@@ -59,24 +54,27 @@ void AddOperationTo(OperationsList& operands, Operation* op)
 
 
 
-
+// ---------------------------------------------------------------------------------------------------------------------
 // Atomic Operations
-///
-Reference* OperationAssign(Reference* lRef, Reference* rRef)
+
+Reference* OperationReturn(Reference* ref, Scope* scope)
 {
-    lRef->ToObject = rRef->ToObject;
-    return CreateReference(c_returnReferenceName, lRef->ToObject);
+    return DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
 }
 
-/// 
-Reference* OperationPrint(const Reference* ref)
+Reference* OperationAssign(Reference* lRef, Reference* rRef, Scope* scope)
+{
+    ReassignReference(lRef, rRef->ToObject);
+    return DefineNewReference(c_returnReferenceName, lRef->ToObject, scope);
+}
+
+Reference* OperationPrint(const Reference* ref, Scope* scope)
 {
     std::cout << GetStringValue(*ref->ToObject) << "\n";
-    return CreateReference(c_returnReferenceName, ref->ToObject);
+    return DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
 }
 
-///
-Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
+Reference* OperationAdd(const Reference* lRef, const Reference* rRef, Scope* scope)
 {
     Reference* resultRef;
 
@@ -86,44 +84,42 @@ Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*lRef->ToObject) + GetIntValue(*rRef->ToObject);
-            resultRef = CreateReferenceToNewObject(c_returnReferenceName, IntegerClass, value);
+            resultRef = DefineNewReference(c_returnReferenceName, value, scope);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*lRef->ToObject) + GetDecimalValue(*rRef->ToObject);
-            resultRef = CreateReferenceToNewObject(c_returnReferenceName, DecimalClass, value);
+            resultRef = DefineNewReference(c_returnReferenceName, value, scope);
         }
         else
         {
             LogIt(LogSeverityType::Sev1_Notify, "Add", "unimplemented");
-            resultRef = CreateNullReference();
+            resultRef = DefineNullReference(scope);
         }
         return resultRef;
     }
 
-    resultRef = CreateNullReference();
+    resultRef = DefineNullReference(scope);
     ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", lRef->ToObject->Class, rRef->ToObject->Class));
     return resultRef;
 }
 
-///
-Reference* OperationAnd(const Reference* lRef, const Reference* rRef)
+Reference* OperationAnd(const Reference* lRef, const Reference* rRef, Scope* scope)
 {
     bool b = GetBoolValue(*lRef->ToObject) && GetBoolValue(*rRef->ToObject);
-    return CreateReferenceToNewObject(c_returnReferenceName, BooleanClass, b);
+    return DefineNewReference(c_returnReferenceName, b, scope);
 }
 
-///
 Reference* OperationDefine(Reference* ref, Scope* scope)
 {
     LogItDebug(MSG("added reference [%s] to scope", ref->Name), "OperationDefine");
     AddReferenceToScope(ref, scope);
 
-    Reference* returnRef = CreateReference(c_returnReferenceName, ref->ToObject);
+    Reference* returnRef = DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
     return returnRef;
 }
 
-Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
+Reference* OperationSubtract(const Reference* lRef, const Reference* rRef, Scope* scope)
 {
     Reference* resultRef;
 
@@ -133,34 +129,37 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*lRef->ToObject) - GetIntValue(*rRef->ToObject);
-            resultRef = CreateReferenceToNewObject(c_returnReferenceName, IntegerClass, value);
+                resultRef = DefineNewReference(c_returnReferenceName, value, scope);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*lRef->ToObject) - GetDecimalValue(*rRef->ToObject);
-            resultRef = CreateReferenceToNewObject(c_returnReferenceName, DecimalClass, value);
+                resultRef = DefineNewReference(c_returnReferenceName, value, scope);
         }
         else
         {
             LogIt(LogSeverityType::Sev1_Notify, "Subtract", "unimplemented");
-            resultRef = CreateNullReference();
+            resultRef = DefineNullReference(scope);
         }
         return resultRef;
     }
 
-    resultRef = CreateNullReference();
+    resultRef = DefineNullReference(scope);
     ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s from %s", rRef->ToObject->Class, lRef->ToObject->Class));
     return resultRef;
 }
 
-
-Reference* OperationIf(Reference* ref)
+Reference* OperationIf(Reference* ref, Scope* scope)
 {
-    return CreateReference(c_returnReferenceName, ref->ToObject);
+    return DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
 }
 
 
+
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Decide Probabilities
+
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     std::vector<String> addKeyWords = { "add", "plus", "+", "adding" };
@@ -251,7 +250,6 @@ void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const Token
     }
 }
 
-
 void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
@@ -271,13 +269,18 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 
 
 
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Decide operation Values
+
 void UnimplementedValueFunction(const OperationType opType, Reference** refValue)
 {
-    *refValue = CreateNullReference();
+    *refValue = nullptr;
     LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
 }
 
-// Decide Values
+
 void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
 {
     Reference* ref; 
@@ -289,35 +292,33 @@ void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
         LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
         ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
         // TODO: should be critical error
-        *refValue = CreateNullReference(); 
+        *refValue = DefineNullReference(scope); 
         return;
     }
     
     if(value == nullptr)
     {
         ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
-        ref = CreateNullReference(name->Content);
+        ref = DefineNullReference(name->Content, scope);
     }
     else
     {
-        ref = CreateReferenceToNewObject(name, value);
+        ref = DefineNewReference(name->Content, value, scope);
     }
-    LogItDebug(MSG("defined a new reference: %s", ref->Name), "DecideValueDefine");
-
     *refValue = ref;
-    AddReferenceToScope(ref, scope);
 }
 
 void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
 {
     int pos = 0;
-    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, TokenType::Reference, pos));
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, TokenType::Reference, pos), scope);
 
     TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
     tokens = rightTokens;
 
     *refValue = arg1;
 }
+
 void DecideValueIsEqual(Scope* scope, TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::IsEqual, refValue);
@@ -380,7 +381,7 @@ void DecideValuePrint(Scope* scope, TokenList& tokens, Reference** refValue)
 
 void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
 {
-    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), scope);
     *refValue = arg1;
 }
 
@@ -390,19 +391,24 @@ void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
 
 
 
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Decide Operands
+// should edit token list remove used tokens
+
 void GetTwoOperands(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
     int pos = 0;
  
-    Reference* arg1 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
-    Reference* arg2 = DecideReferenceOf( scope, NextTokenMatching(tokens, ObjectTokenTypes, pos) );
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), scope, c_operationReferenceName);
+    Reference* arg2 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), scope, c_operationReferenceName);
 
     AddReferenceReturnOperationTo(operands, arg1);
     AddReferenceReturnOperationTo(operands, arg2);
 }
 
-// Decide Operands
-// should edit token list remove used tokens
+
 void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands) // EDIT
 {
     GetTwoOperands(scope, tokens, operands);
@@ -415,7 +421,7 @@ void DecideOperandsDefine(Scope* scope, TokenList& tokens, OperationsList& opera
 
 void DecideOperandsPrint(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
-    Reference* arg1 = DecideReferenceOf(scope, NextTokenMatching(tokens, ObjectTokenTypes));
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), scope, c_operationReferenceName);
     AddReferenceReturnOperationTo(operands, arg1);
 }
 
@@ -440,7 +446,6 @@ void DecideOperandsIsGreaterThan(Scope* scope, TokenList& tokens, OperationsList
     
 }
 
-// 
 void DecideOperandsSubtract(Scope* scope, TokenList& tokens, OperationsList& operands)
 {
     GetTwoOperands(scope, tokens, operands);
