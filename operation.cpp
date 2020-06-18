@@ -285,6 +285,20 @@ void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
 {
     Reference* ref; 
 
+    std::vector<String> arrayWords = { "array", "list", "collection" };
+    if(TokenListContainsContent(tokens, arrayWords))
+    {
+        // do array stuff
+        Token* name = NextTokenMatching(tokens, TokenType::Reference);
+        Token* size = NextTokenMatching(tokens, TokenType::Integer);
+        int* i = new int;
+        *i = std::stoi(size->Content);
+
+        *refValue = DefineNewReference(name->Content, ArrayClass, static_cast<void*>(i), scope);
+        return;
+    }
+
+    // treat as primitive
     Token* name = NextTokenMatching(tokens, TokenType::Reference);
     Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
 

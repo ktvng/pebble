@@ -82,6 +82,20 @@ Reference* CreateReferenceInternal(String name, ObjectClass objClass)
     return ref;
 }
 
+
+Reference* CreateReferenceToArrayObject(String name, ObjectClass objClass, int value){
+    Reference* ref = CreateReferenceInternal(name, objClass);
+
+    int* i = new int;
+    *i = value;
+
+    ref->ToObject->Value = i;
+    ref->ToObject->Attributes.reserve(value);
+
+    return ref;
+}
+
+
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
@@ -139,9 +153,12 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
     {
         return CreateReferenceToNewObject(name, objClass, *static_cast<int*>(value));
     }
+    else if(objClass == ArrayClass)
+    {
+        return CreateReferenceToArrayObject(name, objClass, *static_cast<int*>(value));
+    }
     return CreateNullReference();
 }
-
 
 
 

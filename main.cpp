@@ -468,6 +468,14 @@ Reference* DefineNewReference(String refName, double value, Scope* scope)
     return ref;
 }
 
+Reference* DefineNewReference(String refName, ObjectClass objClass, void* value, Scope* scope)
+{
+    Reference* ref = CreateReferenceToNewObject(refName, objClass, value);
+    AddReferenceToScope(ref, scope);
+
+    return ref;
+}
+
 
 /// defines a new reference with name attribute [refName] inside [scope]
 Reference* DefineNewReference(String refName, Token* valueToken, Scope* scope)

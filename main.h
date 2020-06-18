@@ -29,6 +29,7 @@ struct ObjectReferenceMap;
 struct Scope;
 struct CodeLine;
 struct Program;
+struct Method;
 
 
 enum OperationType
@@ -81,6 +82,7 @@ inline const ObjectClass DecimalClass = "Decimal";
 inline const ObjectClass StringClass = "String";
 inline const ObjectClass BooleanClass = "Boolean";
 inline const ObjectClass NullClass = "Null";
+inline const ObjectClass ArrayClass = "Array";
 
 inline const std::string c_returnReferenceName = "ReturnedObject";
 inline const std::string c_primitiveObjectName = "PrimitiveObject";
@@ -110,7 +112,10 @@ Reference* DoOperation(Scope* scope, Operation* op);
 
 void ReassignReference(Reference* ref, Object* newObj);
 
+// for arrays and general objects
+Reference* DefineNewReference(String refName, ObjectClass objClass, void* value, Scope* scope);
 
+// for primtiives
 Reference* DefineNewReference(String refName, int value, Scope* scope);
 Reference* DefineNewReference(String refName, bool value, Scope* scope);
 Reference* DefineNewReference(String refName, double value, Scope* scope);

@@ -18,6 +18,7 @@ struct Object
 {
     ObjectClass Class;
     std::vector<Reference*> Attributes;
+    std::vector<Method*> Methods;
     void* Value;
 };
 
@@ -92,6 +93,13 @@ struct Program
     Scope* GlobalScope;
     std::vector<Block*> Blocks;
     std::vector<ObjectReferenceMap*> ObjectsIndex;
+};
+
+struct Method
+{
+    String* Name;
+    Block* CodeBlock;
+    Scope* Parameters;
 };
 
 #endif
