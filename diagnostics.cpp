@@ -318,8 +318,14 @@ String ToString(const Reference* ref)
     refString += IndentLevel(1) +
         StringForAttrbute("Name", ref->Name);
 
-    refString += IndentLevel(1) +
-        StringForAttrbute("ToObject", IndentStringToLevel(ToString(ref->ToObject), 1));
+    if(ref->ToObject != nullptr)
+        refString += IndentLevel(1) +
+            StringForAttrbute("ToObject", IndentStringToLevel(ToString(ref->ToObject), 1));
+
+    
+    if(ref->ToMethod != nullptr)
+        refString += IndentLevel(1) +
+            StringForAttrbute("ToMethod", ref->Name);
 
     return refString;
 }
@@ -397,6 +403,12 @@ String ToString(const OperationType& type)
         case OperationType::And:
         return "And";
 
+        case OperationType::DefineMethod:
+        return "DefineMethod";
+
+        case OperationType::Evaluate:
+        return "Evaluate";
+
         default:
         return "unimplemented";
     }
@@ -412,16 +424,46 @@ String ToString(const Operation& op, int level)
             "LineNumber",
             MSG("%i", op.LineNumber));
 
-    if(op.Type == OperationType::Return)
+    if(op.Type == OperationType::Evaluate)
     {
         opString += IndentLevel(level) + 
             StringForAttrbute(
                 "OperationType", 
-                MSG("Return <Reference> %s to %s %s", 
-                    op.Value->Name, 
-                    op.Value->ToObject->Class,
-                    GetStringValue(*op.Value->ToObject)));
+                MSG("Evaluate <Method> %s", 
+                    op.Operands.at(0)->Value->Name));
+        
+        return opString;
+    }
 
+    if(op.Type == OperationType::Return)
+    {
+        if(op.Value->ToObject != nullptr)
+            opString += IndentLevel(level) + 
+                StringForAttrbute(
+                    "OperationType", 
+                    MSG("Return <Reference> %s to %s %s", 
+                        op.Value->Name, 
+                        op.Value->ToObject->Class,
+                        GetStringValue(*op.Value->ToObject)));
+
+        if(op.Value->ToMethod != nullptr)
+            opString += IndentLevel(level) + 
+                StringForAttrbute(
+                    "OperationType", 
+                    MSG("Return <Method> %s", 
+                        op.Value->Name));
+
+        return opString;
+    }
+
+    if(op.Type == OperationType::DefineMethod)
+    {
+        opString += IndentLevel(level) + 
+            StringForAttrbute(
+                "OperationType", 
+                MSG("DefineMethod <Method> %s", 
+                    op.Value->Name));
+        
         return opString;
     }
 

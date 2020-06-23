@@ -48,7 +48,9 @@ enum OperationType
     Not, //
     Evaluate, //
     Print, //
+    
     Return, // special
+    DefineMethod,
 
     If,
     EndLabel,
@@ -105,31 +107,13 @@ const std::map<LogSeverityType, String> LogSeverityTypeString =
     { LogSeverityType::Sev0_Debug, "Debug" }
 };
 
+Scope* ScopeConstructor(Scope* inheritedScope);
+Block* BlockConstructor(Scope* inheritedScope);
 
-Operation* ParseLine(Scope* scope, TokenList& tokens);
+
+Operation* ParseLine(TokenList& tokens);
 TokenList LexLine(const std::string& line);
 Reference* DoOperation(Scope* scope, Operation* op);
-
-void ReassignReference(Reference* ref, Object* newObj);
-
-// for arrays and general objects
-Reference* DefineNewReference(String refName, ObjectClass objClass, void* value, Scope* scope);
-
-// for primtiives
-Reference* DefineNewReference(String refName, int value, Scope* scope);
-Reference* DefineNewReference(String refName, bool value, Scope* scope);
-Reference* DefineNewReference(String refName, double value, Scope* scope);
-Reference* DefineNewReference(String refName, String value, Scope* scope);
-
-Reference* DefineNewReference(String refName, Object* obj, Scope* scope);
-Reference* DefineNewReference(String refName, Token* valueToken, Scope* scope);
-
-Reference* DefineNullReference(String refName, Scope* scope);
-Reference* DefineNullReference(Scope* scope);
-
-void AddReferenceToScope(Reference* ref, Scope* scope);
-
-
-Reference* ReferenceFor(Token* token, Scope* scope, String refName = c_returnReferenceName);
+Reference* DoBlock(Block* codeBlock);
 
 #endif

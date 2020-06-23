@@ -173,16 +173,33 @@ Reference* CreateReference(String name, Object* obj)
     return ref;
 }
 
-Reference* CreateNullReference(String name)
+Reference* CreateReference(String name, Method* method)
+{
+    Reference* ref = ReferenceConstructor();
+    ref->Name = name;
+    ref->ToMethod = method;
+
+    return ref;
+}
+
+Object* NullObject()
 {
     static Object nullObject;
     nullObject.Class = NullClass;
-    
+    nullObject.Value = nullptr;
+    nullObject.Attributes = {};
+
+    return &nullObject;
+}
+
+Reference* CreateNullReference(String name)
+{
+    Object* nullObject = NullObject();
     Reference* ref = ReferenceConstructor();
     ref->Name = name;
-    ref->ToObject = &nullObject;
+    ref->ToObject = nullObject;
 
-    IndexObject(&nullObject, ref);
+    IndexObject(nullObject, ref);
     
     return ref;
 }

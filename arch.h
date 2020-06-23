@@ -11,7 +11,8 @@
 struct Reference
 {
     std::string Name;
-    Object* ToObject;
+    Object* ToObject = nullptr;
+    Method* ToMethod = nullptr;
 };
 
 struct Object
@@ -93,11 +94,11 @@ struct Program
     Scope* GlobalScope;
     std::vector<Block*> Blocks;
     std::vector<ObjectReferenceMap*> ObjectsIndex;
+    std::vector<Reference*> Methods;
 };
 
 struct Method
 {
-    String* Name;
     Block* CodeBlock;
     Scope* Parameters;
 };

@@ -19,31 +19,34 @@ Operation* OperationConstructor(
     Reference* value = nullptr
 );
 
-Reference* OperationAssign(Reference* lRef, Reference* rRef, Scope* scope);
-Reference* OperationPrint(const Reference* ref, Scope* scope);
-Reference* OperationAdd(const Reference* lRef, const Reference* rRef, Scope* scope);
-Reference* OperationSubtract(const Reference* lRef, const Reference* rRef, Scope* scope);
-Reference* OperationAnd(const Reference* lRef, const Reference* rRef, Scope* scope);
-Reference* OperationDefine(Reference* ref, Scope* scope);
-Reference* OperationIf(Reference* ref, Scope* scope);
-Reference* OperationReturn(Reference* ref, Scope* scope);
+Reference* OperationAssign(Reference* lRef, Reference* rRef);
+Reference* OperationPrint(const Reference* ref);
+Reference* OperationAdd(const Reference* lRef, const Reference* rRef);
+Reference* OperationSubtract(const Reference* lRef, const Reference* rRef);
+Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
+Reference* OperationDefine(Reference* ref);
+Reference* OperationIf(Reference* ref);
+Reference* OperationReturn(Reference* ref);
+Reference* OperationDefineMethod(Reference* ref);
+Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters);
 
 
-void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** value);
-void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueIsEqual(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueIsLessThan(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueIsGreaterThan(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueAdd(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueSubtract(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueMultiply(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueDivide(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueAnd(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueOr(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueNot(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueEvaluate(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValuePrint(Scope* scope, TokenList& tokens, Reference** refValue);
-void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue);
+void DecideValueDefine(TokenList& tokens, Reference** value);
+void DecideValueAssign(TokenList& tokens, Reference** refValue);
+void DecideValueIsEqual(TokenList& tokens, Reference** refValue);
+void DecideValueIsLessThan(TokenList& tokens, Reference** refValue);
+void DecideValueIsGreaterThan(TokenList& tokens, Reference** refValue);
+void DecideValueAdd(TokenList& tokens, Reference** refValue);
+void DecideValueSubtract(TokenList& tokens, Reference** refValue);
+void DecideValueMultiply(TokenList& tokens, Reference** refValue);
+void DecideValueDivide(TokenList& tokens, Reference** refValue);
+void DecideValueAnd(TokenList& tokens, Reference** refValue);
+void DecideValueOr(TokenList& tokens, Reference** refValue);
+void DecideValueNot(TokenList& tokens, Reference** refValue);
+void DecideValueEvaluate(TokenList& tokens, Reference** refValue);
+void DecideValuePrint(TokenList& tokens, Reference** refValue);
+void DecideValueReturn(TokenList& tokens, Reference** refValue);
+void DecideValueDefineMethod(TokenList& tokens, Reference** refValue);
 
 // Decide Probabilities
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
@@ -61,25 +64,26 @@ void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const Token
 void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-
+void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 
 
 // Decide Operands
 // should edit token list remove used tokens
-void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsDefine(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsPrint(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsAssign(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsIsEqual(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsIsLessThan(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsIsGreaterThan(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsSubtract(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsMultiply(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsDivide(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsAnd(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsOr(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsNot(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsEvaluate(Scope* scope, TokenList& tokens, OperationsList& operands);
-void DecideOperandsReturn(Scope* scope, TokenList& tokens, OperationsList& operands);
+void DecideOperandsAdd(TokenList& tokens, OperationsList& operands);
+void DecideOperandsDefine(TokenList& tokens, OperationsList& operands);
+void DecideOperandsPrint(TokenList& tokens, OperationsList& operands);
+void DecideOperandsAssign(TokenList& tokens, OperationsList& operands);
+void DecideOperandsIsEqual(TokenList& tokens, OperationsList& operands);
+void DecideOperandsIsLessThan(TokenList& tokens, OperationsList& operands);
+void DecideOperandsIsGreaterThan(TokenList& tokens, OperationsList& operands);
+void DecideOperandsSubtract(TokenList& tokens, OperationsList& operands);
+void DecideOperandsMultiply(TokenList& tokens, OperationsList& operands);
+void DecideOperandsDivide(TokenList& tokens, OperationsList& operands);
+void DecideOperandsAnd(TokenList& tokens, OperationsList& operands);
+void DecideOperandsOr(TokenList& tokens, OperationsList& operands);
+void DecideOperandsNot(TokenList& tokens, OperationsList& operands);
+void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands);
+void DecideOperandsReturn(TokenList& tokens, OperationsList& operands);
+void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands);
 
 #endif

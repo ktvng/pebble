@@ -13,6 +13,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value);
 
+Reference* CreateReference(String name, Method* method);
 Reference* CreateReference(String name, Object* obj);
 Reference* CreateNullReference();
 Reference* CreateNullReference(String name);
@@ -20,6 +21,7 @@ Reference* CreateNullReference(String name);
 Reference* CreateReferenceToNewObject(String name, Token* valueToken);
 Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);
 
+Object* NullObject();
 
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2);
 bool IsNumeric(const Reference& ref);

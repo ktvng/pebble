@@ -2,8 +2,7 @@
 
 #include "operation.h"
 #include "program.h"
-#include "object.h"
-
+#include "reference.h"
 // ---------------------------------------------------------------------------------------------------------------------
 // Creating operations
 Operation* OperationConstructor(
@@ -57,24 +56,27 @@ void AddOperationTo(OperationsList& operands, Operation* op)
 // ---------------------------------------------------------------------------------------------------------------------
 // Atomic Operations
 
-Reference* OperationReturn(Reference* ref, Scope* scope)
+Reference* OperationReturn(Reference* ref)
 {
-    return DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
+    if(ref->ToObject != nullptr)
+        return ReferenceFor(c_returnReferenceName, ref->ToObject);
+    else if(ref->ToMethod != nullptr)
+        return ReferenceFor(c_returnReferenceName, ref->ToMethod);
 }
 
-Reference* OperationAssign(Reference* lRef, Reference* rRef, Scope* scope)
+Reference* OperationAssign(Reference* lRef, Reference* rRef)
 {
     ReassignReference(lRef, rRef->ToObject);
-    return DefineNewReference(c_returnReferenceName, lRef->ToObject, scope);
+    return ReferenceFor(c_returnReferenceName, lRef->ToObject);
 }
 
-Reference* OperationPrint(const Reference* ref, Scope* scope)
+Reference* OperationPrint(const Reference* ref)
 {
     std::cout << GetStringValue(*ref->ToObject) << "\n";
-    return DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
+    return ReferenceFor(c_returnReferenceName, ref->ToObject);
 }
 
-Reference* OperationAdd(const Reference* lRef, const Reference* rRef, Scope* scope)
+Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
 
@@ -84,42 +86,42 @@ Reference* OperationAdd(const Reference* lRef, const Reference* rRef, Scope* sco
         if(type == IntegerClass)
         {
             int value = GetIntValue(*lRef->ToObject) + GetIntValue(*rRef->ToObject);
-            resultRef = DefineNewReference(c_returnReferenceName, value, scope);
+            resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*lRef->ToObject) + GetDecimalValue(*rRef->ToObject);
-            resultRef = DefineNewReference(c_returnReferenceName, value, scope);
+            resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else
         {
             LogIt(LogSeverityType::Sev1_Notify, "Add", "unimplemented");
-            resultRef = DefineNullReference(scope);
+            resultRef = NullReference();
         }
         return resultRef;
     }
 
-    resultRef = DefineNullReference(scope);
+    resultRef = NullReference();
     ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", lRef->ToObject->Class, rRef->ToObject->Class));
     return resultRef;
 }
 
-Reference* OperationAnd(const Reference* lRef, const Reference* rRef, Scope* scope)
+Reference* OperationAnd(const Reference* lRef, const Reference* rRef)
 {
     bool b = GetBoolValue(*lRef->ToObject) && GetBoolValue(*rRef->ToObject);
-    return DefineNewReference(c_returnReferenceName, b, scope);
+    return ReferenceFor(c_returnReferenceName, b);
 }
 
-Reference* OperationDefine(Reference* ref, Scope* scope)
+Reference* OperationDefine(Reference* ref)
 {
     LogItDebug(MSG("added reference [%s] to scope", ref->Name), "OperationDefine");
-    AddReferenceToScope(ref, scope);
+    AddReferenceToCurrentScope(ref);
 
-    Reference* returnRef = DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
+    Reference* returnRef = ReferenceFor(c_returnReferenceName, ref->ToObject);
     return returnRef;
 }
 
-Reference* OperationSubtract(const Reference* lRef, const Reference* rRef, Scope* scope)
+Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
 
@@ -129,30 +131,32 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef, Scope
         if(type == IntegerClass)
         {
             int value = GetIntValue(*lRef->ToObject) - GetIntValue(*rRef->ToObject);
-                resultRef = DefineNewReference(c_returnReferenceName, value, scope);
+                resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*lRef->ToObject) - GetDecimalValue(*rRef->ToObject);
-                resultRef = DefineNewReference(c_returnReferenceName, value, scope);
+                resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else
         {
             LogIt(LogSeverityType::Sev1_Notify, "Subtract", "unimplemented");
-            resultRef = DefineNullReference(scope);
+            resultRef = NullReference();
         }
         return resultRef;
     }
 
-    resultRef = DefineNullReference(scope);
+    resultRef = NullReference();
     ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s from %s", rRef->ToObject->Class, lRef->ToObject->Class));
     return resultRef;
 }
 
-Reference* OperationIf(Reference* ref, Scope* scope)
+Reference* OperationIf(Reference* ref)
 {
-    return DefineNewReference(c_returnReferenceName, ref->ToObject, scope);
+    return ReferenceFor(c_returnReferenceName, ref->ToObject);
 }
+
+
 
 
 
@@ -260,10 +264,7 @@ void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const Token
     
 }
 
-void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    
-}
+
 
 
 
@@ -281,7 +282,7 @@ void UnimplementedValueFunction(const OperationType opType, Reference** refValue
 }
 
 
-void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueDefine(TokenList& tokens, Reference** refValue)
 {
     Reference* ref; 
 
@@ -294,7 +295,7 @@ void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
         int* i = new int;
         *i = std::stoi(size->Content);
 
-        *refValue = DefineNewReference(name->Content, ArrayClass, static_cast<void*>(i), scope);
+        *refValue = ReferenceFor(name->Content, ArrayClass, static_cast<void*>(i));
         return;
     }
 
@@ -306,26 +307,26 @@ void DecideValueDefine(Scope* scope, TokenList& tokens, Reference** refValue)
         LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
         ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
         // TODO: should be critical error
-        *refValue = DefineNullReference(scope); 
+        *refValue = NullReference(); 
         return;
     }
     
     if(value == nullptr)
     {
         ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
-        ref = DefineNullReference(name->Content, scope);
+        ref = NullReference(name->Content);
     }
     else
     {
-        ref = DefineNewReference(name->Content, value, scope);
+        ref = ReferenceFor(value, name->Content);
     }
     *refValue = ref;
 }
 
-void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueAssign(TokenList& tokens, Reference** refValue)
 {
     int pos = 0;
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, TokenType::Reference, pos), scope);
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, TokenType::Reference, pos));
 
     TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
     tokens = rightTokens;
@@ -333,69 +334,66 @@ void DecideValueAssign(Scope* scope, TokenList& tokens, Reference** refValue)
     *refValue = arg1;
 }
 
-void DecideValueIsEqual(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueIsEqual(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::IsEqual, refValue);
 }
 
-void DecideValueIsLessThan(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueIsLessThan(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::IsLessThan, refValue);
 }
 
-void DecideValueIsGreaterThan(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueIsGreaterThan(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::IsGreaterThan, refValue);
 }
 
-void DecideValueAdd(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueAdd(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::Add, refValue);
 }
 
-void DecideValueSubtract(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueSubtract(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::Subtract, refValue);
 }
 
-void DecideValueMultiply(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueMultiply(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::Multiply, refValue);
 }
 
-void DecideValueDivide(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueDivide(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::Divide, refValue);
 }
 
-void DecideValueAnd(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueAnd(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::And, refValue);
 }
 
-void DecideValueOr(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueOr(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::Or, refValue);
 }
 
-void DecideValueNot(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueNot(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::Not, refValue);
 }
 
-void DecideValueEvaluate(Scope* scope, TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Evaluate, refValue);
-}
 
-void DecideValuePrint(Scope* scope, TokenList& tokens, Reference** refValue)
+
+void DecideValuePrint(TokenList& tokens, Reference** refValue)
 {
     UnimplementedValueFunction(OperationType::Print, refValue);
 }
 
-void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
+void DecideValueReturn(TokenList& tokens, Reference** refValue)
 {
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), scope);
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes));
     *refValue = arg1;
 }
 
@@ -411,91 +409,183 @@ void DecideValueReturn(Scope* scope, TokenList& tokens, Reference** refValue)
 // Decide Operands
 // should edit token list remove used tokens
 
-void GetTwoOperands(Scope* scope, TokenList& tokens, OperationsList& operands)
+void GetTwoOperands(TokenList& tokens, OperationsList& operands)
 {
     int pos = 0;
  
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), scope, c_operationReferenceName);
-    Reference* arg2 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), scope, c_operationReferenceName);
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), c_operationReferenceName);
+    Reference* arg2 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), c_operationReferenceName);
 
     AddReferenceReturnOperationTo(operands, arg1);
     AddReferenceReturnOperationTo(operands, arg2);
 }
 
 
-void DecideOperandsAdd(Scope* scope, TokenList& tokens, OperationsList& operands) // EDIT
+void DecideOperandsAdd(TokenList& tokens, OperationsList& operands) // EDIT
 {
-    GetTwoOperands(scope, tokens, operands);
+    GetTwoOperands(tokens, operands);
 }
 
-void DecideOperandsDefine(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
 {
     // no operands
 }
 
-void DecideOperandsPrint(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
 {
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), scope, c_operationReferenceName);
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), c_operationReferenceName);
     AddReferenceReturnOperationTo(operands, arg1);
 }
 
-void DecideOperandsAssign(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsAssign(TokenList& tokens, OperationsList& operands)
 {
-    Operation* op2 = ParseLine(scope, tokens);
+    Operation* op2 = ParseLine(tokens);
     AddOperationTo(operands, op2);
 }
 
-void DecideOperandsIsEqual(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsIsEqual(TokenList& tokens, OperationsList& operands)
 {
 
 }
 
-void DecideOperandsIsLessThan(Scope* scope, TokenList& tokens, OperationsList& operands)
-{
-    
-}
-
-void DecideOperandsIsGreaterThan(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsIsLessThan(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsSubtract(Scope* scope, TokenList& tokens, OperationsList& operands)
-{
-    GetTwoOperands(scope, tokens, operands);
-}
-
-void DecideOperandsMultiply(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsIsGreaterThan(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsDivide(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsSubtract(TokenList& tokens, OperationsList& operands)
+{
+    GetTwoOperands(tokens, operands);
+}
+
+void DecideOperandsMultiply(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsAnd(Scope* scope, TokenList& tokens, OperationsList& operands)
-{
-    GetTwoOperands(scope, tokens, operands);
-}
-
-void DecideOperandsOr(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsDivide(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsNot(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsAnd(TokenList& tokens, OperationsList& operands)
+{
+    GetTwoOperands(tokens, operands);
+}
+
+void DecideOperandsOr(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsEvaluate(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsNot(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
-void DecideOperandsReturn(Scope* scope, TokenList& tokens, OperationsList& operands)
+void DecideOperandsReturn(TokenList& tokens, OperationsList& operands)
 {
     // no operands
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// DefineMethod operation
+
+Reference* OperationDefineMethod(Reference* ref)
+{
+    AddReferenceToCurrentScope(ref);
+    return NullReference();
+}
+
+void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    if(FindToken(tokens, "method") != nullptr && FindToken(tokens, ":") != nullptr)
+    {
+        OperationTypeProbability defineMethodType = { OperationType::DefineMethod, 10.0 };
+        typeProbabilities.push_back(defineMethodType);
+    }
+}
+
+void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
+{
+    // no operands
+}
+
+void DecideValueDefineMethod(TokenList& tokens, Reference** refValue)
+{
+    // TODO: assumes first reference is method name
+    int i=0;
+    Token* t = NextTokenMatching(tokens, TokenType::Reference, i);
+    String methodName = t->Content;
+    
+    Method* m = new Method;
+    m->Parameters = ScopeConstructor(PROGRAM->GlobalScope);
+    m->CodeBlock = BlockConstructor(m->Parameters);
+
+    for(t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
+    {
+        m->Parameters->ReferencesIndex.push_back(NullReference(t->Content));
+    }
+    
+    Reference* ref = ReferenceFor(methodName, m);
+    *refValue = ref;
+}
+
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Evaluate operation
+
+Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters)
+{
+    // TODO: currently just assumes parameters are in order
+    // ref should be a method reference
+    Reference* result;
+    for(size_t i=0; i<ref->ToMethod->Parameters->ReferencesIndex.size() && i<parameters.size()-1; i++)
+    {
+        Reference* paramRef = ref->ToMethod->Parameters->ReferencesIndex.at(i);
+        ReassignReference(paramRef, parameters.at(i+1)->ToObject);   
+    }
+    result = DoBlock(ref->ToMethod->CodeBlock);
+    AddReferenceToCurrentScope(result);
+    
+    for(Reference* param: ref->ToMethod->Parameters->ReferencesIndex)
+    {
+        AssignToNull(param);
+    }
+
+    // AddReferenceToCurrentScope(result);
+    LogItDebug("finished evaluate", "OperationEvaluate");
+    return result;
+}
+
+void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+{
+    if(FindToken(tokens, "evaluate") != nullptr)
+    {
+        OperationTypeProbability evaluateType = { OperationType::Evaluate, 10.0 };
+        typeProbabilities.push_back(evaluateType);
+    }
+}
+
+void DecideValueEvaluate(TokenList& tokens, Reference** refValue)
+{
+    UnimplementedValueFunction(OperationType::Evaluate, refValue);
+}
+
+void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands)
+{
+    int i = 0;
+    for(Token* t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
+    {
+        AddReferenceReturnOperationTo(operands, ReferenceFor(t));
+    }
 }
