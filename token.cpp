@@ -6,7 +6,8 @@
 #include "main.h"
 #include "arch.h"
 #include "diagnostics.h"
-
+#include "reference.h"
+#include "operation.h"
 
 void SkipWhiteSpace(const std::string& line, size_t& position)
 {
@@ -436,4 +437,296 @@ bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> co
             return true;
     }
     return false;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Formal grammar parser (experimental)
+struct GrammarToken
+{
+    String TokenType;
+    Operation* Value;
+    GrammarToken* Next = nullptr;
+    GrammarToken* Prev = nullptr;
+}; 
+
+struct GrammarRule
+{
+    String Name;
+    int Precedence;
+    OperationType OpType;
+    std::vector<String> Pattern;
+};
+
+std::vector<GrammarRule*> Grammar = 
+{
+    new GrammarRule
+    { 
+        "+", 
+        1,
+        OperationType:: Add,
+        { "Ref", "+", "Ref" }
+    },
+    new GrammarRule
+    {
+        "-",
+        1,
+        OperationType:: Subtract,
+        { "Ref", "-", "Ref" }
+    },
+    new GrammarRule
+        {
+        "*",
+        2,
+        OperationType::Multiply,
+        { "Ref", "*", "Ref" },
+    },
+    new GrammarRule
+    {
+        "/",
+        2,
+        OperationType::Divide,
+        { "Ref", "/", "Ref" },
+    },
+    new GrammarRule
+    {
+        "Ref",
+        3,
+        OperationType::Evaluate,
+        { "Ref", "(", ")" },
+    },
+    new GrammarRule
+    {
+        "Ref",
+        3,
+        OperationType::Evaluate,
+        { "Ref", "(", "Ref", ")" },
+    },
+    new GrammarRule
+    {
+        "(",
+        4,
+        OperationType::Return,
+        { "#" },
+    },
+    new GrammarRule
+    {
+        ")",
+        0,
+        OperationType::Return,
+        { "#" }
+    },
+    new GrammarRule
+    {
+        ")",
+        3,
+        OperationType::Return,
+        { "(", "Ref", ")" }
+    },
+    new GrammarRule
+    {
+        ",",
+        6,
+        OperationType::Add,
+        { "Ref", ",", "Ref" },
+    },
+    new GrammarRule
+    {
+        "=",
+        0,
+        OperationType::Assign,
+        { "Ref", "=", "Ref" }
+    }
+};
+
+void AddToList(GrammarToken** listHead, GrammarToken** listTail, GrammarToken* newToken)
+{
+    if(*listHead == nullptr)
+    {
+        *listHead = newToken;
+        *listTail = newToken;
+        return;
+    }
+    else
+    {
+        (*listTail)->Next = newToken;
+        newToken->Prev = *listTail;
+        *listTail = newToken;
+    }
+}
+
+GrammarToken* GrammarTokenConstructor(String tokenType)
+{
+    GrammarToken* gt = new GrammarToken;
+    gt->Next = nullptr;
+    gt->Prev = nullptr;
+    gt->TokenType = tokenType;
+    gt->Value = nullptr;
+
+    return gt;
+}
+
+Operation* ReturnOperation(Token* refToken)
+{
+    Reference* ref = ReferenceFor(refToken);
+    if(ref == nullptr)
+        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference");
+    Operation* op = OperationConstructor(OperationType::Return, ref);
+
+    return op;
+}
+
+GrammarRule* MatchGrammarPatterns(GrammarToken* listHead, GrammarToken* listTail)
+{
+    for(GrammarRule* rule: Grammar)
+    {
+        bool isMatchForRule = true;
+        GrammarToken* listItr = listTail;
+        for(int i=rule->Pattern.size()-1; i>=0; i--, listItr = listItr->Prev)
+        {
+            if(listItr == nullptr)
+            {
+                isMatchForRule = false;
+                break;
+            }
+
+            if(listItr->TokenType != rule->Pattern.at(i))
+            {
+                isMatchForRule = false;
+                break;
+            }
+        }
+        if(isMatchForRule)
+            return rule;
+    }
+    return nullptr;
+}
+
+int PrecedenceOf(String tokenType)
+{
+    for(GrammarRule* rule: Grammar)
+    {
+        if(rule->Name == tokenType)
+            return rule->Precedence;
+    }
+    LogItDebug("unknown tokenType", "PrecedenceOf");
+    return -1;
+}
+
+void DestroyList(GrammarToken* listHead)
+{
+
+}
+
+/// assumes that the list matches [rule]
+OperationsList GetOperandsAndRemoveRule(GrammarToken** listHead, GrammarToken** listTail, GrammarRule* rule)
+{
+    OperationsList operands = {};
+    int backtrackAmount = rule->Pattern.size()-1;
+
+    GrammarToken* listSnipHead = *listTail;
+
+    for(int i=0; i<backtrackAmount; i++, listSnipHead = listSnipHead->Prev);
+
+    *listTail = listSnipHead->Prev;
+    
+    if(*listTail != nullptr)
+    {
+        (*listTail)->Next = nullptr;
+    }
+    else
+    {
+        *listHead = nullptr;
+    }
+    
+    
+    for(GrammarToken* listSnipItr = listSnipHead; listSnipItr != nullptr; listSnipItr = listSnipItr->Next)
+    {
+        if(listSnipItr->TokenType == "Ref"){
+            operands.push_back(listSnipItr->Value);
+        }
+    }
+    
+    DestroyList(listSnipHead);
+
+    return operands;
+}
+
+void ReduceList(GrammarToken** listHead, GrammarToken** listTail, GrammarRule* rule)
+{
+    OperationsList operands = GetOperandsAndRemoveRule(listHead, listTail, rule);
+    Operation* op;
+    if(rule->OpType == OperationType::Return)
+    {
+        op = operands.at(0);
+    }
+    else if(rule->OpType == OperationType::Assign)
+    {
+        op = OperationConstructor(rule->OpType, operands.at(0)->Value, { operands.at(1) });
+    }
+    else
+        op = OperationConstructor(rule->OpType, operands);
+
+    GrammarToken* t = GrammarTokenConstructor("Ref");
+    t->Value = op;
+
+    AddToList(listHead, listTail, t);
+}
+
+Operation* ExpressionParser(TokenList& line)
+{
+    GrammarToken* listHead = nullptr;
+    GrammarToken* listTail = nullptr;
+
+    int pos = 0;
+
+    while(static_cast<size_t>(pos) < line.size())
+    {
+        if(TokenMatchesType(line.at(pos), ObjectTokenTypes))
+        {
+            LogItDebug("added new GrammarToken for ref", "ExpressionParser");
+            GrammarToken* t = GrammarTokenConstructor("Ref");
+            t->Value = ReturnOperation(line.at(pos));
+            AddToList(&listHead, &listTail, t);
+        }
+        else
+        {
+            LogItDebug("added new GrammarToken for symbol", "ExpressionParser");
+            GrammarToken* t = GrammarTokenConstructor(line.at(pos)->Content);
+            AddToList(&listHead, &listTail, t);
+        }
+        GrammarRule* match = MatchGrammarPatterns(listHead, listTail);
+
+        for(GrammarToken* t = listHead; t != nullptr; t = t->Next)
+            std::cout << t->TokenType << " ";
+        std::cout << std::endl;
+
+        while(match != nullptr)
+        {
+            LogItDebug("matched grammar", "ExpressionParser");
+            if(match != nullptr){
+                int currentRulePrecedence = match->Precedence;
+                int nextRulePrecedence = 0;
+
+                // lookahead
+                if(static_cast<size_t>(pos+1) < line.size() && line.at(pos+1))
+                    nextRulePrecedence = PrecedenceOf(line.at(pos+1)->Content);
+
+                if(currentRulePrecedence >= nextRulePrecedence)
+                {
+                    ReduceList(&listHead, &listTail, match);
+                    match = MatchGrammarPatterns(listHead, listTail);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            for(GrammarToken* t = listHead; t != nullptr; t = t->Next)
+                std::cout << t->TokenType << " ";
+            std::cout << std::endl;
+        }
+        pos++;
+    }
+    return listHead->Value;
 }

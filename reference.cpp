@@ -104,9 +104,6 @@ bool IsMethod(Reference* ref)
     return false;
 }
 
-
-
-
 /// gets a reference for a primitive [value] with Name attribute [name]. if an existing primitive object
 /// exists, the reference will point to that. otherwise a new object is created for the returned reference
 Reference* ReferenceForPrimitive(int value, String name)
@@ -290,6 +287,8 @@ Reference* NullReference(String refName)
 /// add [ref] to [scope]
 void AddReferenceToCurrentScope(Reference* ref)
 {
+    if(CurrentScope == nullptr)
+        LogItDebug("current scope is not set", "AddReferenceToCurrentScope");
     CurrentScope->ReferencesIndex.push_back(ref);
 }
 

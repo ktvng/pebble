@@ -109,6 +109,12 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Evaluate:
         return OperationEvaluate(operands.at(0), operands);
 
+        case OperationType::Multiply:
+        return OperationMultiply(operands.at(0), operands.at(1));
+
+        case OperationType::Divide:
+        return OperationDivide(operands.at(0), operands.at(1));
+
         default:
         LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
         return CreateNullReference();
@@ -348,7 +354,16 @@ void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& 
     if(FindToken(tokens, "if") != nullptr && FindToken(tokens, ":") != nullptr)
         lineType = LineType::IfLine;
     else
-        lineType = LineType::Atomic;
+    {
+        double totalProb;
+        for(OperationTypeProbability p: typeProbabilities)
+            totalProb += p.Probability;
+        
+        if(totalProb > 8)
+            lineType = LineType::Composite;
+        else
+            lineType = LineType::Atomic;
+    }
 }
 
 /// given pre-completed [typeProbabilities], decides what operation is most likey
@@ -560,8 +575,8 @@ Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& 
 /// parses a composite operation into an Operation tree
 Operation* ParseComposite(PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
-    
-    return nullptr;
+    Operation* op = ExpressionParser(tokens);
+    return op;
 }
 
 // TODO:
@@ -787,6 +802,18 @@ int main()
     {
         LogDiagnostics(map, "final object reference state", "main");
     }
+
+
+    // Testing New Parser
+    
+    // PROGRAM = new Program;
+    // PROGRAM->GlobalScope = ScopeConstructor(nullptr);
+    // SetScope(PROGRAM->GlobalScope);
+
+    // String str = "(5 -43) * 43 + ((4)) - 4(4, 7 , 23)";
+    // TokenList tl = LexLine(str);
+    // Operation* op = ExpressionParser(tl);
+    // LogDiagnostics(op);
 
     LogItDebug("end reached.", "main");
     return 0;

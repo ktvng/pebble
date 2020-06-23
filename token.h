@@ -59,4 +59,6 @@ bool TokenMatchesContent(Token* token, std::vector<String> contents);
 bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> contents);
 
 
+Operation* ExpressionParser(TokenList& line);
+
 #endif

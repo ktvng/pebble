@@ -409,6 +409,12 @@ String ToString(const OperationType& type)
         case OperationType::Evaluate:
         return "Evaluate";
 
+        case OperationType::Divide:
+        return "Divide";
+
+        case OperationType::Multiply:
+        return "Multiply";
+
         default:
         return "unimplemented";
     }

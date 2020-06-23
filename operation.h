@@ -23,6 +23,8 @@ Reference* OperationAssign(Reference* lRef, Reference* rRef);
 Reference* OperationPrint(const Reference* ref);
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef);
 Reference* OperationSubtract(const Reference* lRef, const Reference* rRef);
+Reference* OperationMultiply(const Reference* lRef, const Reference* rRef);
+Reference* OperationDivide(const Reference* lRef, const Reference* rRef);
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
 Reference* OperationDefine(Reference* ref);
 Reference* OperationIf(Reference* ref);

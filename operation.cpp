@@ -156,8 +156,65 @@ Reference* OperationIf(Reference* ref)
     return ReferenceFor(c_returnReferenceName, ref->ToObject);
 }
 
+Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
+{
+    Reference* resultRef;
 
+    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    {  
+        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        if(type == IntegerClass)
+        {
+            int value = GetIntValue(*lRef->ToObject) * GetIntValue(*rRef->ToObject);
+                resultRef = ReferenceFor(c_returnReferenceName, value);
+        }
+        else if(type == DecimalClass)
+        {
+            double value = GetDecimalValue(*lRef->ToObject) * GetDecimalValue(*rRef->ToObject);
+                resultRef = ReferenceFor(c_returnReferenceName, value);
+        }
+        else
+        {
+            LogIt(LogSeverityType::Sev1_Notify, "Multiply", "unimplemented");
+            resultRef = NullReference();
+        }
+        return resultRef;
+    }
 
+    resultRef = NullReference();
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot multiply %s and %s", lRef->ToObject->Class, rRef->ToObject->Class));
+    return resultRef;
+}
+
+Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
+{
+    Reference* resultRef;
+
+    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    {  
+        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        if(type == IntegerClass)
+        {
+            int value = GetIntValue(*lRef->ToObject) / GetIntValue(*rRef->ToObject);
+                resultRef = ReferenceFor(c_returnReferenceName, value);
+        }
+        else if(type == DecimalClass)
+        {
+            double value = GetDecimalValue(*lRef->ToObject) / GetDecimalValue(*rRef->ToObject);
+                resultRef = ReferenceFor(c_returnReferenceName, value);
+        }
+        else
+        {
+            LogIt(LogSeverityType::Sev1_Notify, "Divide", "unimplemented");
+            resultRef = NullReference();
+        }
+        return resultRef;
+    }
+
+    resultRef = NullReference();
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s by %s", lRef->ToObject->Class, rRef->ToObject->Class));
+    return resultRef;
+}
 
 
 
@@ -198,7 +255,8 @@ void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const To
 {
     if(Token* pos = FindToken(tokens, "="); pos != nullptr)
     {
-        OperationTypeProbability assignType = { OperationType::Assign, 10 };
+        LogItDebug("hello");
+        OperationTypeProbability assignType = { OperationType::Assign, 6 };
         typeProbabilities.push_back(assignType);
     }
 }
@@ -440,6 +498,7 @@ void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
 void DecideOperandsAssign(TokenList& tokens, OperationsList& operands)
 {
     Operation* op2 = ParseLine(tokens);
+    LogDiagnostics(op2);
     AddOperationTo(operands, op2);
 }
 
@@ -583,6 +642,7 @@ void DecideValueEvaluate(TokenList& tokens, Reference** refValue)
 
 void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands)
 {
+    // function name is first parameter
     int i = 0;
     for(Token* t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
     {
