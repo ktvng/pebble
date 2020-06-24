@@ -49,7 +49,7 @@ enum OperationType
     Evaluate, //
     Print, //
     
-    Return, // special
+    Ref, // special
     DefineMethod,
 
     If,

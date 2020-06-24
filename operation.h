@@ -28,34 +28,18 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef);
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
 Reference* OperationDefine(Reference* ref);
 Reference* OperationIf(Reference* ref);
-Reference* OperationReturn(Reference* ref);
+Reference* OperationRef(Reference* ref);
 Reference* OperationDefineMethod(Reference* ref);
 Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters);
 
-
-void DecideValueDefine(TokenList& tokens, Reference** value);
-void DecideValueAssign(TokenList& tokens, Reference** refValue);
-void DecideValueIsEqual(TokenList& tokens, Reference** refValue);
-void DecideValueIsLessThan(TokenList& tokens, Reference** refValue);
-void DecideValueIsGreaterThan(TokenList& tokens, Reference** refValue);
-void DecideValueAdd(TokenList& tokens, Reference** refValue);
-void DecideValueSubtract(TokenList& tokens, Reference** refValue);
-void DecideValueMultiply(TokenList& tokens, Reference** refValue);
-void DecideValueDivide(TokenList& tokens, Reference** refValue);
-void DecideValueAnd(TokenList& tokens, Reference** refValue);
-void DecideValueOr(TokenList& tokens, Reference** refValue);
-void DecideValueNot(TokenList& tokens, Reference** refValue);
-void DecideValueEvaluate(TokenList& tokens, Reference** refValue);
-void DecideValuePrint(TokenList& tokens, Reference** refValue);
-void DecideValueReturn(TokenList& tokens, Reference** refValue);
-void DecideValueDefineMethod(TokenList& tokens, Reference** refValue);
+void DecideValueRef(TokenList& tokens, Reference** refValue);
 
 // Decide Probabilities
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityReturn(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
+void DecideProbabilityRef(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityIsEqual(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityIsLessThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityIsGreaterThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
@@ -85,7 +69,7 @@ void DecideOperandsAnd(TokenList& tokens, OperationsList& operands);
 void DecideOperandsOr(TokenList& tokens, OperationsList& operands);
 void DecideOperandsNot(TokenList& tokens, OperationsList& operands);
 void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands);
-void DecideOperandsReturn(TokenList& tokens, OperationsList& operands);
+void DecideOperandsRef(TokenList& tokens, OperationsList& operands);
 void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands);
 
 #endif

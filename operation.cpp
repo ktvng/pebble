@@ -36,7 +36,7 @@ Operation* OperationConstructor(
 /// adds a new return Operation for [ref] to [operands]
 void AddReferenceReturnOperationTo(OperationsList& operands, Reference* ref)
 {
-    operands.push_back(OperationConstructor(OperationType::Return, ref));
+    operands.push_back(OperationConstructor(OperationType::Ref, ref));
 }
 
 /// adds an existing Operation [op] to [operands]
@@ -56,12 +56,9 @@ void AddOperationTo(OperationsList& operands, Operation* op)
 // ---------------------------------------------------------------------------------------------------------------------
 // Atomic Operations
 
-Reference* OperationReturn(Reference* ref)
+Reference* OperationRef(Reference* ref)
 {
-    if(ref->ToObject != nullptr)
-        return ReferenceFor(c_returnReferenceName, ref->ToObject);
-    else if(ref->ToMethod != nullptr)
-        return ReferenceFor(c_returnReferenceName, ref->ToMethod);
+    return ref;
 }
 
 Reference* OperationAssign(Reference* lRef, Reference* rRef)
@@ -255,15 +252,14 @@ void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const To
 {
     if(Token* pos = FindToken(tokens, "="); pos != nullptr)
     {
-        LogItDebug("hello");
         OperationTypeProbability assignType = { OperationType::Assign, 6 };
         typeProbabilities.push_back(assignType);
     }
 }
 
-void DecideProbabilityReturn(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+void DecideProbabilityRef(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    OperationTypeProbability returnType = { OperationType::Return, 1 };
+    OperationTypeProbability returnType = { OperationType::Ref, 1 };
     typeProbabilities.push_back(returnType);
 }
 
@@ -331,127 +327,11 @@ void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const Token
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Decide operation Values
+// Decide operation reference value
 
-void UnimplementedValueFunction(const OperationType opType, Reference** refValue)
+void DecideValueRef(TokenList& tokens, Reference** refValue)
 {
-    *refValue = nullptr;
-    LogIt(LogSeverityType::Sev1_Notify, "DecideOperationValue", MSG("unimplemented in case: %s", ToString(opType)));
-}
-
-
-void DecideValueDefine(TokenList& tokens, Reference** refValue)
-{
-    Reference* ref; 
-
-    std::vector<String> arrayWords = { "array", "list", "collection" };
-    if(TokenListContainsContent(tokens, arrayWords))
-    {
-        // do array stuff
-        Token* name = NextTokenMatching(tokens, TokenType::Reference);
-        Token* size = NextTokenMatching(tokens, TokenType::Integer);
-        int* i = new int;
-        *i = std::stoi(size->Content);
-
-        *refValue = ReferenceFor(name->Content, ArrayClass, static_cast<void*>(i));
-        return;
-    }
-
-    // treat as primitive
-    Token* name = NextTokenMatching(tokens, TokenType::Reference);
-    Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
-
-    if(name == nullptr){
-        LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
-        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
-        // TODO: should be critical error
-        *refValue = NullReference(); 
-        return;
-    }
-    
-    if(value == nullptr)
-    {
-        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
-        ref = NullReference(name->Content);
-    }
-    else
-    {
-        ref = ReferenceFor(value, name->Content);
-    }
-    *refValue = ref;
-}
-
-void DecideValueAssign(TokenList& tokens, Reference** refValue)
-{
-    int pos = 0;
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, TokenType::Reference, pos));
-
-    TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
-    tokens = rightTokens;
-
-    *refValue = arg1;
-}
-
-void DecideValueIsEqual(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::IsEqual, refValue);
-}
-
-void DecideValueIsLessThan(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::IsLessThan, refValue);
-}
-
-void DecideValueIsGreaterThan(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::IsGreaterThan, refValue);
-}
-
-void DecideValueAdd(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Add, refValue);
-}
-
-void DecideValueSubtract(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Subtract, refValue);
-}
-
-void DecideValueMultiply(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Multiply, refValue);
-}
-
-void DecideValueDivide(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Divide, refValue);
-}
-
-void DecideValueAnd(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::And, refValue);
-}
-
-void DecideValueOr(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Or, refValue);
-}
-
-void DecideValueNot(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Not, refValue);
-}
-
-
-
-void DecideValuePrint(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Print, refValue);
-}
-
-void DecideValueReturn(TokenList& tokens, Reference** refValue)
-{
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes));
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), c_operationReferenceName);
     *refValue = arg1;
 }
 
@@ -486,7 +366,43 @@ void DecideOperandsAdd(TokenList& tokens, OperationsList& operands) // EDIT
 
 void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
 {
-    // no operands
+    Reference* ref; 
+
+    std::vector<String> arrayWords = { "array", "list", "collection" };
+    if(TokenListContainsContent(tokens, arrayWords))
+    {
+        // do array stuff
+        Token* name = NextTokenMatching(tokens, TokenType::Reference);
+        Token* size = NextTokenMatching(tokens, TokenType::Integer);
+        int* i = new int;
+        *i = std::stoi(size->Content);
+
+        AddReferenceReturnOperationTo(operands, ReferenceFor(name->Content, ArrayClass, static_cast<void*>(i)));
+        return;
+    }
+
+    // treat as primitive
+    Token* name = NextTokenMatching(tokens, TokenType::Reference);
+    Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
+
+    if(name == nullptr){
+        LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
+        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
+        // TODO: should be critical error
+        AddReferenceReturnOperationTo(operands, NullReference()); 
+        return;
+    }
+    
+    if(value == nullptr)
+    {
+        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
+        ref = NullReference(name->Content);
+    }
+    else
+    {
+        ref = ReferenceFor(value, name->Content);
+    }
+    AddReferenceReturnOperationTo(operands, ref);
 }
 
 void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
@@ -497,8 +413,15 @@ void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
 
 void DecideOperandsAssign(TokenList& tokens, OperationsList& operands)
 {
+
+    int pos = 0;
+    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, TokenType::Reference, pos));
+    AddReferenceReturnOperationTo(operands, arg1);
+
+    TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
+    tokens = rightTokens;
+
     Operation* op2 = ParseLine(tokens);
-    LogDiagnostics(op2);
     AddOperationTo(operands, op2);
 }
 
@@ -547,7 +470,7 @@ void DecideOperandsNot(TokenList& tokens, OperationsList& operands)
     
 }
 
-void DecideOperandsReturn(TokenList& tokens, OperationsList& operands)
+void DecideOperandsRef(TokenList& tokens, OperationsList& operands)
 {
     // no operands
 }
@@ -574,11 +497,6 @@ void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, co
 
 void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
 {
-    // no operands
-}
-
-void DecideValueDefineMethod(TokenList& tokens, Reference** refValue)
-{
     // TODO: assumes first reference is method name
     int i=0;
     Token* t = NextTokenMatching(tokens, TokenType::Reference, i);
@@ -594,9 +512,8 @@ void DecideValueDefineMethod(TokenList& tokens, Reference** refValue)
     }
     
     Reference* ref = ReferenceFor(methodName, m);
-    *refValue = ref;
+    AddReferenceReturnOperationTo(operands, ref);
 }
-
 
 
 
@@ -613,6 +530,7 @@ Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters)
         Reference* paramRef = ref->ToMethod->Parameters->ReferencesIndex.at(i);
         ReassignReference(paramRef, parameters.at(i+1)->ToObject);   
     }
+
     result = DoBlock(ref->ToMethod->CodeBlock);
     AddReferenceToCurrentScope(result);
     
@@ -628,16 +546,11 @@ Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters)
 
 void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
-    if(FindToken(tokens, "evaluate") != nullptr)
+    if(FindToken(tokens, "(") != nullptr)
     {
-        OperationTypeProbability evaluateType = { OperationType::Evaluate, 10.0 };
+        OperationTypeProbability evaluateType = { OperationType::Evaluate, 3.0 };
         typeProbabilities.push_back(evaluateType);
     }
-}
-
-void DecideValueEvaluate(TokenList& tokens, Reference** refValue)
-{
-    UnimplementedValueFunction(OperationType::Evaluate, refValue);
 }
 
 void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands)

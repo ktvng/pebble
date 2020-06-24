@@ -289,6 +289,7 @@ void AddReferenceToCurrentScope(Reference* ref)
 {
     if(CurrentScope == nullptr)
         LogItDebug("current scope is not set", "AddReferenceToCurrentScope");
+    LogItDebug("added reference to current scope", "AddReferenceToCurrentScope");
     CurrentScope->ReferencesIndex.push_back(ref);
 }
 

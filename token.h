@@ -61,4 +61,7 @@ bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> co
 
 Operation* ExpressionParser(TokenList& line);
 
+void CompileGrammar();
+void PrintPrecedenceRules();
+
 #endif

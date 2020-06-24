@@ -1,0 +1,65 @@
+### Grammar
+
+@ Add + Reduce
+Expr -> Expr + Expr
+
+@ Subtract - Reduce
+Expr -> Expr - Expr
+
+@ Multiply * Reduce
+Expr -> Expr * Expr
+
+@ Divide / Reduce
+Expr -> Expr / Expr
+
+
+@ Evaluate Linehighest Merge
+Expr -> Ref ( Params )
+
+@ If highest Reduce
+Line -> if ( Expr ) :
+
+@ While highest Reduce
+Line -> while ( Expr ) :
+
+@ For highest Reduce
+Line -> for ( Ref in Ref ) :
+
+@ Def highest Custom
+Line -> def Ref ( Params ) :
+
+@ Assign = Reduce
+Line -> Ref = Expr
+
+
+
+@ Parens highest Retain
+Expr -> ( Expr )
+
+@ Param lowest Merge
+Params -> Params , Params
+
+@ Ref lowest Retain
+Expr -> Ref
+
+@ Ref lowest Retain
+Line -> Expr
+
+
+
+### Operator Precedence
+highest
+( [ .
+!
+* /
++ -
+< > <= >=
+== !=
+&& and
+|| or
+=  
+,
+)
+lowest
+
+# End  

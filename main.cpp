@@ -79,8 +79,8 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
 {
     switch(op->Type)
     {
-        case OperationType::Return:
-        return OperationReturn(op->Value);
+        case OperationType::Ref:
+        return OperationRef(op->Value);
 
         case OperationType::And:
         return OperationAnd(operands.at(0), operands.at(1));
@@ -95,16 +95,16 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         return OperationPrint(operands.at(0));
 
         case OperationType::Assign:
-        return OperationAssign(op->Value, operands.at(0));
+        return OperationAssign(operands.at(0), operands.at(1));
 
         case OperationType::Define:
-        return OperationDefine(op->Value);
+        return OperationDefine(operands.at(0));
 
         case OperationType::If:
         return OperationIf(operands.at(0));
 
         case OperationType::DefineMethod:
-        return OperationDefineMethod(op->Value);
+        return OperationDefineMethod(operands.at(0));
 
         case OperationType::Evaluate:
         return OperationEvaluate(operands.at(0), operands);
@@ -278,43 +278,6 @@ void DoProgram(Program& program)
 
 
 
-
-
-
-
-
-
-
-
-/// given a Token* [token], will return either an existing reference (or null reference if none match)
-/// or a new reference to a primitive object
-// Reference* DecideReferenceOf(Scope* scope, Token* token)
-// {
-//     if(token == nullptr)
-//         return CreateNullReference();
-
-//     Reference* tokenRef;
-
-//     tokenRef = DecideExistingReferenceFor(token, scope);
-//     if(tokenRef != nullptr)
-//     {
-//         LogItDebug("found existing object", "DecideReferenceOf");
-//         return tokenRef;
-//     }
-
-//     tokenRef = GetReferenceForPrimitive(token, c_returnReferenceName);
-//     if(tokenRef != nullptr)
-//     {
-//         LogItDebug("created a new object", "DecideReferenceOf");
-//         return tokenRef;
-//     }
-
-
-//     return CreateNullReference();
-// }
-
-
-
 // can put this somewhere
 typedef void (*ProbabilityFunctions)(PossibleOperationsList&, const TokenList&);
 ProbabilityFunctions decideProbabilities[] = 
@@ -333,7 +296,7 @@ ProbabilityFunctions decideProbabilities[] =
     DecideProbabilityNot,
     DecideProbabilityEvaluate,
     DecideProbabilityPrint,
-    DecideProbabilityReturn,
+    DecideProbabilityRef,
     DecideProbabilityDefineMethod
 };
 
@@ -347,6 +310,16 @@ void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities,
     }
 }
 
+double ProbabilityForType(OperationType type, PossibleOperationsList& typeProbabilites)
+{
+    for(OperationTypeProbability p: typeProbabilites)
+    {
+        if(p.Type == type)
+            return p.Probability;
+    }
+    return 0;
+}
+
 // TODO: figure out how to decide line type
 /// assign [lineType] based on [typeProbabitlites] for each atomic operation
 void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType) // MAJOR
@@ -358,8 +331,8 @@ void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& 
         double totalProb;
         for(OperationTypeProbability p: typeProbabilities)
             totalProb += p.Probability;
-        
-        if(totalProb > 8)
+
+        if(totalProb > 7 && ProbabilityForType(OperationType::DefineMethod, typeProbabilities) < 5)
             lineType = LineType::Composite;
         else
             lineType = LineType::Atomic;
@@ -394,7 +367,7 @@ DecideOperandsFunction decideOperands[] =
     DecideOperandsNot,
     DecideOperandsEvaluate,
     DecideOperandsPrint,
-    DecideOperandsReturn,
+    DecideOperandsRef,
     DecideOperandsDefineMethod
 };
 
@@ -407,32 +380,9 @@ void DecideOperands(const OperationType& opType, TokenList& tokens, OperationsLi
 }
 
 
-//
-typedef void(*DecideValueFunctions)(TokenList&, Reference**);
-DecideValueFunctions valueFunctions[] = 
-{
-    DecideValueDefine,
-    DecideValueAssign,
-    DecideValueIsEqual,
-    DecideValueIsLessThan,
-    DecideValueIsGreaterThan,
-    DecideValueAdd,
-    DecideValueSubtract,
-    DecideValueMultiply,
-    DecideValueDivide,
-    DecideValueAnd,
-    DecideValueOr,
-    DecideValueNot,
-    DecideValueEvaluate,
-    DecideValuePrint,
-    DecideValueReturn,
-    DecideValueDefineMethod
-}; // need to add the rest of the functions pointers for it to be good
-//
-void DecideOperationValue(const OperationType& opType, TokenList& tokens, Reference** refValue)
-{
-    valueFunctions[opType](tokens, refValue);
-}
+
+
+
 
 
 
@@ -558,9 +508,9 @@ Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& 
     LogItDebug(MSG("operation type is %s", ToString(opType)), "ParseOutAtomic");
     // these operands act on references!
     Reference* refValue = nullptr;
-    if(opType == OperationType::Return || opType == OperationType::Define || opType == OperationType::Assign || opType == OperationType::DefineMethod)
+    if(opType == OperationType::Ref)
     {
-        DecideOperationValue(opType, tokens, &refValue);
+        DecideValueRef(tokens, &refValue);
     }
 
     OperationsList operands;
@@ -669,6 +619,10 @@ Block* ParseBlock(
     Scope* thisBlockCompileScope = ScopeConstructor(compileTimeInheritedScope);
 
     SetScope(thisBlockCompileScope);
+    LogItDebug("entered new block", "ParseBlock");
+    for(Scope* s = thisBlockCompileScope; s != nullptr; s = s->InheritedScope)
+        for(auto r: s->ReferencesIndex)
+            LogDiagnostics(r, "compile time block scope");
 
     int previousLineLevel = it->Level;
 
@@ -685,12 +639,15 @@ Block* ParseBlock(
             // increment iterator to end of block
             it += blockSize - 1;
 
+
             // TODO:
             if(thisBlock->Executables.back()->ExecType == ExecutableType::Operation && TreatAsOperation(thisBlock->Executables.back())->Type == OperationType::DefineMethod)
             {
-                TreatAsOperation(thisBlock->Executables.back())->Value->ToMethod->CodeBlock = b;
+                // b->LocalScope->InheritedScope = TreatAsOperation(thisBlock->Executables.back())->Operands.at(0)->Value->ToMethod->Parameters;
+                TreatAsOperation(thisBlock->Executables.back())->Operands.at(0)->Value->ToMethod->CodeBlock = b;
                 continue;
             }
+
             thisBlock->Executables.push_back(b);
         }
         else
@@ -748,72 +705,75 @@ int main()
 {
     PurgeLog();
 
-    bool PRINT_OPERATIONS = false;
-    bool PRINT_GLOBAL_REFS = false;
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
-    ParseProgram(".\\program");
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
+    // bool PRINT_OPERATIONS = false;
+    // bool PRINT_GLOBAL_REFS = false;
+    // LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
+    // ParseProgram(".\\program");
+    // LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
     
-    for(Block* b: PROGRAM->Blocks)
-        LogDiagnostics(b, "initial program parse structure", "main");
+    // for(Block* b: PROGRAM->Blocks)
+    //     LogDiagnostics(b, "initial program parse structure", "main");
     
-    // PRINT OPERATIONS
-    if(PRINT_OPERATIONS)
-    {
-    }
-
-
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
-    {
-        LogDiagnostics(map, "initial object reference state", "main");
-    }
-
-    // for(auto elem: PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex)
-    //     LogDiagnostics(elem);
-
-    std::cout << "####################\n";
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
-    DoProgram(*PROGRAM);
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
-    std::cout << "####################\n";
-    
-    // PRINT GLOBALREFRENCES
-    if(PRINT_GLOBAL_REFS)
-    {
-        // for(auto elem: GlobalScope.ReferencesIndex)
-        // {
-        //     std::cout << &elem << "\n";
-        //     LogDiagnostics(*elem);
-        // }
-    }
-    
-    // std::string line = "test Of the Token: ;::;4 : 334 par.ser=4 &.&.3&&& = 3.1 haha \"this is awesome\" True";
-    // TokenList l = LexLine(line);
-    // std::cout << "######\n"; 
-    // int pos=0;
-    // Token* t;
-    // for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
+    // // PRINT OPERATIONS
+    // if(PRINT_OPERATIONS)
     // {
-    //     LogDiagnostics(t);
     // }
-    // LogDiagnostics(l);
-
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
-    {
-        LogDiagnostics(map, "final object reference state", "main");
-    }
 
 
-    // Testing New Parser
+    // for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    // {
+    //     LogDiagnostics(map, "initial object reference state", "main");
+    // }
+
+    // // for(auto elem: PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex)
+    // //     LogDiagnostics(elem);
+
+    // std::cout << "####################\n";
+    // LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
+    // DoProgram(*PROGRAM);
+    // LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
+    // std::cout << "####################\n";
     
-    // PROGRAM = new Program;
-    // PROGRAM->GlobalScope = ScopeConstructor(nullptr);
-    // SetScope(PROGRAM->GlobalScope);
+    // // PRINT GLOBALREFRENCES
+    // if(PRINT_GLOBAL_REFS)
+    // {
+    //     // for(auto elem: GlobalScope.ReferencesIndex)
+    //     // {
+    //     //     std::cout << &elem << "\n";
+    //     //     LogDiagnostics(*elem);
+    //     // }
+    // }
+    
+    // // std::string line = "test Of the Token: ;::;4 : 334 par.ser=4 &.&.3&&& = 3.1 haha \"this is awesome\" True";
+    // // TokenList l = LexLine(line);
+    // // std::cout << "######\n"; 
+    // // int pos=0;
+    // // Token* t;
+    // // for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
+    // // {
+    // //     LogDiagnostics(t);
+    // // }
+    // // LogDiagnostics(l);
 
-    // String str = "(5 -43) * 43 + ((4)) - 4(4, 7 , 23)";
-    // TokenList tl = LexLine(str);
-    // Operation* op = ExpressionParser(tl);
-    // LogDiagnostics(op);
+    // for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    // {
+    //     LogDiagnostics(map, "final object reference state", "main");
+    // }
+
+
+    // // Testing New Parser
+    
+    // // PROGRAM = new Program;
+    // // PROGRAM->GlobalScope = ScopeConstructor(nullptr);
+    // // SetScope(PROGRAM->GlobalScope);
+
+    // // String str = "(5 -43) * 43 + ((4)) - 4(4, 7 , 23)";
+    // // TokenList tl = LexLine(str);
+    // // Operation* op = ExpressionParser(tl);
+    // // LogDiagnostics(op);
+
+    CompileGrammar();
+    PrintPrecedenceRules();
 
     LogItDebug("end reached.", "main");
     return 0;

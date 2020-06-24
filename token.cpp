@@ -2,6 +2,8 @@
 #include <vector>
 #include <iostream>
 #include <cctype>
+#include <fstream>
+#include <list>
 
 #include "main.h"
 #include "arch.h"
@@ -104,7 +106,7 @@ TokenType TypeOfTokenString(const std::string& tokenString)
 const String StringStartChars = "\"'";
 const char DecimalPoint = '.';
 const String SingletonChars = "!@#$%^*()-+=[]{}\\:;<>,./?~`&|";
-const String DoubledChars = "&&||";
+const String DoubledChars = "&&||==!=";
 
 bool IsSingleTonChar(char c)
 {
@@ -178,6 +180,8 @@ Token* GetToken(const std::string& line, size_t& position, int tokenNumber)
 {
 
     SkipWhiteSpace(line, position);
+    if(position >= line.size())
+        return nullptr;
 
 
     // special case for string
@@ -441,6 +445,115 @@ bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> co
 
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Formal grammar parser parser (experimental)
+struct CFGRule
+{
+    String Name;
+    String Symbol;
+    int Precedence;
+    OperationType* OpType;
+    std::vector<String> IntoPattern;
+    String FromProduction;
+    String ParseOperation;
+};
+
+struct PrecedenceClass
+{
+    std::vector<String> Members;
+};
+
+
+
+
+std::vector<CFGRule*> NewGrammar;
+std::list<PrecedenceClass> PrecedenceRules;
+
+// TODO: move to diagnostics
+void PrintPrecedenceRules()
+{
+    std::cout << "PRINTING\n";
+    for(auto rule: PrecedenceRules)
+    {
+        for(auto s: rule.Members)
+        {
+            std::cout << s << " ";
+        }
+        std::cout << "\n";
+    }
+}
+
+void CompileGrammar()
+{
+    std::fstream file;
+    file.open(".\\grammar.txt", std::ios::in);
+
+
+    CFGRule* rule = nullptr;
+
+    // state: +1 upon every occurance of '###'
+    //  0: skip all lines
+    //  1: read grammar rules 
+    //  2: read precedences
+    //  other: skip all lines
+    int state = 0;
+
+    String line;
+    while(std::getline(file, line))
+    {
+        TokenList tokens = LexLine(line);
+        if(tokens.empty())
+            continue;
+
+        if(tokens.at(0)->Content == "#")
+        {
+            state++;
+            continue;
+        }
+
+        switch(state)
+        {
+            case 0:
+            continue;
+
+            case 1:
+            if(tokens.at(0)->Content == "@")
+            {
+                rule = new CFGRule;
+                rule->Name = tokens.at(1)->Content;
+                rule->Symbol = tokens.at(2)->Content;
+                rule->ParseOperation = tokens.at(3)->Content;
+            }
+            else if(tokens.at(0)->Type == TokenType::Reference)
+            {
+                rule->FromProduction = tokens.at(0)->Content;
+                for(size_t i=3; i<tokens.size(); i++)
+                {
+                    rule->IntoPattern.push_back(tokens.at(i)->Content);
+                }
+                NewGrammar.push_back(rule);
+            }
+            continue;
+            case 2:
+            {
+                PrecedenceClass precdence;
+                for(Token* t: tokens)
+                {
+                    precdence.Members.push_back(t->Content);
+                }
+                PrecedenceRules.push_front(precdence);
+            }
+
+
+            default:
+            continue;
+        }
+    }
+}
+
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Formal grammar parser (experimental)
 struct GrammarToken
 {
@@ -506,21 +619,21 @@ std::vector<GrammarRule*> Grammar =
     {
         "(",
         4,
-        OperationType::Return,
+        OperationType::Ref,
         { "#" },
     },
     new GrammarRule
     {
         ")",
         0,
-        OperationType::Return,
+        OperationType::Ref,
         { "#" }
     },
     new GrammarRule
     {
         ")",
         3,
-        OperationType::Return,
+        OperationType::Ref,
         { "(", "Ref", ")" }
     },
     new GrammarRule
@@ -538,6 +651,7 @@ std::vector<GrammarRule*> Grammar =
         { "Ref", "=", "Ref" }
     }
 };
+
 
 void AddToList(GrammarToken** listHead, GrammarToken** listTail, GrammarToken* newToken)
 {
@@ -568,10 +682,10 @@ GrammarToken* GrammarTokenConstructor(String tokenType)
 
 Operation* ReturnOperation(Token* refToken)
 {
-    Reference* ref = ReferenceFor(refToken);
+    Reference* ref = ReferenceFor(refToken, c_operationReferenceName);
     if(ref == nullptr)
         ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference");
-    Operation* op = OperationConstructor(OperationType::Return, ref);
+    Operation* op = OperationConstructor(OperationType::Ref, ref);
 
     return op;
 }
@@ -656,16 +770,15 @@ void ReduceList(GrammarToken** listHead, GrammarToken** listTail, GrammarRule* r
 {
     OperationsList operands = GetOperandsAndRemoveRule(listHead, listTail, rule);
     Operation* op;
-    if(rule->OpType == OperationType::Return)
+
+    if(rule->OpType == OperationType::Ref)
     {
         op = operands.at(0);
     }
-    else if(rule->OpType == OperationType::Assign)
-    {
-        op = OperationConstructor(rule->OpType, operands.at(0)->Value, { operands.at(1) });
-    }
     else
         op = OperationConstructor(rule->OpType, operands);
+
+
 
     GrammarToken* t = GrammarTokenConstructor("Ref");
     t->Value = op;
