@@ -33,6 +33,13 @@ void AddReferenceToCurrentScope(Reference* ref);
 
 
 Reference* ReferenceFor(Token* token, String refName = c_returnReferenceName);
+Reference* ReferenceFor(String refName);
 void AssignToNull(Reference* ref);
+
+// reference for primitives only
+Reference* ReferenceForPrimitive(Token* token, String name);
+
+// creates a stub that refers to nullptrs
+Reference* ReferenceStub(String refName);
 
 #endif

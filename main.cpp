@@ -24,6 +24,9 @@
 #include "operation.h"
 #include "reference.h"
 
+
+bool override = true;
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Constructors
 
@@ -153,7 +156,7 @@ Reference* DoOperation(Scope* scope, Operation* op)
 
 void UpdatePreviousResult(Scope* scope, Reference** result, Reference** previousResult)
 {
-    if(*previousResult != nullptr)
+    if(*previousResult != nullptr && (*previousResult)->Name == c_returnReferenceName)
         Dereference(*previousResult);
     *previousResult = *result;
 }
@@ -324,6 +327,12 @@ double ProbabilityForType(OperationType type, PossibleOperationsList& typeProbab
 /// assign [lineType] based on [typeProbabitlites] for each atomic operation
 void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType) // MAJOR
 {
+    if(override)
+    {
+        lineType = LineType::Composite;
+        return;
+    }
+
     if(FindToken(tokens, "if") != nullptr && FindToken(tokens, ":") != nullptr)
         lineType = LineType::IfLine;
     else
@@ -332,7 +341,7 @@ void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& 
         for(OperationTypeProbability p: typeProbabilities)
             totalProb += p.Probability;
 
-        if(totalProb > 7 && ProbabilityForType(OperationType::DefineMethod, typeProbabilities) < 5)
+        if((totalProb > 7 && ProbabilityForType(OperationType::DefineMethod, typeProbabilities) < 5))
             lineType = LineType::Composite;
         else
             lineType = LineType::Atomic;
@@ -495,7 +504,8 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
     if(!TabStringIsSet())
         SetTabString(DecideTabString(newLine));
 
-    return RemoveCommas(fullLine);
+    return fullLine;
+    // return RemoveCommas(fullLine);
 }
 
 
@@ -704,76 +714,75 @@ Program* ParseProgram(const std::string filepath)
 int main()
 {
     PurgeLog();
-
-    // bool PRINT_OPERATIONS = false;
-    // bool PRINT_GLOBAL_REFS = false;
-    // LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
-    // ParseProgram(".\\program");
-    // LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
-    
-    // for(Block* b: PROGRAM->Blocks)
-    //     LogDiagnostics(b, "initial program parse structure", "main");
-    
-    // // PRINT OPERATIONS
-    // if(PRINT_OPERATIONS)
-    // {
-    // }
-
-
-    // for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
-    // {
-    //     LogDiagnostics(map, "initial object reference state", "main");
-    // }
-
-    // // for(auto elem: PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex)
-    // //     LogDiagnostics(elem);
-
-    // std::cout << "####################\n";
-    // LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
-    // DoProgram(*PROGRAM);
-    // LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
-    // std::cout << "####################\n";
-    
-    // // PRINT GLOBALREFRENCES
-    // if(PRINT_GLOBAL_REFS)
-    // {
-    //     // for(auto elem: GlobalScope.ReferencesIndex)
-    //     // {
-    //     //     std::cout << &elem << "\n";
-    //     //     LogDiagnostics(*elem);
-    //     // }
-    // }
-    
-    // // std::string line = "test Of the Token: ;::;4 : 334 par.ser=4 &.&.3&&& = 3.1 haha \"this is awesome\" True";
-    // // TokenList l = LexLine(line);
-    // // std::cout << "######\n"; 
-    // // int pos=0;
-    // // Token* t;
-    // // for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
-    // // {
-    // //     LogDiagnostics(t);
-    // // }
-    // // LogDiagnostics(l);
-
-    // for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
-    // {
-    //     LogDiagnostics(map, "final object reference state", "main");
-    // }
-
-
-    // // Testing New Parser
-    
-    // // PROGRAM = new Program;
-    // // PROGRAM->GlobalScope = ScopeConstructor(nullptr);
-    // // SetScope(PROGRAM->GlobalScope);
-
-    // // String str = "(5 -43) * 43 + ((4)) - 4(4, 7 , 23)";
-    // // TokenList tl = LexLine(str);
-    // // Operation* op = ExpressionParser(tl);
-    // // LogDiagnostics(op);
-
     CompileGrammar();
-    PrintPrecedenceRules();
+
+    bool PRINT_OPERATIONS = false;
+    bool PRINT_GLOBAL_REFS = false;
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
+    ParseProgram(".\\program");
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
+    
+    for(Block* b: PROGRAM->Blocks)
+        LogDiagnostics(b, "initial program parse structure", "main");
+    
+    // PRINT OPERATIONS
+    if(PRINT_OPERATIONS)
+    {
+    }
+
+
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    {
+        LogDiagnostics(map, "initial object reference state", "main");
+    }
+
+    // for(auto elem: PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex)
+    //     LogDiagnostics(elem);
+
+    std::cout << "####################\n";
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
+    DoProgram(*PROGRAM);
+    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
+    std::cout << "####################\n";
+    
+    // PRINT GLOBALREFRENCES
+    if(PRINT_GLOBAL_REFS)
+    {
+        // for(auto elem: GlobalScope.ReferencesIndex)
+        // {
+        //     std::cout << &elem << "\n";
+        //     LogDiagnostics(*elem);
+        // }
+    }
+    
+    // std::string line = "test Of the Token: ;::;4 : 334 par.ser=4 &.&.3&&& = 3.1 haha \"this is awesome\" True";
+    // TokenList l = LexLine(line);
+    // std::cout << "######\n"; 
+    // int pos=0;
+    // Token* t;
+    // for(t = NextTokenMatching(l, ObjectTokenTypes, pos); t != nullptr; t = NextTokenMatching(l, ObjectTokenTypes, pos))
+    // {
+    //     LogDiagnostics(t);
+    // }
+    // LogDiagnostics(l);
+
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    {
+        LogDiagnostics(map, "final object reference state", "main");
+    }
+
+
+    // Testing New Parser
+    
+    // PROGRAM = new Program;
+    // PROGRAM->GlobalScope = ScopeConstructor(nullptr);
+    // SetScope(PROGRAM->GlobalScope);
+
+
+    // String str = "if(true):";
+    // TokenList tl = LexLine(str);
+    // Operation* op = ExpressionParser(tl);
+    // LogDiagnostics(op);
 
     LogItDebug("end reached.", "main");
     return 0;

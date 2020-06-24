@@ -451,7 +451,7 @@ struct CFGRule
     String Name;
     String Symbol;
     int Precedence;
-    OperationType* OpType;
+    OperationType OpType;
     std::vector<String> IntoPattern;
     String FromProduction;
     String ParseOperation;
@@ -462,10 +462,53 @@ struct PrecedenceClass
     std::vector<String> Members;
 };
 
+OperationType StringNameToOperationType(String Name)
+{
+    if(Name=="Add")
+        return OperationType::Add;
+    else if(Name=="Subtract")
+        return OperationType::Subtract;
+    else if(Name=="Multiply")
+        return OperationType::Multiply;
+    else if(Name=="Divide")
+        return OperationType::Divide;
+
+    else if(Name=="And")
+        return OperationType::And;
+    else if(Name=="Or")
+        return OperationType::Or;
+    else if(Name=="Not")
+        return OperationType::Not;
+
+    else if(Name=="IsEqual")
+        return OperationType::IsEqual;
+    else if(Name=="IsGreaterThan")
+        return OperationType::IsGreaterThan;
+    else if(Name=="IsLessThan")
+        return OperationType::IsLessThan;
 
 
+    else if(Name=="Evaluate")
+        return OperationType::Evaluate;
+    else if(Name=="If")
+        return OperationType::If;
+    else if(Name=="DefineMethod")
+        return OperationType::DefineMethod;
+    else if(Name=="Assign")
+        return OperationType::Assign;
+    else if(Name=="Define")
+        return OperationType::Define;
+    else if(Name=="Param")
+        return OperationType::Evaluate;
+    else if(Name=="Print")
+        return OperationType::Print;
 
-std::vector<CFGRule*> NewGrammar;
+    else
+        return OperationType::Ref;
+}
+
+
+std::vector<CFGRule*> Grammar;
 std::list<PrecedenceClass> PrecedenceRules;
 
 // TODO: move to diagnostics
@@ -479,6 +522,32 @@ void PrintPrecedenceRules()
             std::cout << s << " ";
         }
         std::cout << "\n";
+    }
+}
+
+int PrecedenceOf(String opSymbol)
+{
+    int i=1;
+    for(auto rule: PrecedenceRules)
+    {
+        for(auto str: rule.Members)
+        {
+            if(str == opSymbol)
+            {
+                return i;
+            }
+        }
+        i++;
+    }
+    LogIt(Sev3_Critical, "PrecedenceOf", MSG("unknown operation symbol %s", opSymbol));
+    return 0;
+}
+
+void AssignRulePrecedences()
+{
+    for(auto rule: Grammar)
+    {
+        rule->Precedence = PrecedenceOf(rule->Symbol);
     }
 }
 
@@ -522,6 +591,7 @@ void CompileGrammar()
                 rule->Name = tokens.at(1)->Content;
                 rule->Symbol = tokens.at(2)->Content;
                 rule->ParseOperation = tokens.at(3)->Content;
+                rule->OpType = StringNameToOperationType(rule->Name);
             }
             else if(tokens.at(0)->Type == TokenType::Reference)
             {
@@ -530,7 +600,7 @@ void CompileGrammar()
                 {
                     rule->IntoPattern.push_back(tokens.at(i)->Content);
                 }
-                NewGrammar.push_back(rule);
+                Grammar.push_back(rule);
             }
             continue;
             case 2:
@@ -548,6 +618,8 @@ void CompileGrammar()
             continue;
         }
     }
+
+    AssignRulePrecedences();
 }
 
 
@@ -563,94 +635,6 @@ struct GrammarToken
     GrammarToken* Prev = nullptr;
 }; 
 
-struct GrammarRule
-{
-    String Name;
-    int Precedence;
-    OperationType OpType;
-    std::vector<String> Pattern;
-};
-
-std::vector<GrammarRule*> Grammar = 
-{
-    new GrammarRule
-    { 
-        "+", 
-        1,
-        OperationType:: Add,
-        { "Ref", "+", "Ref" }
-    },
-    new GrammarRule
-    {
-        "-",
-        1,
-        OperationType:: Subtract,
-        { "Ref", "-", "Ref" }
-    },
-    new GrammarRule
-        {
-        "*",
-        2,
-        OperationType::Multiply,
-        { "Ref", "*", "Ref" },
-    },
-    new GrammarRule
-    {
-        "/",
-        2,
-        OperationType::Divide,
-        { "Ref", "/", "Ref" },
-    },
-    new GrammarRule
-    {
-        "Ref",
-        3,
-        OperationType::Evaluate,
-        { "Ref", "(", ")" },
-    },
-    new GrammarRule
-    {
-        "Ref",
-        3,
-        OperationType::Evaluate,
-        { "Ref", "(", "Ref", ")" },
-    },
-    new GrammarRule
-    {
-        "(",
-        4,
-        OperationType::Ref,
-        { "#" },
-    },
-    new GrammarRule
-    {
-        ")",
-        0,
-        OperationType::Ref,
-        { "#" }
-    },
-    new GrammarRule
-    {
-        ")",
-        3,
-        OperationType::Ref,
-        { "(", "Ref", ")" }
-    },
-    new GrammarRule
-    {
-        ",",
-        6,
-        OperationType::Add,
-        { "Ref", ",", "Ref" },
-    },
-    new GrammarRule
-    {
-        "=",
-        0,
-        OperationType::Assign,
-        { "Ref", "=", "Ref" }
-    }
-};
 
 
 void AddToList(GrammarToken** listHead, GrammarToken** listTail, GrammarToken* newToken)
@@ -682,21 +666,31 @@ GrammarToken* GrammarTokenConstructor(String tokenType)
 
 Operation* ReturnOperation(Token* refToken)
 {
-    Reference* ref = ReferenceFor(refToken, c_operationReferenceName);
+    Reference* ref = ReferenceForPrimitive(refToken, c_operationReferenceName);
     if(ref == nullptr)
-        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference");
+    {
+        ref = ReferenceStub(refToken->Content);
+    }
     Operation* op = OperationConstructor(OperationType::Ref, ref);
 
     return op;
 }
 
-GrammarRule* MatchGrammarPatterns(GrammarToken* listHead, GrammarToken* listTail)
+// Operation* NewReferenceReturn(Token* refToken)
+// {
+//     Reference* ref = NullReference(refToken->Content);
+//     Operation* op = OperationConstructor(OperationType::Ref, ref);
+
+//     return op;
+// }
+
+CFGRule* MatchGrammarPatterns(GrammarToken* listHead, GrammarToken* listTail)
 {
-    for(GrammarRule* rule: Grammar)
+    for(CFGRule* rule: Grammar)
     {
         bool isMatchForRule = true;
         GrammarToken* listItr = listTail;
-        for(int i=rule->Pattern.size()-1; i>=0; i--, listItr = listItr->Prev)
+        for(int i=rule->IntoPattern.size()-1; i>=0; i--, listItr = listItr->Prev)
         {
             if(listItr == nullptr)
             {
@@ -704,7 +698,7 @@ GrammarRule* MatchGrammarPatterns(GrammarToken* listHead, GrammarToken* listTail
                 break;
             }
 
-            if(listItr->TokenType != rule->Pattern.at(i))
+            if(listItr->TokenType != rule->IntoPattern.at(i))
             {
                 isMatchForRule = false;
                 break;
@@ -716,27 +710,38 @@ GrammarRule* MatchGrammarPatterns(GrammarToken* listHead, GrammarToken* listTail
     return nullptr;
 }
 
-int PrecedenceOf(String tokenType)
-{
-    for(GrammarRule* rule: Grammar)
-    {
-        if(rule->Name == tokenType)
-            return rule->Precedence;
-    }
-    LogItDebug("unknown tokenType", "PrecedenceOf");
-    return -1;
-}
-
 void DestroyList(GrammarToken* listHead)
 {
+    // TODO: free memoery
+}
 
+// TODO
+std::vector<String> ProductionRules()
+{
+    std::vector<String> productions;
+    for(auto rule: Grammar)
+    {
+        productions.push_back(rule->FromProduction);
+    }
+    productions.push_back("Ref");
+    return productions;
+}
+
+bool GrammarTokenTypeMatches(String TokenType, std::vector<String> matchTypes)
+{
+    for(auto str: matchTypes)
+    {
+        if(TokenType == str)
+            return true;
+    }
+    return false;
 }
 
 /// assumes that the list matches [rule]
-OperationsList GetOperandsAndRemoveRule(GrammarToken** listHead, GrammarToken** listTail, GrammarRule* rule)
+OperationsList GetOperandsAndRemoveRule(GrammarToken** listHead, GrammarToken** listTail, CFGRule* rule)
 {
     OperationsList operands = {};
-    int backtrackAmount = rule->Pattern.size()-1;
+    int backtrackAmount = rule->IntoPattern.size()-1;
 
     GrammarToken* listSnipHead = *listTail;
 
@@ -756,7 +761,7 @@ OperationsList GetOperandsAndRemoveRule(GrammarToken** listHead, GrammarToken** 
     
     for(GrammarToken* listSnipItr = listSnipHead; listSnipItr != nullptr; listSnipItr = listSnipItr->Next)
     {
-        if(listSnipItr->TokenType == "Ref"){
+        if(GrammarTokenTypeMatches(listSnipItr->TokenType, ProductionRules())){
             operands.push_back(listSnipItr->Value);
         }
     }
@@ -766,24 +771,109 @@ OperationsList GetOperandsAndRemoveRule(GrammarToken** listHead, GrammarToken** 
     return operands;
 }
 
-void ReduceList(GrammarToken** listHead, GrammarToken** listTail, GrammarRule* rule)
+void ReduceList(GrammarToken** listHead, GrammarToken** listTail, CFGRule* rule)
 {
     OperationsList operands = GetOperandsAndRemoveRule(listHead, listTail, rule);
     Operation* op;
 
-    if(rule->OpType == OperationType::Ref)
+    if(rule->ParseOperation == "Reduce")
     {
+        op = OperationConstructor(rule->OpType, operands);
+    }
+    else if(rule->ParseOperation == "Retain"){
         op = operands.at(0);
     }
-    else
-        op = OperationConstructor(rule->OpType, operands);
+    else if(rule->ParseOperation == "Merge")
+    {
+        // TODO
+        OperationsList mergedOperands;
+        for(auto op: operands)
+        {
+            if(op->Type == OperationType::Ref)
+                mergedOperands.push_back(op);
+            else
+            {
+                for(auto opOperand: op->Operands)
+                    mergedOperands.push_back(opOperand);
+            }
+        }
 
+        op = OperationConstructor(rule->OpType, mergedOperands);
+    }
+    else if(rule->ParseOperation == "Custom")
+    {
+        LogItDebug("Custom type", "ReduceList");
+        // TODO: this is a hotfix taken kinda from operantion.cpp
+        String methodName = operands.at(0)->Value->Name;
+        
+        Method* m = new Method;
+        m->Parameters = ScopeConstructor(PROGRAM->GlobalScope);
+        m->CodeBlock = BlockConstructor(m->Parameters);
+        
+        if(operands.size() > 1)
+            for(size_t i=0; i<operands.at(1)->Operands.size(); i++)
+                m->Parameters->ReferencesIndex.push_back(NullReference(operands.at(1)->Operands.at(i)->Value->Name));
+        
+        Reference* ref = ReferenceFor(methodName, m);
+        op = OperationConstructor(OperationType::DefineMethod, { OperationConstructor(OperationType::Ref, ref) } );
 
+        // TODO: clean up memory
 
-    GrammarToken* t = GrammarTokenConstructor("Ref");
+    }
+
+    GrammarToken* t = GrammarTokenConstructor(rule->FromProduction);
     t->Value = op;
 
     AddToList(listHead, listTail, t);
+}
+
+void ResolveReferences(Operation* op)
+{
+    if(op->Type == OperationType::Ref)
+        return;
+
+    // generic prodecure
+    if(op->Type == OperationType::Assign)
+    {
+        Reference* stub = op->Operands.at(0)->Value;
+        Reference* assignToRef = ReferenceFor(stub->Name);
+
+        if(assignToRef == nullptr)
+        {
+            Operation* newRef = OperationConstructor(OperationType::Ref, NullReference(stub->Name));
+            Operation* defRef = OperationConstructor(OperationType::Define, { newRef });
+            op->Operands[0] = defRef;
+
+            // TODO: cleanup
+        }
+    }
+
+    for(auto operand: op->Operands)
+    {
+        if(operand->Type == OperationType::Ref)
+        {
+            Reference* stub = operand->Value;
+        
+            // verify that Reference is in fact a stub 
+            if(stub->ToObject == nullptr && stub->ToMethod == nullptr)
+            {
+                // this will add the reference to scope
+                Reference* resolvedRef = ReferenceFor(stub->Name);
+                
+                if(resolvedRef == nullptr)
+                {
+                    ReportCompileMsg(SystemMessageType::Exception, MSG("cannot resolve reference %s", stub->Name));
+                    resolvedRef = NullReference(stub->Name);
+                }
+
+                operand->Value = resolvedRef;
+            }
+        }
+        else
+        {
+            ResolveReferences(operand);
+        }
+    }
 }
 
 Operation* ExpressionParser(TokenList& line)
@@ -793,11 +883,14 @@ Operation* ExpressionParser(TokenList& line)
 
     int pos = 0;
 
+    LogDiagnostics(line);
+
     while(static_cast<size_t>(pos) < line.size())
     {
         if(TokenMatchesType(line.at(pos), ObjectTokenTypes))
         {
             LogItDebug("added new GrammarToken for ref", "ExpressionParser");
+            
             GrammarToken* t = GrammarTokenConstructor("Ref");
             t->Value = ReturnOperation(line.at(pos));
             AddToList(&listHead, &listTail, t);
@@ -808,18 +901,20 @@ Operation* ExpressionParser(TokenList& line)
             GrammarToken* t = GrammarTokenConstructor(line.at(pos)->Content);
             AddToList(&listHead, &listTail, t);
         }
-        GrammarRule* match = MatchGrammarPatterns(listHead, listTail);
 
         for(GrammarToken* t = listHead; t != nullptr; t = t->Next)
             std::cout << t->TokenType << " ";
         std::cout << std::endl;
 
+        CFGRule* match = MatchGrammarPatterns(listHead, listTail);
+
         while(match != nullptr)
         {
-            LogItDebug("matched grammar", "ExpressionParser");
+            LogItDebug(MSG("matched grammar %s", match->Name), "ExpressionParser");
             if(match != nullptr){
                 int currentRulePrecedence = match->Precedence;
-                int nextRulePrecedence = 0;
+
+                int nextRulePrecedence = -1;
 
                 // lookahead
                 if(static_cast<size_t>(pos+1) < line.size() && line.at(pos+1))
@@ -827,7 +922,9 @@ Operation* ExpressionParser(TokenList& line)
 
                 if(currentRulePrecedence >= nextRulePrecedence)
                 {
+                    LogItDebug("reducing", "ExpressiongParser");
                     ReduceList(&listHead, &listTail, match);
+                    LogItDebug("reduce finished", "ExpressionParser");
                     match = MatchGrammarPatterns(listHead, listTail);
                 }
                 else
@@ -841,5 +938,15 @@ Operation* ExpressionParser(TokenList& line)
         }
         pos++;
     }
+    if(listHead != listTail)
+    {
+        ReportCompileMsg(SystemMessageType::Exception, "bad format");
+    }
+
+    LogItDebug("resolving references", "ExpressionParser");
+    ResolveReferences(listHead->Value);
+    
+    LogItDebug("end reached", "ExpressionParser");
+    LogDiagnostics(listHead->Value);
     return listHead->Value;
 }

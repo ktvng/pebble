@@ -311,9 +311,22 @@ String ToString(const Object* obj)
     return ToString(*obj);
 }
 
+String ToString(const Method* method)
+{
+    String methodString = MSG("<Method>\n");
+
+    for(auto ref: method->Parameters->ReferencesIndex)
+    {
+        methodString += IndentLevel(1) + 
+            StringForAttrbute("param", ref->Name);
+    }
+
+    return methodString;
+}
+
 String ToString(const Reference* ref)
 {
-    String refString = MSG("<Reference> @ %p\n", &ref);
+    String refString = MSG("<Reference> @ %p\n", ref);
 
     refString += IndentLevel(1) +
         StringForAttrbute("Name", ref->Name);
@@ -444,11 +457,16 @@ String ToString(const Operation& op, int level)
                         GetStringValue(*op.Value->ToObject)));
 
         if(op.Value->ToMethod != nullptr)
+        {
+            opString += IndentLevel(1) +
+                StringForAttrbute("name", op.Value->Name);
             opString += IndentLevel(1) + 
                 StringForAttrbute(
                     "OperationType", 
-                    MSG("Ref <Method> %s", 
-                        op.Value->Name));
+                    IndentStringToLevel(ToString(op.Value->ToMethod), 1));
+        }
+
+                    
 
         return opString;
     }

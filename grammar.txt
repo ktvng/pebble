@@ -1,4 +1,8 @@
+@ Define lowest Reduce
+Line -> def Ref
+
 ### Grammar
+
 
 @ Add + Reduce
 Expr -> Expr + Expr
@@ -12,9 +16,19 @@ Expr -> Expr * Expr
 @ Divide / Reduce
 Expr -> Expr / Expr
 
+@ And && Reduce
+Expr -> Expr && Expr
 
-@ Evaluate Linehighest Merge
-Expr -> Ref ( Params )
+@ And and Reduce
+Expr -> Expr and Expr
+
+
+
+@ Print lowest Reduce
+Line -> print Expr
+
+@ Evaluate highest Merge
+Expr -> Ref ( Expr )
 
 @ If highest Reduce
 Line -> if ( Expr ) :
@@ -23,33 +37,45 @@ Line -> if ( Expr ) :
 Line -> while ( Expr ) :
 
 @ For highest Reduce
-Line -> for ( Ref in Ref ) :
+Line -> for ( Ref in Expr ) :
 
-@ Def highest Custom
-Line -> def Ref ( Params ) :
+@ DefineMethod highest Custom
+Line -> def Ref ( Expr ) :
+
+@ DefineMethod highest Custom
+Line -> def Ref ( ) :
 
 @ Assign = Reduce
-Line -> Ref = Expr
+Line -> Expr = Expr
+
+
+
+
+
 
 
 
 @ Parens highest Retain
 Expr -> ( Expr )
 
-@ Param lowest Merge
-Params -> Params , Params
 
-@ Ref lowest Retain
+
+@ Param , Merge
+Expr -> Expr , Expr
+
+@ Ref subhighest Retain
 Expr -> Ref
 
-@ Ref lowest Retain
-Line -> Expr
+@ LineRef lowest Retain
+Line -> Expr 
 
 
 
 ### Operator Precedence
+: in
 highest
 ( [ .
+subhighest
 !
 * /
 + -
@@ -62,4 +88,5 @@ highest
 )
 lowest
 
-# End  
+### End 
+

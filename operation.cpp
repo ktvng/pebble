@@ -114,8 +114,11 @@ Reference* OperationDefine(Reference* ref)
     LogItDebug(MSG("added reference [%s] to scope", ref->Name), "OperationDefine");
     AddReferenceToCurrentScope(ref);
 
-    Reference* returnRef = ReferenceFor(c_returnReferenceName, ref->ToObject);
-    return returnRef;
+
+    return ref;
+
+    // Reference* returnRef = ReferenceFor(c_returnReferenceName, ref->ToObject);
+    // return returnRef;
 }
 
 Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)

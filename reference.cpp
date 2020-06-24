@@ -91,7 +91,6 @@ Reference* GetReference(String refName)
                 return ref;
         }
     }
-    ReportCompileMsg(SystemMessageType::Exception, MSG("cannot resolve reference [%s]", refName));
     return nullptr;
 }
 
@@ -211,6 +210,11 @@ Reference* ReferenceFor(Token* token, String refName)
     return CreateNullReference();
 }
 
+Reference* ReferenceFor(String refName)
+{
+    return GetReference(refName);
+}
+
 
 Reference* ReferenceFor(String refName, int value)
 {
@@ -280,6 +284,16 @@ Reference* NullReference(String refName)
     Reference* ref = CreateNullReference(refName);
     AddReferenceToCurrentScope(ref);
     return ref;
+}
+
+Reference* ReferenceStub(String refName)
+{
+    Reference* ref = new Reference;
+    ref->Name = refName;
+    ref->ToMethod = nullptr;
+    ref->ToObject = nullptr;
+
+    // return ref;
 }
 
 
