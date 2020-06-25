@@ -113,7 +113,7 @@ inline const ObjectClass IntegerClass = "Integer";
 inline const ObjectClass DecimalClass = "Decimal";
 inline const ObjectClass StringClass = "String";
 inline const ObjectClass BooleanClass = "Boolean";
-inline const ObjectClass NullClass = "Null";
+inline const ObjectClass NullClass = "Nothing";
 inline const ObjectClass ArrayClass = "Array";
 
 inline const std::string c_returnReferenceName = "ReturnedObject";

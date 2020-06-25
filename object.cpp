@@ -275,7 +275,7 @@ String GetStringValue(const Object& obj)
     }
     else if(obj.Class == NullClass)
     {
-        return "null";
+        return "Nothing";
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";
