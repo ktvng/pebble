@@ -43,12 +43,11 @@ Scope* ScopeConstructor(Scope* inheritedScope)
 
 /// creates a new block with [inheritedScope]. all new scopes should be created from this
 /// constructor method
-Block* BlockConstructor(Scope* inheritedScope)
+Block* BlockConstructor()
 {
     Block* b = new Block;
     b->ExecType = ExecutableType::Block;
     b->Executables = {};
-    b->LocalScope = ScopeConstructor(inheritedScope);
 
     return b;
 }
@@ -149,7 +148,6 @@ Reference* DoOperation(Scope* scope, Operation* op)
     Reference* returnRef = DoOperationOnReferences(scope, op, operandReferences);
     LogItDebug(MSG("line[%i] operation %s returned a reference", op->LineNumber, ToString(op->Type)), "DoOperation");
 
-    LogItDebug("starting dereference operands", "DoOperation");
     DereferenceAll(operandReferences);
     
     return returnRef;
@@ -208,15 +206,25 @@ void HandleRuntimeMessages(int lineNumber)
         RuntimeMsgFlag = false;
     }
 }
+bool shouldReturn = false;
 
 /// executes the commands contained in a [codeBlock]
 Reference* DoBlock(Block* codeBlock)
 {
     Reference* result = nullptr;
     Reference* previousResult = nullptr;
+
+    shouldReturn = false;
+    Scope* blockScope = ScopeConstructor(CurrentScope());
     
-    EnterScope(codeBlock->LocalScope);
+    EnterScope(blockScope);
     {
+
+        for(auto aref: CurrentScope()->ReferencesIndex)
+        {
+            LogDiagnostics(aref, "scope before block");
+        }
+
         for(size_t i=0; i<codeBlock->Executables.size(); i++)
         {
             auto exec = codeBlock->Executables.at(i);
@@ -225,49 +233,50 @@ Reference* DoBlock(Block* codeBlock)
             {
                 Operation* op = TreatAsOperation(exec); 
 
-                LogDiagnosticsForRuntimeLine(codeBlock->LocalScope, op);
+                // LogDiagnosticsForRuntimeLine(CurrentScope(), op);
 
                 LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
 
-                result = HandleControlFlow(op, i, codeBlock->LocalScope); 
-                UpdatePreviousResult(codeBlock->LocalScope, &result, &previousResult);
+                result = HandleControlFlow(op, i, CurrentScope()); 
+                UpdatePreviousResult(CurrentScope(), &result, &previousResult);
                 HandleRuntimeMessages(op->LineNumber);
                 
                 LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
 
                 if(op->Type == OperationType::Return)
                 {
+                    shouldReturn = true;
                     break;
                 }
             }
             else if(exec->ExecType == ExecutableType::Block)
             {
-                LogItDebug("discovered child block: starting" "DoBlock");
+                LogItDebug("discovered child block: starting", "DoBlock");
 
                 result = DoBlock(TreatAsBlock(exec));
+                if(shouldReturn) break;
                 
                 AddReferenceToCurrentScope(result);
-                UpdatePreviousResult(codeBlock->LocalScope, &result, &previousResult);
+                UpdatePreviousResult(CurrentScope(), &result, &previousResult);
 
                 LogItDebug("exiting child block", "DoBlock");
             }
         }
 
-        // for(Reference* ref: codeBlock->LocalScope->ReferencesIndex)
+        // for(Reference* ref: CurrentScope()->ReferencesIndex)
         // {
         //     LogDiagnostics(ref);
         // }
 
-        // for(Reference* ref: codeBlock->LocalScope->ReferencesIndex)
+        // for(Reference* ref: CurrentScope()->ReferencesIndex)
         // {
         //     if(ref == result)
         //         continue;
         //     Dereference(ref);
         // }
-        codeBlock->LocalScope->ReferencesIndex.clear();
+        CurrentScope()->ReferencesIndex.clear();
     }
     ExitScope();
-
     if(result != nullptr)
         return result;
     else
@@ -648,7 +657,9 @@ void HandleDefineMethod(
 
     // assumes there is a block
     int blockSize = SizeOfBlock((*it)+1, *end);
-    Block* b = ParseBlock((*it)+1, (*it)+blockSize+1, op->Operands.at(0)->Value->ToMethod->Parameters);
+    EnterScope(op->Operands.at(0)->Value->ToMethod->Parameters);
+    Block* b = ParseBlock((*it)+1, (*it)+blockSize+1);
+    ExitScope();
     *it += blockSize;
     op->Operands.at(0)->Value->ToMethod->CodeBlock = b;
     LogItDebug("exit method", "HandleDefineMethod");
@@ -656,14 +667,13 @@ void HandleDefineMethod(
 
 Block* ParseBlock(
     std::vector<CodeLine>::iterator it, 
-    std::vector<CodeLine>::iterator end, 
-    Scope* blockInheritedScope)
+    std::vector<CodeLine>::iterator end)
 {
-    Block* thisBlock = BlockConstructor(blockInheritedScope);
-    // Scope* thisBlockCompileScope = ScopeConstructor(compileTimeInheritedScope);
+    Block* thisBlock = BlockConstructor();
     
     LogItDebug("entered new block", "ParseBlock");
-    EnterScope(thisBlock->LocalScope);
+    Scope* blockScope = ScopeConstructor(CurrentScope());
+    EnterScope(blockScope);
     {
         int previousLineLevel = it->Level;
 
@@ -673,7 +683,7 @@ Block* ParseBlock(
             {
                 LogItDebug(MSG("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
                 int blockSize = SizeOfBlock(it, end);
-                Block* b = ParseBlock(it, it+blockSize, thisBlock->LocalScope);
+                Block* b = ParseBlock(it, it+blockSize);
                 LogItDebug(MSG("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
 
                 // increment iterator to end of block
@@ -688,7 +698,7 @@ Block* ParseBlock(
                 NumberOperation(op, it->LineNumber);
                 LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
 
-                HandleDefineMethod(&it, &end, thisBlock->LocalScope, op);
+                HandleDefineMethod(&it, &end, CurrentScope(), op);
 
                 HandleCompileMessage(it->LineNumber);
 
@@ -696,7 +706,7 @@ Block* ParseBlock(
             }
 
             // PRINTING DIAGNOSTICS
-            for(Scope* s = thisBlock->LocalScope; s != nullptr; s = s->InheritedScope)
+            for(Scope* s = CurrentScope(); s != nullptr; s = s->InheritedScope)
                 for(auto r: s->ReferencesIndex)
                     LogDiagnostics(r, "compile time block scope");
         }
@@ -729,7 +739,9 @@ Program* ParseProgram(const std::string filepath)
     }
 
     // TODO: Allow different blocks
-    Block* b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end(), PROGRAM->GlobalScope);
+    EnterScope(PROGRAM->GlobalScope);
+    Block* b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end());
+    ExitScope();
     PROGRAM->Blocks.push_back(b);
 
     return PROGRAM;

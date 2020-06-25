@@ -31,7 +31,6 @@ void ExitScope()
     ScopeStack.Pop();
 }
 
-
 /// Remove a reference from ObjectIndex of the global PROGRAM
 void RemoveReferenceFromObjectIndex(Reference* ref)
 {

@@ -7,7 +7,7 @@
 
 Reference* ReferenceConstructor()
 {
-    LogItDebug("space allocated for new reference", "ReferenceConstructor");
+    // LogItDebug("space allocated for new reference", "ReferenceConstructor");
     Reference* ref = new Reference; 
     ref->Name = "";
     ref->ToObject = nullptr;
@@ -17,7 +17,7 @@ Reference* ReferenceConstructor()
 
 Object* ObjectConstructor()
 {
-    LogItDebug("space allocated for new object", "ObjectConstructor");
+    // LogItDebug("space allocated for new object", "ObjectConstructor");
     Object* obj = new Object;
     obj->Attributes = {};
     obj->Class = NullClass;
@@ -59,11 +59,11 @@ void IndexObject(Object* obj, Reference* ref)
         *objMap = ObjectReferenceMap{ obj, refs };
         PROGRAM->ObjectsIndex.push_back(objMap);
         
-        LogItDebug("reference added for new object", "IndexObject");
+        // LogItDebug("reference added for new object", "IndexObject");
         return;
     }
     
-    LogItDebug("reference added for existing object", "IndexObject");
+    // LogItDebug("reference added for existing object", "IndexObject");
     map->References.push_back(ref);
 }
 

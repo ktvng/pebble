@@ -512,7 +512,7 @@ void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
     
     Method* m = new Method;
     m->Parameters = ScopeConstructor(PROGRAM->GlobalScope);
-    m->CodeBlock = BlockConstructor(m->Parameters);
+    m->CodeBlock = BlockConstructor();
 
     for(t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
     {
@@ -532,22 +532,32 @@ Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters)
 {
     // TODO: currently just assumes parameters are in order
     // ref should be a method reference
+    LogItDebug(MSG("evaluating method %s", ref->Name), "OperationEvaluate");
+
+    std::vector<Object*> originalParams;
+
     Reference* result;
     for(size_t i=0; i<ref->ToMethod->Parameters->ReferencesIndex.size() && i<parameters.size()-1; i++)
     {
         Reference* paramRef = ref->ToMethod->Parameters->ReferencesIndex.at(i);
+        originalParams.push_back(paramRef->ToObject);
         ReassignReference(paramRef, parameters.at(i+1)->ToObject);   
     }
 
+    LogDiagnostics(ref->ToMethod->CodeBlock, "method codeblock");
+
+    EnterScope(ref->ToMethod->Parameters);
     result = DoBlock(ref->ToMethod->CodeBlock);
+    ExitScope();
+    LogDiagnostics(result, "evaluate result");
+
     AddReferenceToCurrentScope(result);
     
-    for(Reference* param: ref->ToMethod->Parameters->ReferencesIndex)
+    for(size_t i=0; i<originalParams.size(); i++)
     {
-        AssignToNull(param);
+        ReassignReference(ref->ToMethod->Parameters->ReferencesIndex.at(i), originalParams.at(i));
     }
 
-    // AddReferenceToCurrentScope(result);
     LogItDebug("finished evaluate", "OperationEvaluate");
     return result;
 }

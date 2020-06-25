@@ -68,7 +68,6 @@ class Operation : public Executable
 class Block : public Executable
 {
     public:
-    Scope* LocalScope;
     std::vector<Executable*> Executables;
 };
 
@@ -109,14 +108,13 @@ const std::map<LogSeverityType, String> LogSeverityTypeString =
 };
 
 Scope* ScopeConstructor(Scope* inheritedScope);
-Block* BlockConstructor(Scope* inheritedScope);
+Block* BlockConstructor();
 
 
 Operation* ParseLine(TokenList& tokens);
 Block* ParseBlock(
     std::vector<CodeLine>::iterator it, 
-    std::vector<CodeLine>::iterator end, 
-    Scope* blockInheritedScope);
+    std::vector<CodeLine>::iterator end);
 
 
 TokenList LexLine(const std::string& line);

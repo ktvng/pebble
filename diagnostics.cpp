@@ -320,7 +320,6 @@ String ToString(const Method* method)
         methodString += IndentLevel(1) + 
             StringForAttrbute("param", ref->Name);
     }
-
     return methodString;
 }
 
@@ -427,6 +426,9 @@ String ToString(const OperationType& type)
 
         case OperationType::Multiply:
         return "Multiply";
+
+        case OperationType::Return:
+        return "Return";
 
         default:
         return "unimplemented";
