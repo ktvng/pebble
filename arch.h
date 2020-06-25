@@ -11,16 +11,7 @@
 struct Reference
 {
     std::string Name;
-    Object* ToObject = nullptr;
-    Method* ToMethod = nullptr;
-};
-
-struct Object
-{
-    ObjectClass Class;
-    std::vector<Reference*> Attributes;
-    std::vector<Method*> Methods;
-    void* Value;
+    Referable* To = nullptr;
 };
 
 struct OperationTypeProbability
@@ -95,12 +86,6 @@ struct Program
     std::vector<Block*> Blocks;
     std::vector<ObjectReferenceMap*> ObjectsIndex;
     std::vector<Reference*> Methods;
-};
-
-struct Method
-{
-    Block* CodeBlock;
-    Scope* Parameters;
 };
 
 #endif

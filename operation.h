@@ -19,6 +19,8 @@ Operation* OperationConstructor(
     Reference* value = nullptr
 );
 
+Method* MethodConstructor(Scope* inheritedScope);
+
 Reference* OperationAssign(Reference* lRef, Reference* rRef);
 Reference* OperationPrint(const Reference* ref);
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef);

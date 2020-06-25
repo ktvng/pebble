@@ -34,7 +34,7 @@ void ExitScope()
 /// Remove a reference from ObjectIndex of the global PROGRAM
 void RemoveReferenceFromObjectIndex(Reference* ref)
 {
-    ObjectReferenceMap* map = EntryInIndexOf(ref->ToObject);
+    ObjectReferenceMap* map = EntryInIndexOf(ObjectOf(ref));
     if(map == nullptr)
     {
         LogIt(LogSeverityType::Sev3_Critical, "RemoveReferenceFromObjectIndex", "cannot find reference in ObjectIndex");
@@ -59,7 +59,7 @@ void Dereference(Reference* ref)
     LogItDebug(MSG("dereferencing: %s", ref->Name), "Dereference");
 
     // TODO 
-    if(ref->ToObject != nullptr)
+    if(ObjectOf(ref) != nullptr)
     {
         RemoveReferenceFromObjectIndex(ref);
     }
@@ -109,7 +109,7 @@ bool IsMethod(Reference* ref)
 {
     if(ref == nullptr)
         return false;
-    if(ref->ToMethod != nullptr)
+    if(MethodOf(ref) != nullptr)
         return true;
     return false;
 }
@@ -301,8 +301,7 @@ Reference* ReferenceStub(String refName)
 {
     Reference* ref = new Reference;
     ref->Name = refName;
-    ref->ToMethod = nullptr;
-    ref->ToObject = nullptr;
+    ref->To = nullptr;
 
     return ref;
 }
@@ -310,7 +309,7 @@ Reference* ReferenceStub(String refName)
 /// true if [ref] is a stub
 bool IsReferenceStub(Reference* ref)
 {
-    return ref->ToMethod == nullptr && ref->ToObject == nullptr;
+    return ObjectOf(ref) == nullptr && MethodOf(ref) == nullptr;
 }
 
 
@@ -323,16 +322,18 @@ void AddReferenceToCurrentScope(Reference* ref)
     CurrentScope()->ReferencesIndex.push_back(ref);
 }
 
-void ReassignReference(Reference* ref, Object* newObj)
+void ReassignReference(Reference* ref, Referable* to)
 {
     RemoveReferenceFromObjectIndex(ref);
-    IndexObject(newObj, ref);
-    ref->ToObject = newObj;
+    if(to->Type == ReferableType::Object)
+        IndexObject(static_cast<Object*>(to), ref);
+    
+    ref->To = to;
 }
 
 void AssignToNull(Reference* ref)
 {
     RemoveReferenceFromObjectIndex(ref);
     IndexObject(NullObject(), ref);
-    ref->ToObject = NullObject();
+    ref->To = NullObject();
 }

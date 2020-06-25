@@ -19,9 +19,6 @@ class Executable
     ExecutableType ExecType;
 };
 
-
-struct Reference;
-struct Object;
 struct Token;
 struct OperationTypeProbability;
 struct SystemMessage;
@@ -30,7 +27,41 @@ struct Scope;
 struct CodeLine;
 struct Program;
 struct Method;
+struct Reference;
+struct Block;
 
+typedef std::string ObjectClass;
+
+enum class ReferableType
+{
+    Object,
+    Method
+};
+
+class Referable
+{
+    public:
+    ReferableType Type;
+    
+};
+
+
+
+class Object : public Referable
+{
+    public:
+    ObjectClass Class;
+    std::vector<Reference*> Attributes;
+    std::vector<Method*> Methods;
+    void* Value;
+};
+
+class Method : public Referable
+{
+    public:
+    Block* CodeBlock;
+    Scope* Parameters;
+};
 
 enum OperationType
 {
@@ -73,7 +104,6 @@ class Block : public Executable
 
 
 typedef std::vector<Token*> TokenList;
-typedef std::string ObjectClass;
 typedef std::string String;
 typedef std::vector<OperationTypeProbability> PossibleOperationsList;
 typedef std::vector<Operation*> OperationsList;

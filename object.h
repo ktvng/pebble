@@ -7,6 +7,9 @@
 ObjectReferenceMap* EntryInIndexOf(const Object* obj);
 void IndexObject(Object* obj, Reference* ref);
 
+Object* ObjectOf(const Reference* ref);
+Method* MethodOf(const Reference* ref);
+
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value);
@@ -24,7 +27,7 @@ Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);
 Object* NullObject();
 
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2);
-bool IsNumeric(const Reference& ref);
+bool IsNumeric(const Reference* ref);
 
 
 std::string GetStringValue(const Object& obj);

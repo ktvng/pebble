@@ -176,7 +176,8 @@ Operation* TreatAsOperation(Executable* exec)
 Reference* HandleControlFlowIf(Operation* op, size_t& execLine, Scope* scope)
 {
     Reference* ifExpressionResult = DoOperation(scope, op);
-    if(op->Type == OperationType::If && !GetBoolValue(*ifExpressionResult->ToObject))
+    bool ifIsTrue = GetBoolValue(*ObjectOf(ifExpressionResult));
+    if(op->Type == OperationType::If && !ifIsTrue)
     {
         execLine++;
     }
@@ -657,11 +658,11 @@ void HandleDefineMethod(
 
     // assumes there is a block
     int blockSize = SizeOfBlock((*it)+1, *end);
-    EnterScope(op->Operands.at(0)->Value->ToMethod->Parameters);
+    EnterScope(MethodOf(op->Operands.at(0)->Value)->Parameters);
     Block* b = ParseBlock((*it)+1, (*it)+blockSize+1);
     ExitScope();
     *it += blockSize;
-    op->Operands.at(0)->Value->ToMethod->CodeBlock = b;
+    MethodOf(op->Operands.at(0)->Value)->CodeBlock = b;
     LogItDebug("exit method", "HandleDefineMethod");
 }
 

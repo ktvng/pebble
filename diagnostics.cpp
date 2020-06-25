@@ -330,12 +330,12 @@ String ToString(const Reference* ref)
     refString += IndentLevel(1) +
         StringForAttrbute("Name", ref->Name);
 
-    if(ref->ToObject != nullptr)
+    if(ObjectOf(ref) != nullptr)
         refString += IndentLevel(1) +
-            StringForAttrbute("ToObject", IndentStringToLevel(ToString(ref->ToObject), 1));
+            StringForAttrbute("ToObject", IndentStringToLevel(ToString(ObjectOf(ref)), 1));
 
     
-    if(ref->ToMethod != nullptr)
+    if(MethodOf(ref) != nullptr)
         refString += IndentLevel(1) +
             StringForAttrbute("ToMethod", ref->Name);
 
@@ -449,23 +449,23 @@ String ToString(const Operation& op, int level)
 
     if(op.Type == OperationType::Ref)
     {
-        if(op.Value->ToObject != nullptr)
+        if(ObjectOf(op.Value) != nullptr)
             opString += IndentLevel(1) + 
                 StringForAttrbute(
                     "OperationType", 
                     MSG("Ref <Reference> %s to %s %s", 
                         op.Value->Name, 
-                        op.Value->ToObject->Class,
-                        GetStringValue(*op.Value->ToObject)));
+                        ObjectOf(op.Value)->Class,
+                        GetStringValue(*ObjectOf(op.Value))));
 
-        if(op.Value->ToMethod != nullptr)
+        if(MethodOf(op.Value) != nullptr)
         {
             opString += IndentLevel(1) +
                 StringForAttrbute("name", op.Value->Name);
             opString += IndentLevel(1) + 
                 StringForAttrbute(
                     "OperationType", 
-                    IndentStringToLevel(ToString(op.Value->ToMethod), 1));
+                    IndentStringToLevel(ToString(MethodOf(op.Value)), 1));
         }
 
                     
@@ -484,8 +484,8 @@ String ToString(const Operation& op, int level)
             MSG(
                 "<Reference> %s to %s %s",
                 op.Value->Name, 
-                op.Value->ToObject->Class,
-                GetStringValue(*op.Value->ToObject
+                ObjectOf(op.Value)->Class,
+                GetStringValue(*ObjectOf(op.Value)
                 )));
     }
 

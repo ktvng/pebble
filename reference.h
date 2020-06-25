@@ -14,7 +14,7 @@ void ClearScope();
 void Dereference(Reference* ref);
 void DereferenceAll(std::vector<Reference*> referenceList);
 
-void ReassignReference(Reference* ref, Object* newObj);
+void ReassignReference(Reference* ref, Referable* to);
 
 // for arrays and general objects
 Reference* ReferenceFor(String refName, ObjectClass objClass, void* value);

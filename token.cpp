@@ -831,10 +831,7 @@ Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
 
         auto methodName = components.at(0)->Value->Name;
         
-        Method* m = new Method;
-        m->Parameters = ScopeConstructor(CurrentScope());
-        m->CodeBlock = BlockConstructor();
-
+        Method* m = MethodConstructor(CurrentScope());
         EnterScope(m->Parameters);
         {
             if(components.size() > 1)

@@ -29,6 +29,15 @@ Operation* OperationConstructor(
     return OperationConstructor(type, operands, value);
 }
 
+Method* MethodConstructor(Scope* inheritedScope)
+{
+    Method* m = new Method;
+    m->Parameters = ScopeConstructor(inheritedScope);
+    m->CodeBlock = BlockConstructor();
+    m->Type = ReferableType::Method;
+
+    return m;
+}
 
 
 
@@ -63,31 +72,31 @@ Reference* OperationRef(Reference* ref)
 
 Reference* OperationAssign(Reference* lRef, Reference* rRef)
 {
-    ReassignReference(lRef, rRef->ToObject);
-    return ReferenceFor(c_returnReferenceName, lRef->ToObject);
+    ReassignReference(lRef, ObjectOf(rRef));
+    return ReferenceFor(c_returnReferenceName, ObjectOf(lRef));
 }
 
 Reference* OperationPrint(const Reference* ref)
 {
-    std::cout << GetStringValue(*ref->ToObject) << "\n";
-    return ReferenceFor(c_returnReferenceName, ref->ToObject);
+    std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
+    return ReferenceFor(c_returnReferenceName, ObjectOf(ref));
 }
 
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
 
-    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*lRef->ToObject) + GetIntValue(*rRef->ToObject);
+            int value = GetIntValue(*ObjectOf(lRef)) + GetIntValue(*ObjectOf(rRef));
             resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*lRef->ToObject) + GetDecimalValue(*rRef->ToObject);
+            double value = GetDecimalValue(*ObjectOf(lRef)) + GetDecimalValue(*ObjectOf(rRef));
             resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else
@@ -99,13 +108,13 @@ Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", lRef->ToObject->Class, rRef->ToObject->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
     return resultRef;
 }
 
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef)
 {
-    bool b = GetBoolValue(*lRef->ToObject) && GetBoolValue(*rRef->ToObject);
+    bool b = GetBoolValue(*ObjectOf(lRef)) && GetBoolValue(*ObjectOf(rRef));
     return ReferenceFor(c_returnReferenceName, b);
 }
 
@@ -117,7 +126,7 @@ Reference* OperationDefine(Reference* ref)
 
     return ref;
 
-    // Reference* returnRef = ReferenceFor(c_returnReferenceName, ref->ToObject);
+    // Reference* returnRef = ReferenceFor(c_returnReferenceName, ObjectOf(ref));
     // return returnRef;
 }
 
@@ -125,17 +134,17 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
 
-    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*lRef->ToObject) - GetIntValue(*rRef->ToObject);
+            int value = GetIntValue(*ObjectOf(lRef)) - GetIntValue(*ObjectOf(rRef));
                 resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*lRef->ToObject) - GetDecimalValue(*rRef->ToObject);
+            double value = GetDecimalValue(*ObjectOf(lRef)) - GetDecimalValue(*ObjectOf(rRef));
                 resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else
@@ -147,30 +156,30 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s from %s", rRef->ToObject->Class, lRef->ToObject->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s from %s", ObjectOf(rRef)->Class, ObjectOf(lRef)->Class));
     return resultRef;
 }
 
 Reference* OperationIf(Reference* ref)
 {
-    return ReferenceFor(c_returnReferenceName, ref->ToObject);
+    return ReferenceFor(c_returnReferenceName, ObjectOf(ref));
 }
 
 Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
 
-    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*lRef->ToObject) * GetIntValue(*rRef->ToObject);
+            int value = GetIntValue(*ObjectOf(lRef)) * GetIntValue(*ObjectOf(rRef));
                 resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*lRef->ToObject) * GetDecimalValue(*rRef->ToObject);
+            double value = GetDecimalValue(*ObjectOf(lRef)) * GetDecimalValue(*ObjectOf(rRef));
                 resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else
@@ -182,7 +191,7 @@ Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot multiply %s and %s", lRef->ToObject->Class, rRef->ToObject->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot multiply %s and %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
     return resultRef;
 }
 
@@ -190,17 +199,17 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
 
-    if(IsNumeric(*lRef) && IsNumeric(*rRef))
+    if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*lRef->ToObject, *rRef->ToObject);
+        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*lRef->ToObject) / GetIntValue(*rRef->ToObject);
+            int value = GetIntValue(*ObjectOf(lRef)) / GetIntValue(*ObjectOf(rRef));
                 resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*lRef->ToObject) / GetDecimalValue(*rRef->ToObject);
+            double value = GetDecimalValue(*ObjectOf(lRef)) / GetDecimalValue(*ObjectOf(rRef));
                 resultRef = ReferenceFor(c_returnReferenceName, value);
         }
         else
@@ -212,14 +221,14 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s by %s", lRef->ToObject->Class, rRef->ToObject->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s by %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
     return resultRef;
 }
 
 Reference* OperationReturn(Reference* returnRef)
 {
     // TODO: can only return objects for now
-    return ReferenceFor("ReturnOperationRef", returnRef->ToObject);
+    return ReferenceFor("ReturnOperationRef", ObjectOf(returnRef));
 }
 
 
@@ -510,9 +519,7 @@ void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
     Token* t = NextTokenMatching(tokens, TokenType::Reference, i);
     String methodName = t->Content;
     
-    Method* m = new Method;
-    m->Parameters = ScopeConstructor(PROGRAM->GlobalScope);
-    m->CodeBlock = BlockConstructor();
+    Method* m = MethodConstructor(PROGRAM->GlobalScope);
 
     for(t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
     {
@@ -534,20 +541,20 @@ Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters)
     // ref should be a method reference
     LogItDebug(MSG("evaluating method %s", ref->Name), "OperationEvaluate");
 
-    std::vector<Object*> originalParams;
+    std::vector<Referable*> originalParams;
 
     Reference* result;
-    for(size_t i=0; i<ref->ToMethod->Parameters->ReferencesIndex.size() && i<parameters.size()-1; i++)
+    for(size_t i=0; i<MethodOf(ref)->Parameters->ReferencesIndex.size() && i<parameters.size()-1; i++)
     {
-        Reference* paramRef = ref->ToMethod->Parameters->ReferencesIndex.at(i);
-        originalParams.push_back(paramRef->ToObject);
-        ReassignReference(paramRef, parameters.at(i+1)->ToObject);   
+        Reference* paramRef = MethodOf(ref)->Parameters->ReferencesIndex.at(i);
+        originalParams.push_back(paramRef->To);
+        ReassignReference(paramRef, parameters.at(i+1)->To);   
     }
 
-    LogDiagnostics(ref->ToMethod->CodeBlock, "method codeblock");
+    LogDiagnostics(MethodOf(ref)->CodeBlock, "method codeblock");
 
-    EnterScope(ref->ToMethod->Parameters);
-    result = DoBlock(ref->ToMethod->CodeBlock);
+    EnterScope(MethodOf(ref)->Parameters);
+    result = DoBlock(MethodOf(ref)->CodeBlock);
     ExitScope();
     LogDiagnostics(result, "evaluate result");
 
@@ -555,7 +562,7 @@ Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters)
     
     for(size_t i=0; i<originalParams.size(); i++)
     {
-        ReassignReference(ref->ToMethod->Parameters->ReferencesIndex.at(i), originalParams.at(i));
+        ReassignReference(MethodOf(ref)->Parameters->ReferencesIndex.at(i), originalParams.at(i));
     }
 
     LogItDebug("finished evaluate", "OperationEvaluate");

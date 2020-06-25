@@ -10,7 +10,7 @@ Reference* ReferenceConstructor()
     // LogItDebug("space allocated for new reference", "ReferenceConstructor");
     Reference* ref = new Reference; 
     ref->Name = "";
-    ref->ToObject = nullptr;
+    ref->To = nullptr;
 
     return ref;
 }
@@ -22,8 +22,31 @@ Object* ObjectConstructor()
     obj->Attributes = {};
     obj->Class = NullClass;
     obj->Value = nullptr;
+    obj->Type = ReferableType::Object;
 
     return obj;
+}
+
+Object* ObjectOf(const Reference* ref)
+{
+    if(ref->To == nullptr)
+        return nullptr;
+
+    if(ref->To->Type == ReferableType::Object)
+        return static_cast<Object*>(ref->To);
+
+    return nullptr;
+}
+
+Method* MethodOf(const Reference* ref)
+{
+    if(ref->To == nullptr)
+        return nullptr;
+
+    if(ref->To->Type == ReferableType::Method)
+        return static_cast<Method*>(ref->To);
+
+    return nullptr;
 }
 
 bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
@@ -75,7 +98,7 @@ Reference* CreateReferenceInternal(String name, ObjectClass objClass)
     IndexObject(obj, ref);
 
     ref->Name = name;
-    ref->ToObject = obj;
+    ref->To = obj;
 
     obj->Class = objClass;
     
@@ -89,8 +112,10 @@ Reference* CreateReferenceToArrayObject(String name, ObjectClass objClass, int v
     int* i = new int;
     *i = value;
 
-    ref->ToObject->Value = i;
-    ref->ToObject->Attributes.reserve(value);
+    // TODO: Make arrays
+    // ref->ToObject->Value = i;
+    // ref->ToObject->Attributes.reserve(value);
+
 
     return ref;
 }
@@ -101,7 +126,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int val
     Reference* ref = CreateReferenceInternal(name, objClass);
     int* i = new int;
     *i = value;
-    ref->ToObject->Value = i;
+    ObjectOf(ref)->Value = i;
 
     return ref;
 }
@@ -111,7 +136,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double 
     Reference* ref = CreateReferenceInternal(name, objClass);
     double* d = new double;
     *d = value;
-    ref->ToObject->Value = d;
+    ObjectOf(ref)->Value = d;
 
     return ref;
 }
@@ -121,7 +146,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool va
     Reference* ref = CreateReferenceInternal(name, objClass);
     bool* b = new bool;
     *b = value;
-    ref->ToObject->Value = b;
+    ObjectOf(ref)->Value = b;
 
     return ref;
 }
@@ -131,7 +156,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
     Reference* ref = CreateReferenceInternal(name, objClass);
     std::string* s = new std::string;
     *s = value;
-    ref->ToObject->Value = s;
+    ObjectOf(ref)->Value = s;
     
     return ref;
 }
@@ -168,7 +193,7 @@ Reference* CreateReference(String name, Object* obj)
     IndexObject(obj, ref);
 
     ref->Name = name;
-    ref->ToObject = obj;
+    ref->To = obj;
 
     return ref;
 }
@@ -177,7 +202,7 @@ Reference* CreateReference(String name, Method* method)
 {
     Reference* ref = ReferenceConstructor();
     ref->Name = name;
-    ref->ToMethod = method;
+    ref->To = method;
 
     return ref;
 }
@@ -197,7 +222,7 @@ Reference* CreateNullReference(String name)
     Object* nullObject = NullObject();
     Reference* ref = ReferenceConstructor();
     ref->Name = name;
-    ref->ToObject = nullObject;
+    ref->To = nullObject;
 
     IndexObject(nullObject, ref);
     
@@ -212,9 +237,9 @@ Reference* CreateNullReference()
 
 
 
-bool IsNumeric(const Reference& ref)
+bool IsNumeric(const Reference* ref)
 {
-    return ref.ToObject->Class == IntegerClass || ref.ToObject->Class == DecimalClass;
+    return ObjectOf(ref)->Class == IntegerClass || ObjectOf(ref)->Class == DecimalClass;
 }
 
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2)

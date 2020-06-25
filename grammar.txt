@@ -57,6 +57,9 @@ Expr -> Expr and Expr
 @ Print lowest Reduce
 Line -> print Expr
 
+@ Evaluate highest Reduce
+Expr -> Ref ( )
+
 @ Evaluate highest Reduce 
 Expr -> Ref ( Expr )
 
