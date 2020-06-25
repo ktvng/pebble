@@ -118,6 +118,9 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Divide:
         return OperationDivide(operands.at(0), operands.at(1));
 
+        case OperationType::Return:
+        return OperationReturn(operands.at(0));
+
         default:
         LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
         return CreateNullReference();
@@ -231,6 +234,11 @@ Reference* DoBlock(Block* codeBlock)
                 HandleRuntimeMessages(op->LineNumber);
                 
                 LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
+
+                if(op->Type == OperationType::Return)
+                {
+                    break;
+                }
             }
             else if(exec->ExecType == ExecutableType::Block)
             {

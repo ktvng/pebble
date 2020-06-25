@@ -31,6 +31,8 @@ Precedence:
 
 # Grammar
 
+@ Return = Reduce
+Line -> return Expr
 
 @ Add + Reduce
 Expr -> Expr + Expr

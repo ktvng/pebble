@@ -502,6 +502,8 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::Evaluate;
     else if(Name=="Print")
         return OperationType::Print;
+    else if(Name=="Return")
+        return OperationType::Return;
 
     else
         return OperationType::Ref;

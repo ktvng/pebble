@@ -216,6 +216,11 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
     return resultRef;
 }
 
+Reference* OperationReturn(Reference* returnRef)
+{
+    // TODO: can only return objects for now
+    return ReferenceFor("ReturnOperationRef", returnRef->ToObject);
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------

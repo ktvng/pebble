@@ -31,6 +31,7 @@ Reference* OperationIf(Reference* ref);
 Reference* OperationRef(Reference* ref);
 Reference* OperationDefineMethod(Reference* ref);
 Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters);
+Reference* OperationReturn(Reference* returnRef);
 
 void DecideValueRef(TokenList& tokens, Reference** refValue);
 

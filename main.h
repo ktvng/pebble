@@ -51,6 +51,7 @@ enum OperationType
     
     Ref, // special
     DefineMethod,
+    Return,
 
     If,
     EndLabel,
