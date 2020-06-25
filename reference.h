@@ -41,5 +41,6 @@ Reference* ReferenceForPrimitive(Token* token, String name);
 
 // creates a stub that refers to nullptrs
 Reference* ReferenceStub(String refName);
+bool IsReferenceStub(Reference* ref);
 
 #endif

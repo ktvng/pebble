@@ -630,9 +630,6 @@ Block* ParseBlock(
 
     SetScope(thisBlockCompileScope);
     LogItDebug("entered new block", "ParseBlock");
-    for(Scope* s = thisBlockCompileScope; s != nullptr; s = s->InheritedScope)
-        for(auto r: s->ReferencesIndex)
-            LogDiagnostics(r, "compile time block scope");
 
     int previousLineLevel = it->Level;
 
@@ -675,6 +672,10 @@ Block* ParseBlock(
             if(op != nullptr)
                 thisBlock->Executables.push_back(op);
         }
+
+        for(Scope* s = thisBlockCompileScope; s != nullptr; s = s->InheritedScope)
+        for(auto r: s->ReferencesIndex)
+        LogDiagnostics(r, "compile time block scope");
     }
 
     return thisBlock;

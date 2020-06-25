@@ -1,7 +1,35 @@
-@ Define lowest Reduce
-Line -> def Ref
+Documentation: 
+    Everything before the first line with leading character '#' is ignored
 
-### Grammar
+    The first section defines grammars rules. A rule will span two lines, with
+    the first line starting with the symbol '@'. Individual tokens are separated
+    by spaces, and all whitespace is ignored.
+
+    The first line should be formatted
+        @ [RuleName] [PrecedenceOperation] [CollapseMethod]
+
+    where:
+        [RuleName] is the name of the rule and should correspond to the atomic 
+            operation (OperationTypes) expressed by the rule. 
+
+        [PrecedenceOperation] is the operation which defines the precedence 
+            class of the rule
+
+        [CollapseMethod] defines how to merge the output of the rule back into 
+            the parent operation
+
+    The second line should be formatted
+        [ProductionRule] -> ...
+
+    Note: All production rules should begin with an uppercase
+
+
+Precedence:
+    The second section defines precedence classes listed from high to low.
+    
+
+
+# Grammar
 
 
 @ Add + Reduce
@@ -71,7 +99,7 @@ Line -> Expr
 
 
 
-### Operator Precedence
+# Operator Precedence
 : in
 highest
 ( [ .

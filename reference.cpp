@@ -1,10 +1,13 @@
 
 #include "reference.h"
 #include "object.h"
-
+#include "utils.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Scoping
+using namespace utils;
+
+static Stack<Scope*> ScopeStack;
 
 static Scope* CurrentScope;
 
@@ -293,9 +296,14 @@ Reference* ReferenceStub(String refName)
     ref->ToMethod = nullptr;
     ref->ToObject = nullptr;
 
-    // return ref;
+    return ref;
 }
 
+/// true if [ref] is a stub
+bool IsReferenceStub(Reference* ref)
+{
+    return ref->ToMethod == nullptr && ref->ToObject == nullptr;
+}
 
 
 /// add [ref] to [scope]
