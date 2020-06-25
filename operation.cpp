@@ -82,6 +82,11 @@ Reference* OperationPrint(const Reference* ref)
     return ReferenceFor(c_returnReferenceName, ObjectOf(ref));
 }
 
+bool IsString(const Reference* ref)
+{
+    return ObjectOf(ref) != nullptr && ObjectOf(ref)->Class == StringClass;
+}
+
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
@@ -104,6 +109,12 @@ Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
             LogIt(LogSeverityType::Sev1_Notify, "Add", "unimplemented");
             resultRef = NullReference();
         }
+        return resultRef;
+    }
+    else if(IsString(lRef) || IsString(rRef))
+    {
+        String s = GetStringValue(*ObjectOf(lRef)) + GetStringValue(*ObjectOf(rRef));
+        resultRef = ReferenceFor(c_returnReferenceName, s);
         return resultRef;
     }
 
