@@ -10,7 +10,7 @@ using namespace utils;
 
 static Stack<Scope*> ScopeStack;
 
-static Scope* CurrentScope()
+Scope* CurrentScope()
 {
     return ScopeStack.Peek();
 }
@@ -29,11 +29,6 @@ void ClearScope()
 void ExitScope()
 {
     ScopeStack.Pop();
-}
-
-Scope* GetCurrentScope()
-{
-    return CurrentScope();
 }
 
 

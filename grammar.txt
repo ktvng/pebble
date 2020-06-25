@@ -55,8 +55,11 @@ Expr -> Expr and Expr
 @ Print lowest Reduce
 Line -> print Expr
 
-@ Evaluate highest Merge
+@ Evaluate highest Reduce 
 Expr -> Ref ( Expr )
+
+@ Evaluate highest Merge
+Expr -> Ref ( Param )
 
 @ If highest Reduce
 Line -> if ( Expr ) :
@@ -69,6 +72,9 @@ Line -> for ( Ref in Expr ) :
 
 @ DefineMethod highest Custom
 Line -> def Ref ( Expr ) :
+
+@ DefineMethod highest Custom
+Line -> def Ref ( Param ) :
 
 @ DefineMethod highest Custom
 Line -> def Ref ( ) :
@@ -87,9 +93,11 @@ Line -> Expr = Expr
 Expr -> ( Expr )
 
 
+@ Param , Merge
+Param -> Expr , Expr
 
 @ Param , Merge
-Expr -> Expr , Expr
+Param -> Param , Expr
 
 @ Ref subhighest Retain
 Expr -> Ref

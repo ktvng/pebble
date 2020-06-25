@@ -7,7 +7,7 @@
 #include "token.h"
 
 void EnterScope(Scope* newScope);
-Scope* GetCurrentScope();
+Scope* CurrentScope();
 void ExitScope(); 
 void ClearScope();
 

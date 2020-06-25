@@ -830,7 +830,7 @@ Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
         auto methodName = components.at(0)->Value->Name;
         
         Method* m = new Method;
-        m->Parameters = ScopeConstructor(PROGRAM->GlobalScope);
+        m->Parameters = ScopeConstructor(CurrentScope());
         m->CodeBlock = BlockConstructor(m->Parameters);
 
         EnterScope(m->Parameters);
