@@ -112,6 +112,12 @@ Block* BlockConstructor(Scope* inheritedScope);
 
 
 Operation* ParseLine(TokenList& tokens);
+Block* ParseBlock(
+    std::vector<CodeLine>::iterator it, 
+    std::vector<CodeLine>::iterator end, 
+    Scope* blockInheritedScope);
+
+
 TokenList LexLine(const std::string& line);
 Reference* DoOperation(Scope* scope, Operation* op);
 Reference* DoBlock(Block* codeBlock);

@@ -6,8 +6,10 @@
 #include "program.h"
 #include "token.h"
 
-void SetScope(Scope* newScope);
+void EnterScope(Scope* newScope);
 Scope* GetCurrentScope();
+void ExitScope(); 
+void ClearScope();
 
 void Dereference(Reference* ref);
 void DereferenceAll(std::vector<Reference*> referenceList);

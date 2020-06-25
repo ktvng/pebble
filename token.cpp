@@ -833,21 +833,20 @@ Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
         m->Parameters = ScopeConstructor(PROGRAM->GlobalScope);
         m->CodeBlock = BlockConstructor(m->Parameters);
 
-        Scope* parentScope = GetCurrentScope();
-
-        SetScope(m->Parameters);
-
-        if(components.size() > 1)
+        EnterScope(m->Parameters);
         {
-            // if the operand is already a return operation
-            if(components.at(1)->Type == OperationType::Ref)
-                NullReference(components.at(1)->Value->Name);
-            // if the operand is a list of parameters
-            else
-                for(size_t i=0; i<components.at(1)->Operands.size(); i++)
-                    NullReference(components.at(1)->Operands.at(i)->Value->Name);
+            if(components.size() > 1)
+            {
+                // if the operand is already a return operation
+                if(components.at(1)->Type == OperationType::Ref)
+                    NullReference(components.at(1)->Value->Name);
+                // if the operand is a list of parameters
+                else
+                    for(size_t i=0; i<components.at(1)->Operands.size(); i++)
+                        NullReference(components.at(1)->Operands.at(i)->Value->Name);
+            }
         }
-        SetScope(parentScope);
+        ExitScope();
         
         Reference* ref = ReferenceFor(methodName, m);
         return OperationConstructor(OperationType::DefineMethod, { OperationConstructor(OperationType::Ref, ref) } );

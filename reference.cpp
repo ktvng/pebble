@@ -2,6 +2,7 @@
 #include "reference.h"
 #include "object.h"
 #include "utils.h"
+#include <iostream>
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Scoping
@@ -9,17 +10,30 @@ using namespace utils;
 
 static Stack<Scope*> ScopeStack;
 
-static Scope* CurrentScope;
-
-void SetScope(Scope* newScope)
+static Scope* CurrentScope()
 {
-    LogItDebug("changed scope", "SetScope");
-    CurrentScope = newScope;
+    return ScopeStack.Peek();
+}
+
+void EnterScope(Scope* newScope)
+{
+    LogItDebug("changed scope", "EnterScope");
+    ScopeStack.Push(newScope);
+}
+
+void ClearScope()
+{
+    CurrentScope()->ReferencesIndex.clear();
+}
+
+void ExitScope()
+{
+    ScopeStack.Pop();
 }
 
 Scope* GetCurrentScope()
 {
-    return CurrentScope;
+    return CurrentScope();
 }
 
 
@@ -41,8 +55,8 @@ void RemoveReferenceFromObjectIndex(Reference* ref)
 void RemoveReferenceFromCurrentScope(Reference* ref)
 {
     size_t refLoc;
-    for(refLoc = 0; refLoc<CurrentScope->ReferencesIndex.size() && CurrentScope->ReferencesIndex.at(refLoc) != ref; refLoc++);
-    CurrentScope->ReferencesIndex.erase(CurrentScope->ReferencesIndex.begin()+refLoc);
+    for(refLoc = 0; refLoc<CurrentScope()->ReferencesIndex.size() && CurrentScope()->ReferencesIndex.at(refLoc) != ref; refLoc++);
+    CurrentScope()->ReferencesIndex.erase(CurrentScope()->ReferencesIndex.begin()+refLoc);
 }
 
 /// removes all dependencies on [ref] and deletes [ref]
@@ -86,7 +100,7 @@ bool NameMatchesReference(String name, Reference* ref)
 /// find a reference matching [refName] located in [scope]. returns nullptr if none found
 Reference* GetReference(String refName)
 {
-    for(Scope* lookInScope = CurrentScope; lookInScope != nullptr; lookInScope = lookInScope->InheritedScope)
+    for(Scope* lookInScope = CurrentScope(); lookInScope != nullptr; lookInScope = lookInScope->InheritedScope)
     {
         for(Reference* ref: lookInScope->ReferencesIndex)
         {
@@ -309,10 +323,10 @@ bool IsReferenceStub(Reference* ref)
 /// add [ref] to [scope]
 void AddReferenceToCurrentScope(Reference* ref)
 {
-    if(CurrentScope == nullptr)
+    if(CurrentScope() == nullptr)
         LogItDebug("current scope is not set", "AddReferenceToCurrentScope");
     LogItDebug("added reference to current scope", "AddReferenceToCurrentScope");
-    CurrentScope->ReferencesIndex.push_back(ref);
+    CurrentScope()->ReferencesIndex.push_back(ref);
 }
 
 void ReassignReference(Reference* ref, Object* newObj)

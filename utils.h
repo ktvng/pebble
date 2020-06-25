@@ -22,7 +22,7 @@ namespace utils
         T& Peek();
         T Pop();
         void Push(T obj);
-
+        int Size();
     };
 }
 #include "utils.cpp"
