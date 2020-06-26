@@ -7,24 +7,65 @@
 
 Reference* ReferenceConstructor()
 {
-    LogItDebug("space allocated for new reference", "ReferenceConstructor");
+    // LogItDebug("space allocated for new reference", "ReferenceConstructor");
     Reference* ref = new Reference; 
     ref->Name = "";
-    ref->ToObject = nullptr;
+    ref->To = nullptr;
 
     return ref;
 }
 
 Object* ObjectConstructor()
 {
-    LogItDebug("space allocated for new object", "ObjectConstructor");
+    // LogItDebug("space allocated for new object", "ObjectConstructor");
     Object* obj = new Object;
     obj->Attributes = {};
     obj->Class = NullClass;
     obj->Value = nullptr;
+    obj->Type = ReferableType::Object;
 
     return obj;
 }
+
+Object* ObjectOf(const Reference* ref)
+{
+    if(ref->To == nullptr)
+        return nullptr;
+
+    if(ref->To->Type == ReferableType::Object)
+        return static_cast<Object*>(ref->To);
+
+    return nullptr;
+}
+
+Method* MethodOf(const Reference* ref)
+{
+    if(ref->To == nullptr)
+        return nullptr;
+
+    if(ref->To->Type == ReferableType::Method)
+        return static_cast<Method*>(ref->To);
+
+    return nullptr;
+}
+
+
+
+// TODO: should ensure that ref is actually an object
+bool IsNumeric(const Reference* ref)
+{
+    return ObjectOf(ref)->Class == IntegerClass || ObjectOf(ref)->Class == DecimalClass;
+}
+
+/// 
+bool IsString(const Reference* ref)
+{
+    return ObjectOf(ref) != nullptr && ObjectOf(ref)->Class == StringClass;
+}
+
+
+
+
 
 bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
 {
@@ -59,11 +100,11 @@ void IndexObject(Object* obj, Reference* ref)
         *objMap = ObjectReferenceMap{ obj, refs };
         PROGRAM->ObjectsIndex.push_back(objMap);
         
-        LogItDebug("reference added for new object", "IndexObject");
+        // LogItDebug("reference added for new object", "IndexObject");
         return;
     }
     
-    LogItDebug("reference added for existing object", "IndexObject");
+    // LogItDebug("reference added for existing object", "IndexObject");
     map->References.push_back(ref);
 }
 
@@ -75,19 +116,36 @@ Reference* CreateReferenceInternal(String name, ObjectClass objClass)
     IndexObject(obj, ref);
 
     ref->Name = name;
-    ref->ToObject = obj;
+    ref->To = obj;
 
     obj->Class = objClass;
+    obj->Value = nullptr;
     
     return ref;
 }
+
+
+Reference* CreateReferenceToArrayObject(String name, ObjectClass objClass, int value){
+    Reference* ref = CreateReferenceInternal(name, objClass);
+
+    int* i = new int;
+    *i = value;
+
+    // TODO: Make arrays
+    // ref->ToObject->Value = i;
+    // ref->ToObject->Attributes.reserve(value);
+
+
+    return ref;
+}
+
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
     int* i = new int;
     *i = value;
-    ref->ToObject->Value = i;
+    ObjectOf(ref)->Value = i;
 
     return ref;
 }
@@ -97,7 +155,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double 
     Reference* ref = CreateReferenceInternal(name, objClass);
     double* d = new double;
     *d = value;
-    ref->ToObject->Value = d;
+    ObjectOf(ref)->Value = d;
 
     return ref;
 }
@@ -107,7 +165,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool va
     Reference* ref = CreateReferenceInternal(name, objClass);
     bool* b = new bool;
     *b = value;
-    ref->ToObject->Value = b;
+    ObjectOf(ref)->Value = b;
 
     return ref;
 }
@@ -117,51 +175,82 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
     Reference* ref = CreateReferenceInternal(name, objClass);
     std::string* s = new std::string;
     *s = value;
-    ref->ToObject->Value = s;
+    ObjectOf(ref)->Value = s;
     
     return ref;
 }
 
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value){
+    if(objClass == StringClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<String*>(value));
+    }
+    else if(objClass == DecimalClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<double*>(value));
+    }
+    else if(objClass == BooleanClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<bool*>(value));
+    }
+    else if(objClass == IntegerClass)
+    {
+        return CreateReferenceToNewObject(name, objClass, *static_cast<int*>(value));
+    }
+    else if(objClass == ArrayClass)
+    {
+        return CreateReferenceToArrayObject(name, objClass, *static_cast<int*>(value));
+    }
+    else if(objClass == TupleClass)
+    {
+        return CreateReferenceInternal(name, TupleClass);
+    }
+    return CreateNullReference();
+}
 
 
 
-Reference* CreateReference(String name, Object* obj)
+Reference* CreateReference(String name, Referable* refable)
 {
     Reference* ref = ReferenceConstructor();
-    IndexObject(obj, ref);
+    if(refable->Type == ReferableType::Object)
+        IndexObject(static_cast<Object*>(refable), ref);
 
     ref->Name = name;
-    ref->ToObject = obj;
+    ref->To = refable;
 
     return ref;
+}
+
+
+Object* NullObject()
+{
+    static Object nullObject;
+    nullObject.Class = NullClass;
+    nullObject.Value = nullptr;
+    nullObject.Attributes = {};
+
+    return &nullObject;
 }
 
 Reference* CreateNullReference(String name)
 {
-    static Object nullObject;
-    nullObject.Class = NullClass;
-    
+    Object* nullObject = NullObject();
     Reference* ref = ReferenceConstructor();
     ref->Name = name;
-    ref->ToObject = &nullObject;
+    ref->To = nullObject;
 
-    IndexObject(&nullObject, ref);
+    IndexObject(nullObject, ref);
     
     return ref;
 }
 
 Reference* CreateNullReference()
 {
-    return CreateNullReference(c_returnReferenceName);
+    return CreateNullReference(c_temporaryReferenceName);
 }
 
 
-
-
-bool IsNumeric(const Reference& ref)
-{
-    return ref.ToObject->Class == IntegerClass || ref.ToObject->Class == DecimalClass;
-}
 
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2)
 {
@@ -196,7 +285,7 @@ String GetStringValue(const Object& obj)
     }
     else if(obj.Class == NullClass)
     {
-        return "null";
+        return "Nothing";
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";

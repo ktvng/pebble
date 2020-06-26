@@ -52,6 +52,12 @@ namespace utils
             Resize();
         stack[++stackHead] = obj;
     }
+
+    template <typename T>
+    int Stack<T>::Size()
+    {
+        return stackHead + 1;
+    }
 }
 
 #endif

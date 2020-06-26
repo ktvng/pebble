@@ -1,6 +1,9 @@
 #ifndef __TOKEN_H
 #define __TOKEN_H
 
+
+String ToLowerCase(const String& str);
+
 // takes in a single line (no newlines) and returns a list of tokens representing the line
 TokenList LexLine(const String& line);
 
@@ -55,5 +58,10 @@ bool TokenMatchesContent(Token* token, std::vector<String> contents);
 
 bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> contents);
 
+
+Operation* ExpressionParser(TokenList& line);
+
+void CompileGrammar();
+void PrintPrecedenceRules();
 
 #endif
