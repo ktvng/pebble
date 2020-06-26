@@ -56,6 +56,7 @@ Block* BlockConstructor()
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Diagnostics
+
 /// logs scope
 void LogDiagnosticsForRuntimeLine(Scope* scope, Operation* op)
 {
@@ -63,12 +64,6 @@ void LogDiagnosticsForRuntimeLine(Scope* scope, Operation* op)
         for(auto ref: scope->ReferencesIndex)
             LogDiagnostics(ref, MSG("scope before %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
 }
-
-
-
-
-
-
 
 
 
@@ -156,11 +151,9 @@ Reference* DoOperation(Scope* scope, Operation* op)
     return returnRef;
 }
 
-
-
 void UpdatePreviousResult(Scope* scope, Reference** result, Reference** previousResult)
 {
-    if(*previousResult != nullptr && (*previousResult)->Name == c_returnReferenceName)
+    if(*previousResult != nullptr)
         Dereference(*previousResult);
     *previousResult = *result;
 }
@@ -302,7 +295,8 @@ void DoProgram(Program& program)
 
 
 
-
+// ---------------------------------------------------------------------------------------------------------------------
+// Deciding stuff
 
 // can put this somewhere
 typedef void (*ProbabilityFunctions)(PossibleOperationsList&, const TokenList&);

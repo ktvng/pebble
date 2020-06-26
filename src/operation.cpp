@@ -3,8 +3,25 @@
 #include "operation.h"
 #include "program.h"
 #include "reference.h"
+
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// TODO:
+// 1. Refactor code to put similar methods in the same section (i.e. DecideProbabilityX, OperationX, DecideOperandsX)
+// 2. Implement unimplemented operations
+// 3. Revamp the DecideOperandsX system
+
+
+
+
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Creating operations
+
+/// constructor for an operation of [type], with [operands], and value [value]. only operations
+/// of type Ref::Operation should have non-nullptr value.
 Operation* OperationConstructor(
     OperationType type, 
     OperationsList operands, 
@@ -21,6 +38,8 @@ Operation* OperationConstructor(
     return op;
 }
 
+/// constructor for an operation of [type], with [operands], and value [value]. only operations
+/// of type Ref::Operation should have non-nullptr value.
 Operation* OperationConstructor(
     OperationType type, 
     Reference* value,
@@ -29,6 +48,7 @@ Operation* OperationConstructor(
     return OperationConstructor(type, operands, value);
 }
 
+// constructor for a Method* object with [inheritedScope]
 Method* MethodConstructor(Scope* inheritedScope)
 {
     Method* m = new Method;
@@ -39,11 +59,8 @@ Method* MethodConstructor(Scope* inheritedScope)
     return m;
 }
 
-
-
-
-/// adds a new return Operation for [ref] to [operands]
-void AddReferenceReturnOperationTo(OperationsList& operands, Reference* ref)
+/// adds a new Operation::Ref type operation for [ref] to [operands]
+void AddRefOperationTo(OperationsList& operands, Reference* ref)
 {
     operands.push_back(OperationConstructor(OperationType::Ref, ref));
 }
@@ -57,36 +74,34 @@ void AddOperationTo(OperationsList& operands, Operation* op)
 
 
 
-
-
-
-
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Atomic Operations
 
+/// handles OperationType::Ref which returns a reference
 Reference* OperationRef(Reference* ref)
 {
     return ref;
 }
 
+/// handles OperationType::Assign which assigns a reference [lRef] to the Referable of [rRef]
+/// returns a temporary reference to the assigned Referable
 Reference* OperationAssign(Reference* lRef, Reference* rRef)
 {
     ReassignReference(lRef, ObjectOf(rRef));
-    return ReferenceFor(c_returnReferenceName, ObjectOf(lRef));
+    return ReferenceFor(c_temporaryReferenceName, ObjectOf(lRef));
 }
 
+/// handles OperationType::Print which prints the string value of [ref]
+/// returns a temporary reference to the printed Referable
 Reference* OperationPrint(const Reference* ref)
 {
     std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
-    return ReferenceFor(c_returnReferenceName, ObjectOf(ref));
+    return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
-bool IsString(const Reference* ref)
-{
-    return ObjectOf(ref) != nullptr && ObjectOf(ref)->Class == StringClass;
-}
-
+/// handles OperationType::Add which adds the objects of [lRef] and [rRef]
+/// only supports adding objects of numeric type and Strings (by concatenation)
+/// returns a temporary reference to the addition result, which is null on failure
 Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
@@ -97,50 +112,58 @@ Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*ObjectOf(lRef)) + GetIntValue(*ObjectOf(rRef));
-            resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*ObjectOf(lRef)) + GetDecimalValue(*ObjectOf(rRef));
-            resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else
         {
             LogIt(LogSeverityType::Sev1_Notify, "Add", "unimplemented");
             resultRef = NullReference();
         }
+        
         return resultRef;
     }
+    // allow for string addition by concatenation. this promotes all other objects to strings
     else if(IsString(lRef) || IsString(rRef))
     {
         String s = GetStringValue(*ObjectOf(lRef)) + GetStringValue(*ObjectOf(rRef));
-        resultRef = ReferenceFor(c_returnReferenceName, s);
+        resultRef = ReferenceFor(c_temporaryReferenceName, s);
+
         return resultRef;
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", 
+        ObjectOf(lRef)->Class, 
+        ObjectOf(rRef)->Class));
+
     return resultRef;
 }
 
+/// handles OperationType::And which returns the && of the boolean value for [lRef] and [rRef]
+/// returns a temporary reference to the result
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef)
 {
     bool b = GetBoolValue(*ObjectOf(lRef)) && GetBoolValue(*ObjectOf(rRef));
-    return ReferenceFor(c_returnReferenceName, b);
+    return ReferenceFor(c_temporaryReferenceName, b);
 }
 
+/// handles OperationType::Define which adds a new reference to the current scope
+/// returns the newly added [ref]
 Reference* OperationDefine(Reference* ref)
 {
     LogItDebug(MSG("added reference [%s] to scope", ref->Name), "OperationDefine");
     AddReferenceToCurrentScope(ref);
 
-
     return ref;
-
-    // Reference* returnRef = ReferenceFor(c_returnReferenceName, ObjectOf(ref));
-    // return returnRef;
 }
 
+/// handles OperationType::Subtract which is only defined for numeric typed objects
+/// returns a temporary reference to the resultant, null if failed
 Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
@@ -151,12 +174,12 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*ObjectOf(lRef)) - GetIntValue(*ObjectOf(rRef));
-                resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*ObjectOf(lRef)) - GetDecimalValue(*ObjectOf(rRef));
-                resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else
         {
@@ -171,11 +194,16 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
     return resultRef;
 }
 
+/// handles OperationType::If 
+/// returns a temporary reference to an object representing the evaluated if-expression
 Reference* OperationIf(Reference* ref)
 {
-    return ReferenceFor(c_returnReferenceName, ObjectOf(ref));
+    return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
+
+/// handles OperationType::Multiply which is only defined for numeric typed objects
+/// returns a temporary reference to the resultant, null if failed
 Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
@@ -186,12 +214,12 @@ Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*ObjectOf(lRef)) * GetIntValue(*ObjectOf(rRef));
-                resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*ObjectOf(lRef)) * GetDecimalValue(*ObjectOf(rRef));
-                resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else
         {
@@ -206,6 +234,8 @@ Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
     return resultRef;
 }
 
+/// handles OperationType::Divide which is only defined for numeric typed objects
+/// returns a temporary reference to the resultant, null if failed
 Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
 {
     Reference* resultRef;
@@ -216,12 +246,12 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
         if(type == IntegerClass)
         {
             int value = GetIntValue(*ObjectOf(lRef)) / GetIntValue(*ObjectOf(rRef));
-                resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
             double value = GetDecimalValue(*ObjectOf(lRef)) / GetDecimalValue(*ObjectOf(rRef));
-                resultRef = ReferenceFor(c_returnReferenceName, value);
+            resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else
         {
@@ -236,16 +266,20 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
     return resultRef;
 }
 
+/// handles OperationType::Return to exit a method
+/// returns a persistant reference to the return value
 Reference* OperationReturn(Reference* returnRef)
 {
     // TODO: can only return objects for now
-    return ReferenceFor("ReturnOperationRef", ObjectOf(returnRef));
+    return ReferenceFor(c_returnReferenceName, ObjectOf(returnRef));
 }
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Decide Probabilities
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     std::vector<String> addKeyWords = { "add", "plus", "+", "adding" };
@@ -256,6 +290,8 @@ void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const Token
     }
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     std::vector<String> defineKeyWords = { "define", "let", "make", "declare" };
@@ -266,6 +302,8 @@ void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const To
     }
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     std::vector<String> printKeyWords = { "print", "display", "show", "output" };
@@ -276,6 +314,8 @@ void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const Tok
     }
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     if(Token* pos = FindToken(tokens, "="); pos != nullptr)
@@ -285,27 +325,37 @@ void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const To
     }
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityRef(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     OperationTypeProbability returnType = { OperationType::Ref, 1 };
     typeProbabilities.push_back(returnType);
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityIsEqual(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
 
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityIsLessThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityIsGreaterThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilitySubtract(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     std::vector<String> subKeyWords = { "sub", "subtract", "minus", "-", "subtracting" };
@@ -316,16 +366,22 @@ void DecideProbabilitySubtract(PossibleOperationsList& typeProbabilities, const 
     }
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityMultiply(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityDivide(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     std::vector<String> andKeyWords = { "and", "&&", "together", "with" };
@@ -336,27 +392,25 @@ void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const Token
     }
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     
 }
 
 
-
-
-
-
-
-
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Decide operation reference value
 
+/// handles OperationType::Ref by assigning the operation.Value to the approriate reference
 void DecideValueRef(TokenList& tokens, Reference** refValue)
 {
     Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), c_operationReferenceName);
@@ -364,17 +418,11 @@ void DecideValueRef(TokenList& tokens, Reference** refValue)
 }
 
 
-
-
-
-
-
-
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Decide Operands
 // should edit token list remove used tokens
 
+/// gets references for the next two tokens which refer to Objects
 void GetTwoOperands(TokenList& tokens, OperationsList& operands)
 {
     int pos = 0;
@@ -382,16 +430,17 @@ void GetTwoOperands(TokenList& tokens, OperationsList& operands)
     Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), c_operationReferenceName);
     Reference* arg2 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), c_operationReferenceName);
 
-    AddReferenceReturnOperationTo(operands, arg1);
-    AddReferenceReturnOperationTo(operands, arg2);
+    AddRefOperationTo(operands, arg1);
+    AddRefOperationTo(operands, arg2);
 }
 
-
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsAdd(TokenList& tokens, OperationsList& operands) // EDIT
 {
     GetTwoOperands(tokens, operands);
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
 {
     Reference* ref; 
@@ -405,7 +454,7 @@ void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
         int* i = new int;
         *i = std::stoi(size->Content);
 
-        AddReferenceReturnOperationTo(operands, ReferenceFor(name->Content, ArrayClass, static_cast<void*>(i)));
+        AddRefOperationTo(operands, ReferenceFor(name->Content, ArrayClass, static_cast<void*>(i)));
         return;
     }
 
@@ -417,7 +466,7 @@ void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
         LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
         ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
         // TODO: should be critical error
-        AddReferenceReturnOperationTo(operands, NullReference()); 
+        AddRefOperationTo(operands, NullReference()); 
         return;
     }
     
@@ -430,21 +479,23 @@ void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
     {
         ref = ReferenceFor(value, name->Content);
     }
-    AddReferenceReturnOperationTo(operands, ref);
+    AddRefOperationTo(operands, ref);
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
 {
     Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), c_operationReferenceName);
-    AddReferenceReturnOperationTo(operands, arg1);
+    AddRefOperationTo(operands, arg1);
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsAssign(TokenList& tokens, OperationsList& operands)
 {
 
     int pos = 0;
     Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, TokenType::Reference, pos));
-    AddReferenceReturnOperationTo(operands, arg1);
+    AddRefOperationTo(operands, arg1);
 
     TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
     tokens = rightTokens;
@@ -453,51 +504,61 @@ void DecideOperandsAssign(TokenList& tokens, OperationsList& operands)
     AddOperationTo(operands, op2);
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsIsEqual(TokenList& tokens, OperationsList& operands)
 {
 
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsIsLessThan(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsIsGreaterThan(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsSubtract(TokenList& tokens, OperationsList& operands)
 {
     GetTwoOperands(tokens, operands);
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsMultiply(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsDivide(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsAnd(TokenList& tokens, OperationsList& operands)
 {
     GetTwoOperands(tokens, operands);
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsOr(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsNot(TokenList& tokens, OperationsList& operands)
 {
     
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsRef(TokenList& tokens, OperationsList& operands)
 {
     // no operands
@@ -506,14 +567,18 @@ void DecideOperandsRef(TokenList& tokens, OperationsList& operands)
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// DefineMethod operation
+// OperationType::DefineMethod
 
+/// handle the operation which adds a Method [ref] to the scope
+/// returns a 
 Reference* OperationDefineMethod(Reference* ref)
 {
     AddReferenceToCurrentScope(ref);
     return NullReference();
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     if(FindToken(tokens, "method") != nullptr && FindToken(tokens, ":") != nullptr)
@@ -523,6 +588,7 @@ void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, co
     }
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
 {
     // TODO: assumes first reference is method name
@@ -538,7 +604,7 @@ void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
     }
     
     Reference* ref = ReferenceFor(methodName, m);
-    AddReferenceReturnOperationTo(operands, ref);
+    AddRefOperationTo(operands, ref);
 }
 
 
@@ -547,7 +613,7 @@ void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
 Reference* OperationTuple(const std::vector<Reference*>& components)
 {
     LogItDebug("called", "OperationTuple");
-    Reference* tupleRef = ReferenceFor(c_returnReferenceName, TupleClass, nullptr);
+    Reference* tupleRef = ReferenceFor(c_temporaryReferenceName, TupleClass, nullptr);
     ObjectOf(tupleRef)->Attributes.reserve(components.size());
 
     for(auto ref: components)
@@ -587,7 +653,10 @@ std::vector<Reference*> ResolveParamters(Reference* ref, std::vector<Reference*>
     
 }
 
-
+/// handles OperationType::Evaluate which takes in a Method reference [ref] and [parameters], the first
+/// of which is a reference to the method, and evaluates the method on these parameters
+/// returns a persistant reference to the returned result if a return statement was called
+/// or a temporary reference if no return statement was called
 Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters)
 {
     // TODO: currently just assumes parameters are in order
@@ -624,6 +693,8 @@ Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters
     return result;
 }
 
+/// computes the probability that a given line convered into [tokens] is this atomic operation
+/// adds a new OperationTypeProbability to [typeProbabilities]
 void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
 {
     if(FindToken(tokens, "(") != nullptr)
@@ -633,12 +704,13 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
     }
 }
 
+/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
 void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands)
 {
     // function name is first parameter
     int i = 0;
     for(Token* t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
     {
-        AddReferenceReturnOperationTo(operands, ReferenceFor(t));
+        AddRefOperationTo(operands, ReferenceFor(t));
     }
 }

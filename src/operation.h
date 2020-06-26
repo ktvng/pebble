@@ -7,6 +7,10 @@
 #include "object.h"
 #include "diagnostics.h"
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Constructors
+
 Operation* OperationConstructor(
     OperationType type, 
     Reference* value = nullptr,
@@ -20,6 +24,10 @@ Operation* OperationConstructor(
 );
 
 Method* MethodConstructor(Scope* inheritedScope);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Handle the execution of atomic operations
 
 Reference* OperationAssign(Reference* lRef, Reference* rRef);
 Reference* OperationPrint(const Reference* ref);
@@ -38,7 +46,10 @@ Reference* OperationTuple(const std::vector<Reference*>& components);
 
 void DecideValueRef(TokenList& tokens, Reference** refValue);
 
-// Decide Probabilities
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Decide the probability that a given line [TokenList] is a particular atomic operation
+
 void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
@@ -57,8 +68,10 @@ void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const 
 void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
 
 
-// Decide Operands
-// should edit token list remove used tokens
+// ---------------------------------------------------------------------------------------------------------------------
+// Decide the operands of an atomic operation.
+//   should edit the [tokens] to remove used Tokens
+
 void DecideOperandsAdd(TokenList& tokens, OperationsList& operands);
 void DecideOperandsDefine(TokenList& tokens, OperationsList& operands);
 void DecideOperandsPrint(TokenList& tokens, OperationsList& operands);

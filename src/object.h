@@ -4,11 +4,22 @@
 #include "main.h"
 #include "arch.h"
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Global Object Index
+
 ObjectReferenceMap* EntryInIndexOf(const Object* obj);
 void IndexObject(Object* obj, Reference* ref);
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Access referenced objects/methods
+
 Object* ObjectOf(const Reference* ref);
 Method* MethodOf(const Reference* ref);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Create references and associated (primitive) object
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value);
@@ -16,19 +27,36 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value);
 
-Reference* CreateReference(String name, Method* method);
-Reference* CreateReference(String name, Object* obj);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Create references to existing Referable (object/method)
+
+Reference* CreateReference(String name, Referable* refable);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Create reference to NullObject (Nothing)
+
 Reference* CreateNullReference();
 Reference* CreateNullReference(String name);
+Object* NullObject();
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Create reference from Token 
 
 Reference* CreateReferenceToNewObject(String name, Token* valueToken);
 Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);
 
-Object* NullObject();
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Object type handling
 
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2);
 bool IsNumeric(const Reference* ref);
+bool IsString(const Reference* ref);
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Value for primitive objects
 
 std::string GetStringValue(const Object& obj);
 int GetIntValue(const Object& obj);

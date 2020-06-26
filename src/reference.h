@@ -6,15 +6,27 @@
 #include "program.h"
 #include "token.h"
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Scoping
+
 void EnterScope(Scope* newScope);
 Scope* CurrentScope();
 void ExitScope(); 
 void ClearScope();
+void AddReferenceToCurrentScope(Reference* ref);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Dereferencing 
 
 void Dereference(Reference* ref);
 void DereferenceAll(std::vector<Reference*> referenceList);
 
 void ReassignReference(Reference* ref, Referable* to);
+void AssignToNull(Reference* ref);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Getting references
 
 // for arrays and general objects
 Reference* ReferenceFor(String refName, ObjectClass objClass, void* value);
@@ -25,24 +37,32 @@ Reference* ReferenceFor(String refName, bool value);
 Reference* ReferenceFor(String refName, double value);
 Reference* ReferenceFor(String refName, String value);
 
-Reference* ReferenceFor(String refName, Object* obj);
-Reference* ReferenceFor(String refName, Method* method);
+// for existing object
+Reference* ReferenceFor(String refName, Referable* refable);
+Reference* ReferenceFor(String refName);
 
 // for null
-Reference* NullReference(String refName = c_returnReferenceName);
+Reference* NullReference(String refName = c_temporaryReferenceName);
 
-void AddReferenceToCurrentScope(Reference* ref);
-
-
-Reference* ReferenceFor(Token* token, String refName = c_returnReferenceName);
-Reference* ReferenceFor(String refName);
-void AssignToNull(Reference* ref);
-
-// reference for primitives only
+// reference from tokens
 Reference* ReferenceForPrimitive(Token* token, String name);
+Reference* ReferenceFor(Token* token, String refName = c_temporaryReferenceName);
 
-// creates a stub that refers to nullptrs
+
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ReferenceStubs
+
 Reference* ReferenceStub(String refName);
 bool IsReferenceStub(Reference* ref);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Reference info
+
+bool IsMethod(Reference* ref);
+bool IsObject(Reference* ref);
 
 #endif

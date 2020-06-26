@@ -49,6 +49,24 @@ Method* MethodOf(const Reference* ref)
     return nullptr;
 }
 
+
+
+// TODO: should ensure that ref is actually an object
+bool IsNumeric(const Reference* ref)
+{
+    return ObjectOf(ref)->Class == IntegerClass || ObjectOf(ref)->Class == DecimalClass;
+}
+
+/// 
+bool IsString(const Reference* ref)
+{
+    return ObjectOf(ref) != nullptr && ObjectOf(ref)->Class == StringClass;
+}
+
+
+
+
+
 bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
 {
     for(Reference* objRef: map->References)
@@ -192,25 +210,18 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
 
 
 
-Reference* CreateReference(String name, Object* obj)
+Reference* CreateReference(String name, Referable* refable)
 {
     Reference* ref = ReferenceConstructor();
-    IndexObject(obj, ref);
+    if(refable->Type == ReferableType::Object)
+        IndexObject(static_cast<Object*>(refable), ref);
 
     ref->Name = name;
-    ref->To = obj;
+    ref->To = refable;
 
     return ref;
 }
 
-Reference* CreateReference(String name, Method* method)
-{
-    Reference* ref = ReferenceConstructor();
-    ref->Name = name;
-    ref->To = method;
-
-    return ref;
-}
 
 Object* NullObject()
 {
@@ -236,16 +247,10 @@ Reference* CreateNullReference(String name)
 
 Reference* CreateNullReference()
 {
-    return CreateNullReference(c_returnReferenceName);
+    return CreateNullReference(c_temporaryReferenceName);
 }
 
 
-
-
-bool IsNumeric(const Reference* ref)
-{
-    return ObjectOf(ref)->Class == IntegerClass || ObjectOf(ref)->Class == DecimalClass;
-}
 
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2)
 {

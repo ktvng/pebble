@@ -11,6 +11,12 @@
 #include "reference.h"
 #include "operation.h"
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// TODO:
+// 1. Match boolean tokens in any case (i.e. TRUE, FaLsE)
+
+
 void SkipWhiteSpace(const std::string& line, size_t& position)
 {
     for(; position < line.size() && line.at(position) == ' '; position++);
