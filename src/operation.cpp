@@ -262,7 +262,7 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s by %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot divide %s by %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
     return resultRef;
 }
 
