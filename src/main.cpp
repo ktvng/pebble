@@ -117,6 +117,9 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
 
         case OperationType::Tuple:
         return OperationTuple(operands);
+        
+        case OperationType::While:
+        return OperationWhile(operands.at(0));
 
         default:
         LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
@@ -210,6 +213,7 @@ Reference* DoBlock(Block* codeBlock)
 {
     Reference* result = nullptr;
     Reference* previousResult = nullptr;
+    bool inWhile = false;
 
     shouldReturn = false;
     Scope* blockScope = ScopeConstructor(CurrentScope());
@@ -258,6 +262,8 @@ Reference* DoBlock(Block* codeBlock)
 
                 LogItDebug("exiting child block", "DoBlock");
             }
+
+            
         }
 
         // for(Reference* ref: CurrentScope()->ReferencesIndex)
@@ -352,6 +358,8 @@ void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& 
 
     if(FindToken(tokens, "if") != nullptr && FindToken(tokens, ":") != nullptr)
         lineType = LineType::IfLine;
+    if(FindToken(tokens, "while") != nullptr && FindToken(tokens, ":") != nullptr)
+        lineType = LineType::WhileLine;
     else
     {
         double totalProb;
@@ -575,6 +583,26 @@ Operation* ParseIf(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
     return op;
 }
 
+Operation* ParseWhile(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
+{
+    // Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
+
+    TokenList newList;
+    newList = RightOfToken(tokens, FindToken(tokens, "while"));
+    newList = LeftOfToken(newList, FindToken(newList, ":"));
+
+    LogDiagnostics(newList, "printing token list after removing while stuff");
+
+    Operation* condition = ParseLine(newList);
+    LogDiagnostics(condition, "LOOK HERE FOR CONDITION");
+    Operation* op = OperationConstructor(
+        OperationType::While, 
+        { condition });
+
+    return op;
+}
+
+
 /// assigns [lineNumber] to be the LineNumber for each operation in the Operation tree of [op]
 void NumberOperation(Operation* op, int lineNumber)
 {
@@ -612,7 +640,8 @@ Operation* ParseLine(TokenList& tokens)
         case LineType::IfLine:
         return ParseIf(typeProbabilities, tokens);
 
-        case LineType::While:
+        case LineType::WhileLine:
+        return ParseWhile(typeProbabilities, tokens);
 
         default:
         LogIt(LogSeverityType::Sev1_Notify, "ParseLine", "unimplemented in case");

@@ -201,6 +201,11 @@ Reference* OperationIf(Reference* ref)
     return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
+Reference* OperationWhile(Reference* ref)
+{
+    return CreateReference(c_returnReferenceName, ObjectOf(ref));
+}
+
 
 /// handles OperationType::Multiply which is only defined for numeric typed objects
 /// returns a temporary reference to the resultant, null if failed
