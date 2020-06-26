@@ -20,11 +20,18 @@
 #include "arch.h"
 #include "program.h"
 #include "token.h"
-#include "object.h"
 #include "diagnostics.h"
 #include "operation.h"
+#include "reference.h"
 
-// Constructor
+
+bool override = true;
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Constructors
+
+/// create a new scope with [inheritedScope]. all new scopes should be created from this
+/// constructor method
 Scope* ScopeConstructor(Scope* inheritedScope)
 {
     Scope* s = new Scope;
@@ -34,65 +41,43 @@ Scope* ScopeConstructor(Scope* inheritedScope)
     return s;
 }
 
-Block* BlockConstructor(Scope* inheritedScope)
+/// creates a new block with [inheritedScope]. all new scopes should be created from this
+/// constructor method
+Block* BlockConstructor()
 {
     Block* b = new Block;
     b->ExecType = ExecutableType::Block;
     b->Executables = {};
-    b->LocalScope = ScopeConstructor(inheritedScope);
 
     return b;
 }
 
-// Scoping
-void RemoveReferenceFromObjectIndex(Reference* ref)
-{
-    ObjectReferenceMap* map = EntryInIndexOf(ref->ToObject);
-    if(map == nullptr)
-    {
-        LogIt(LogSeverityType::Sev3_Critical, "RemoveReferenceFromObjectIndex", "cannot find reference in ObjectIndex");
-        return;
-    }
-    size_t refLoc;
-    for(refLoc=0; refLoc<map->References.size() && ref != map->References.at(refLoc); refLoc++);
-    map->References.erase(map->References.begin()+refLoc);
-}
 
-void RemoveReferenceFromScope(Scope* scope, Reference* ref)
-{
-    size_t refLoc;
-    for(refLoc = 0; refLoc<scope->ReferencesIndex.size() && scope->ReferencesIndex.at(refLoc) != ref; refLoc++);
-    scope->ReferencesIndex.erase(scope->ReferencesIndex.begin()+refLoc);
-}
 
-void Dereference(Scope* scope, Reference* ref)
+// ---------------------------------------------------------------------------------------------------------------------
+// Diagnostics
+
+/// logs scope
+void LogDiagnosticsForRuntimeLine(Scope* scope, Operation* op)
 {
-    LogItDebug("method called", "Dereference");
-    RemoveReferenceFromObjectIndex(ref);
-    RemoveReferenceFromScope(scope, ref);
+    for(; scope != nullptr; scope=scope->InheritedScope)
+        for(auto ref: scope->ReferencesIndex)
+            LogDiagnostics(ref, MSG("scope before %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
 }
 
 
 
-Reference* OperationReturn(Reference* ref, Scope* scope)
-{
-    return CreateReference(c_returnReferenceName, ref->ToObject);
-}
-
-
-
-
-
+// ---------------------------------------------------------------------------------------------------------------------
 // Program execution
 
-/// executes an operation [op] on the ordered list of reference [operands]. should only be called
-/// through DoOperation
+/// executes an operation [op] on the ordered list of references [operands] inside [scope]
+/// note: this method should only be called through DoOperation
 Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Reference*> operands)
 {
     switch(op->Type)
     {
-        case OperationType::Return:
-        return OperationReturn(op->Value, scope);
+        case OperationType::Ref:
+        return OperationRef(op->Value);
 
         case OperationType::And:
         return OperationAnd(operands.at(0), operands.at(1));
@@ -107,13 +92,31 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         return OperationPrint(operands.at(0));
 
         case OperationType::Assign:
-        return OperationAssign(op->Value, operands.at(0));
+        return OperationAssign(operands.at(0), operands.at(1));
 
         case OperationType::Define:
-        return OperationDefine(op->Value, scope);
+        return OperationDefine(operands.at(0));
 
         case OperationType::If:
         return OperationIf(operands.at(0));
+
+        case OperationType::DefineMethod:
+        return OperationDefineMethod(operands.at(0));
+
+        case OperationType::Evaluate:
+        return OperationEvaluate(operands.at(0), operands);
+
+        case OperationType::Multiply:
+        return OperationMultiply(operands.at(0), operands.at(1));
+
+        case OperationType::Divide:
+        return OperationDivide(operands.at(0), operands.at(1));
+
+        case OperationType::Return:
+        return OperationReturn(operands.at(0));
+
+        case OperationType::Tuple:
+        return OperationTuple(operands);
 
         default:
         LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
@@ -121,177 +124,179 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
     }
 }
 
-/// executes an operation [op]
-Reference* DoOperation(Scope* scope, Operation* op)
+/// resolve the references return by each operand operation
+std::vector<Reference*> GetOperandReferences(Scope* scope, Operation* op)
 {
     std::vector<Reference*> operandReferences;
+    
     for(Operation* operand: op->Operands)
     {
         Reference* operandRef = DoOperation(scope, operand);
         operandReferences.push_back(operandRef);
     }
     
-    Reference* returnRef = DoOperationOnReferences(scope, op, operandReferences);
-    
-    for(Reference* ref: operandReferences)
-    {
-        if(ref->Name == c_returnReferenceName)
-        {
-            LogItDebug(MSG("line[%i] operation %s dereferenced %s", op->LineNumber, ToString(op->Type), ref->Name), "DoOperation");
-            Dereference(scope, ref);
-        }
-    }
-    LogItDebug(MSG("line[%i] operation %s added a new reference to scope", op->LineNumber, ToString(op->Type)), "DoOperation");
+    return operandReferences;
+}
 
-    AddReferenceToScope(returnRef, scope);
+/// executes an operation [op] inside [scope]
+Reference* DoOperation(Scope* scope, Operation* op)
+{
+    std::vector<Reference*> operandReferences = GetOperandReferences(scope, op);
+
+    Reference* returnRef = DoOperationOnReferences(scope, op, operandReferences);
+    LogItDebug(MSG("line[%i] operation %s returned a reference", op->LineNumber, ToString(op->Type)), "DoOperation");
+
+    DereferenceAll(operandReferences);
+    
     return returnRef;
 }
 
-void DoLineOfOperations()
+void UpdatePreviousResult(Scope* scope, Reference** result, Reference** previousResult)
 {
- 
+    if(*previousResult != nullptr)
+        Dereference(*previousResult);
+    *previousResult = *result;
 }
 
-/// executes a [codeBlock]
+Block* TreatAsBlock(Executable* exec)
+{
+    return static_cast<Block*>(exec);
+}
+
+Operation* TreatAsOperation(Executable* exec)
+{
+    return static_cast<Operation*>(exec);
+}
+
+/// handles the If operation
+Reference* HandleControlFlowIf(Operation* op, size_t& execLine, Scope* scope)
+{
+    Reference* ifExpressionResult = DoOperation(scope, op);
+    bool ifIsTrue = GetBoolValue(*ObjectOf(ifExpressionResult));
+    if(op->Type == OperationType::If && !ifIsTrue)
+    {
+        execLine++;
+    }
+    return ifExpressionResult;
+}
+
+/// executes [op] in [scope] and updates [execLine] based on the control flow properties
+/// of [op]
+Reference* HandleControlFlow(Operation* op, size_t& execLine, Scope* scope)
+{
+    switch(op->Type)
+    {
+        case OperationType::If:
+        return HandleControlFlowIf(op, execLine, scope);
+
+        // for any non-control flow operation;
+        default:
+        return DoOperation(scope, op);
+    }
+}
+
+void HandleRuntimeMessages(int lineNumber)
+{
+    if(RuntimeMsgFlag)
+    {
+        RuntimeMsgPrint(lineNumber);
+        RuntimeMsgFlag = false;
+    }
+}
+bool shouldReturn = false;
+
+/// executes the commands contained in a [codeBlock]
 Reference* DoBlock(Block* codeBlock)
 {
     Reference* result = nullptr;
     Reference* previousResult = nullptr;
 
-    for(size_t i=0; i<codeBlock->Executables.size(); i++)
+    shouldReturn = false;
+    Scope* blockScope = ScopeConstructor(CurrentScope());
+    
+    EnterScope(blockScope);
     {
-        auto exec = codeBlock->Executables.at(i);
-        if(exec->ExecType == ExecutableType::Operation)
+
+        for(auto aref: CurrentScope()->ReferencesIndex)
         {
-            Operation* op = static_cast<Operation*>(exec);
+            LogDiagnostics(aref, "scope before block");
+        }
 
-            Scope* localScope = codeBlock->LocalScope;
-            for(Scope* localScope = codeBlock->LocalScope; localScope != nullptr; localScope=localScope->InheritedScope)
-                for(auto ref: localScope->ReferencesIndex)
-                    LogDiagnostics(ref, MSG("scope before %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
+        for(size_t i=0; i<codeBlock->Executables.size(); i++)
+        {
+            auto exec = codeBlock->Executables.at(i);
 
-            LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
-
-            result = DoOperation(codeBlock->LocalScope, op);
-            if(op->Type == OperationType::If && !GetBoolValue(*result->ToObject))
+            if(exec->ExecType == ExecutableType::Operation)
             {
-                i++;
+                Operation* op = TreatAsOperation(exec); 
+
+                // LogDiagnosticsForRuntimeLine(CurrentScope(), op);
+
+                LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
+
+                result = HandleControlFlow(op, i, CurrentScope()); 
+                UpdatePreviousResult(CurrentScope(), &result, &previousResult);
+                HandleRuntimeMessages(op->LineNumber);
+                
+                LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
+
+                if(op->Type == OperationType::Return)
+                {
+                    shouldReturn = true;
+                    break;
+                }
             }
-
-            if(previousResult != nullptr)
-                Dereference(codeBlock->LocalScope, previousResult);
-            previousResult = result;
-
-
-            LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
-
-            // for(Scope* localScope = codeBlock->LocalScope; localScope != nullptr; localScope=localScope->InheritedScope)
-            //     for(auto ref: localScope->ReferencesIndex)
-            //         LogDiagnostics(ref, MSG("scope at %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
-
-            if(RuntimeMsgFlag)
+            else if(exec->ExecType == ExecutableType::Block)
             {
-                RuntimeMsgPrint(op->LineNumber);
-                RuntimeMsgFlag = false;
+                LogItDebug("discovered child block: starting", "DoBlock");
+
+                result = DoBlock(TreatAsBlock(exec));
+                if(shouldReturn) break;
+                
+                AddReferenceToCurrentScope(result);
+                UpdatePreviousResult(CurrentScope(), &result, &previousResult);
+
+                LogItDebug("exiting child block", "DoBlock");
             }
         }
-        else if(exec->ExecType == ExecutableType::Block)
-        {
-            Block* childBlock = static_cast<Block*>(exec);
-            LogItDebug("discovered child block: starting" "DoBlock");
-            DoBlock(childBlock);
-            LogItDebug("exiting child block", "DoBlock");
-        }
+
+        // for(Reference* ref: CurrentScope()->ReferencesIndex)
+        // {
+        //     LogDiagnostics(ref);
+        // }
+
+        // for(Reference* ref: CurrentScope()->ReferencesIndex)
+        // {
+        //     if(ref == result)
+        //         continue;
+        //     Dereference(ref);
+        // }
+        CurrentScope()->ReferencesIndex.clear();
     }
+    ExitScope();
     if(result != nullptr)
         return result;
     else
         return CreateNullReference();
 }
 
+/// executes all blocks of [program]
 void DoProgram(Program& program)
 {
-    for(Block* block: program.Blocks)
+    EnterScope(PROGRAM->GlobalScope);
     {
-        DoBlock(block);
-    }
-}
-
-
-
-
-
-
-
-// Meta Parsing + Deciding
-/// returns true if [token] corresponds to [ref]
-bool TokenMatchesReference(Token* token, Reference* ref) // MAJOR
-{
-    return token->Content == ref->Name;
-}
-
-bool TokenMatchesPrimitive(Token* token, Reference* ref)
-{
-    return token->Content == GetStringValue(*ref->ToObject);
-}
-
-/// returns a pointer to a Reference if [token] corresponds to an existing reference and nullptr if 
-/// no matching token can be resolved;
-Reference* DecideExistingReferenceFor(Token* token, Scope* scope) // MAJOR: Add scope
-{
-    if(TokenMatchesType(token, TokenType::Reference))
-    {
-        for(Scope* lookInScope = scope; lookInScope != nullptr; lookInScope = lookInScope->InheritedScope)
+        for(Block* block: program.Blocks)
         {
-            for(Reference* ref: lookInScope->ReferencesIndex)
-            {
-                if(TokenMatchesReference(token, ref))
-                    return ref;
-            }
+            DoBlock(block);
         }
-        ReportCompileMsg(SystemMessageType::Exception, MSG("cannot resolve reference [%s]", token->Content));
     }
-    return nullptr;
-}
-
-/// returns a new primitive reference if [token] is a PrimitiveTokenType, otherwise nullptr
-Reference* DecideNewReferenceFor(Token* token)
-{
-    if(TokenMatchesType(token, PrimitiveTokenTypes))
-    {
-        return CreateReferenceToNewObject(c_primitiveObjectName, token);
-    }
-    return nullptr;
-}
-
-/// given a Token* [token], will return either an existing reference (or null reference if none match)
-/// or a new reference to a primitive object
-Reference* DecideReferenceOf(Scope* scope, Token* token)
-{
-    if(token == nullptr)
-        return CreateNullReference();
-
-    Reference* tokenRef;
-
-    tokenRef = DecideExistingReferenceFor(token, scope);
-    if(tokenRef != nullptr)
-    {
-        LogItDebug("found existing object", "DecideReferenceOf");
-        return tokenRef;
-    }
-
-    tokenRef = DecideNewReferenceFor(token);
-    if(tokenRef != nullptr)
-    {
-        LogItDebug("created a new object", "DecideReferenceOf");
-        return tokenRef;
-    }
-
-
-    return CreateNullReference();
+    ExitScope();
 }
 
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Deciding stuff
 
 // can put this somewhere
 typedef void (*ProbabilityFunctions)(PossibleOperationsList&, const TokenList&);
@@ -311,7 +316,8 @@ ProbabilityFunctions decideProbabilities[] =
     DecideProbabilityNot,
     DecideProbabilityEvaluate,
     DecideProbabilityPrint,
-    DecideProbabilityReturn,
+    DecideProbabilityRef,
+    DecideProbabilityDefineMethod
 };
 
 /// decide the probability that a line represented by [tokens] corresponds to each of the atomic operations and stores
@@ -324,14 +330,39 @@ void DecideOperationTypeProbabilities(PossibleOperationsList& typeProbabilities,
     }
 }
 
+double ProbabilityForType(OperationType type, PossibleOperationsList& typeProbabilites)
+{
+    for(OperationTypeProbability p: typeProbabilites)
+    {
+        if(p.Type == type)
+            return p.Probability;
+    }
+    return 0;
+}
+
 // TODO: figure out how to decide line type
 /// assign [lineType] based on [typeProbabitlites] for each atomic operation
 void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& tokens, LineType& lineType) // MAJOR
 {
+    if(override)
+    {
+        lineType = LineType::Composite;
+        return;
+    }
+
     if(FindToken(tokens, "if") != nullptr && FindToken(tokens, ":") != nullptr)
         lineType = LineType::IfLine;
     else
-        lineType = LineType::Atomic;
+    {
+        double totalProb;
+        for(OperationTypeProbability p: typeProbabilities)
+            totalProb += p.Probability;
+
+        if((totalProb > 7 && ProbabilityForType(OperationType::DefineMethod, typeProbabilities) < 5))
+            lineType = LineType::Composite;
+        else
+            lineType = LineType::Atomic;
+    }
 }
 
 /// given pre-completed [typeProbabilities], decides what operation is most likey
@@ -345,7 +376,7 @@ void DecideOperationType(PossibleOperationsList& typeProbabilities, OperationTyp
 }
 
 
-typedef void(*DecideOperandsFunction)(Scope*, TokenList& tokens, OperationsList&);
+typedef void(*DecideOperandsFunction)(TokenList& tokens, OperationsList&);
 DecideOperandsFunction decideOperands[] = 
 {
     DecideOperandsDefine,
@@ -362,43 +393,22 @@ DecideOperandsFunction decideOperands[] =
     DecideOperandsNot,
     DecideOperandsEvaluate,
     DecideOperandsPrint,
-    DecideOperandsReturn,
+    DecideOperandsRef,
+    DecideOperandsDefineMethod
 };
 
 /// decides and adds the operations for the Operation of [opType] to [operands] 
-void DecideOperands(Scope* scope, const OperationType& opType, TokenList& tokens, OperationsList& operands)
+void DecideOperands(const OperationType& opType, TokenList& tokens, OperationsList& operands)
 {
     // TODO fPtr
     // makes going through a linear search to find what function to use instant with array indexing
-    decideOperands[opType](scope, tokens, operands);
+    decideOperands[opType](tokens, operands);
 }
 
 
-//
-typedef void(*DecideValueFunctions)(Scope*, TokenList&, Reference**);
-DecideValueFunctions valueFunctions[] = 
-{
-    DecideValueDefine,
-    DecideValueAssign,
-    DecideValueIsEqual,
-    DecideValueIsLessThan,
-    DecideValueIsGreaterThan,
-    DecideValueAdd,
-    DecideValueSubtract,
-    DecideValueMultiply,
-    DecideValueDivide,
-    DecideValueAnd,
-    DecideValueOr,
-    DecideValueNot,
-    DecideValueEvaluate,
-    DecideValuePrint,
-    DecideValueReturn,
-}; // need to add the rest of the functions pointers for it to be good
-//
-void DecideOperationValue(Scope* scope, const OperationType& opType, TokenList& tokens, Reference** refValue)
-{
-    valueFunctions[opType](scope, tokens, refValue);
-}
+
+
+
 
 
 
@@ -511,14 +521,13 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
     if(!TabStringIsSet())
         SetTabString(DecideTabString(newLine));
 
-    return RemoveCommas(fullLine);
+    return fullLine;
+    // return RemoveCommas(fullLine);
 }
 
 
-
-
 /// parses an atomic operation into an Operation tree
-Operation* ParseOutAtomic(Scope* scope, PossibleOperationsList& typeProbabilities, TokenList& tokens)
+Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
     OperationType opType;
     DecideOperationType(typeProbabilities, opType);
@@ -526,13 +535,13 @@ Operation* ParseOutAtomic(Scope* scope, PossibleOperationsList& typeProbabilitie
     LogItDebug(MSG("operation type is %s", ToString(opType)), "ParseOutAtomic");
     // these operands act on references!
     Reference* refValue = nullptr;
-    if(opType == OperationType::Return || opType == OperationType::Define || opType == OperationType::Assign)
+    if(opType == OperationType::Ref)
     {
-        DecideOperationValue(scope, opType, tokens, &refValue);
+        DecideValueRef(tokens, &refValue);
     }
 
     OperationsList operands;
-    DecideOperands(scope, opType, tokens, operands);
+    DecideOperands(opType, tokens, operands);
 
     Operation* op = OperationConstructor(opType, operands, refValue);
 
@@ -541,14 +550,14 @@ Operation* ParseOutAtomic(Scope* scope, PossibleOperationsList& typeProbabilitie
 
 // TODO: Implement
 /// parses a composite operation into an Operation tree
-Operation* ParseComposite(Scope* scope, PossibleOperationsList& typeProbabilities, TokenList& tokens)
+Operation* ParseComposite(PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
-    
-    return nullptr;
+    Operation* op = ExpressionParser(tokens);
+    return op;
 }
 
 // TODO:
-Operation* ParseIf(Scope* scope, PossibleOperationsList& typeProbabilityes, TokenList& tokens)
+Operation* ParseIf(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
 {
     // Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
 
@@ -558,14 +567,13 @@ Operation* ParseIf(Scope* scope, PossibleOperationsList& typeProbabilityes, Toke
 
     LogDiagnostics(newList, "printing token list after removing if stuff");
 
-    Operation* condition = ParseLine(scope, newList);
+    Operation* condition = ParseLine(newList);
     Operation* op = OperationConstructor(
         OperationType::If, 
         { condition });
 
     return op;
 }
-
 
 /// assigns [lineNumber] to be the LineNumber for each operation in the Operation tree of [op]
 void NumberOperation(Operation* op, int lineNumber)
@@ -580,11 +588,11 @@ void NumberOperation(Operation* op, int lineNumber)
 
 
 // can use this if every plays 
-typedef Operation*(*LineTypeFunctions)(Scope*, PossibleOperationsList&, TokenList&);
+typedef Operation*(*LineTypeFunctions)(PossibleOperationsList&, TokenList&);
 LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
 
 /// parses a line of code
-Operation* ParseLine(Scope* scope, TokenList& tokens)
+Operation* ParseLine(TokenList& tokens)
 {
     PossibleOperationsList typeProbabilities;
     DecideOperationTypeProbabilities(typeProbabilities, tokens);
@@ -596,13 +604,13 @@ Operation* ParseLine(Scope* scope, TokenList& tokens)
     switch(lineType)
     {
         case LineType::Atomic:
-        return ParseOutAtomic(scope, typeProbabilities, tokens);
+        return ParseOutAtomic(typeProbabilities, tokens);
 
         case LineType::Composite:
-        return ParseComposite(scope, typeProbabilities, tokens);
+        return ParseComposite(typeProbabilities, tokens);
 
         case LineType::IfLine:
-        return ParseIf(scope, typeProbabilities, tokens);
+        return ParseIf(typeProbabilities, tokens);
 
         case LineType::While:
 
@@ -622,45 +630,87 @@ int SizeOfBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::itera
     return blockSize;
 }
 
+bool IsChildBlock(std::vector<CodeLine>::iterator it, int previousLineLevel)
+{
+    return it->Level > previousLineLevel;
+}
+
+void HandleCompileMessage(int lineNumber)
+{
+    if(CompileMsgFlag)
+    {
+        CompileMsgPrint(lineNumber);
+        CompileMsgFlag = false;
+    }
+}
+
+void HandleDefineMethod(
+    std::vector<CodeLine>::iterator* it,
+    std::vector<CodeLine>::iterator* end,
+    Scope* blockInheritedScope,
+    Operation* op)
+{
+    if(op->Type != OperationType::DefineMethod)
+        return;
+
+    // assumes there is a block
+    int blockSize = SizeOfBlock((*it)+1, *end);
+    EnterScope(MethodOf(op->Operands.at(0)->Value)->Parameters);
+    Block* b = ParseBlock((*it)+1, (*it)+blockSize+1);
+    ExitScope();
+    *it += blockSize;
+    MethodOf(op->Operands.at(0)->Value)->CodeBlock = b;
+    LogItDebug("exit method", "HandleDefineMethod");
+}
+
 Block* ParseBlock(
     std::vector<CodeLine>::iterator it, 
-    std::vector<CodeLine>::iterator end, 
-    Scope* blockInheritedScope,
-    Scope* compileTimeInheritedScope)
+    std::vector<CodeLine>::iterator end)
 {
-    Block* thisBlock = BlockConstructor(blockInheritedScope);
-    Scope* thisBlockCompileScope = ScopeConstructor(compileTimeInheritedScope);
-
-    int previousLineLevel = it->Level;
-
-    for(; it != end; it++)
+    Block* thisBlock = BlockConstructor();
+    
+    LogItDebug("entered new block", "ParseBlock");
+    Scope* blockScope = ScopeConstructor(CurrentScope());
+    EnterScope(blockScope);
     {
-        if(it->Level > previousLineLevel)
-        {
-            LogItDebug(MSG("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
-            int blockSize = SizeOfBlock(it, end);
-            Block* b = ParseBlock(it, it+blockSize, thisBlock->LocalScope, thisBlockCompileScope);
-            LogItDebug(MSG("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
+        int previousLineLevel = it->Level;
 
-            it += blockSize - 1;
-            thisBlock->Executables.push_back(b);
-        }
-        else
+        for(; it != end; it++)
         {
-            LogItDebug(MSG("starting compile line [%i]", it->LineNumber), "ParseBlock");
-            Operation* op = ParseLine(thisBlockCompileScope, it->Tokens);
-            NumberOperation(op, it->LineNumber);
-            LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
-
-            if(CompileMsgFlag)
+            if(IsChildBlock(it, previousLineLevel))
             {
-                CompileMsgPrint(it->LineNumber);
-                CompileMsgFlag = false;
+                LogItDebug(MSG("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
+                int blockSize = SizeOfBlock(it, end);
+                Block* b = ParseBlock(it, it+blockSize);
+                LogItDebug(MSG("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
+
+                // increment iterator to end of block
+                it += blockSize - 1;
+
+                thisBlock->Executables.push_back(b);
+            }
+            else
+            {
+                LogItDebug(MSG("starting compile line [%i]", it->LineNumber), "ParseBlock");
+                Operation* op = ParseLine(it->Tokens);
+                NumberOperation(op, it->LineNumber);
+                LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
+
+                HandleDefineMethod(&it, &end, CurrentScope(), op);
+
+                HandleCompileMessage(it->LineNumber);
+
+                thisBlock->Executables.push_back(op);
             }
 
-            thisBlock->Executables.push_back(op);
+            // PRINTING DIAGNOSTICS
+            for(Scope* s = CurrentScope(); s != nullptr; s = s->InheritedScope)
+                for(auto r: s->ReferencesIndex)
+                    LogDiagnostics(r, "compile time block scope");
         }
     }
+    ClearScope();
+    ExitScope();
 
     return thisBlock;
 }
@@ -669,7 +719,6 @@ Program* ParseProgram(const std::string filepath)
 {
     PROGRAM = new Program;
     PROGRAM->GlobalScope = ScopeConstructor(nullptr);
-    Scope* compileTimeGlobalScope = ScopeConstructor(nullptr);
 
     std::fstream file;
     file.open(filepath, std::ios::in);
@@ -688,7 +737,9 @@ Program* ParseProgram(const std::string filepath)
     }
 
     // TODO: Allow different blocks
-    Block* b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end(), PROGRAM->GlobalScope, compileTimeGlobalScope);
+    EnterScope(PROGRAM->GlobalScope);
+    Block* b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end());
+    ExitScope();
     PROGRAM->Blocks.push_back(b);
 
     return PROGRAM;
@@ -699,6 +750,7 @@ Program* ParseProgram(const std::string filepath)
 int main()
 {
     PurgeLog();
+    CompileGrammar();
 
     bool PRINT_OPERATIONS = false;
     bool PRINT_GLOBAL_REFS = false;
@@ -708,7 +760,6 @@ int main()
     
     for(Block* b: PROGRAM->Blocks)
         LogDiagnostics(b, "initial program parse structure", "main");
-    
     
     // PRINT OPERATIONS
     if(PRINT_OPERATIONS)
@@ -740,7 +791,7 @@ int main()
         // }
     }
     
-    // std::string line = "test Of the Token 334 parser = 3.1 haha \"this is awesome\" True";
+    // std::string line = "test Of the Token: ;::;4 : 334 par.ser=4 &.&.3&&& = 3.1 haha \"this is awesome\" True";
     // TokenList l = LexLine(line);
     // std::cout << "######\n"; 
     // int pos=0;
@@ -755,6 +806,19 @@ int main()
     {
         LogDiagnostics(map, "final object reference state", "main");
     }
+
+
+    // Testing New Parser
+    
+    // PROGRAM = new Program;
+    // PROGRAM->GlobalScope = ScopeConstructor(nullptr);
+    // EnterScope(PROGRAM->GlobalScope);
+
+
+    // String str = "if(true):";
+    // TokenList tl = LexLine(str);
+    // Operation* op = ExpressionParser(tl);
+    // LogDiagnostics(op);
 
     LogItDebug("end reached.", "main");
     return 0;

@@ -1,0 +1,132 @@
+Documentation: 
+    Everything before the first line with leading character '#' is ignored
+
+    The first section defines grammars rules. A rule will span two lines, with
+    the first line starting with the symbol '@'. Individual tokens are separated
+    by spaces, and all whitespace is ignored.
+
+    The first line should be formatted
+        @ [RuleName] [PrecedenceOperation] [CollapseMethod]
+
+    where:
+        [RuleName] is the name of the rule and should correspond to the atomic 
+            operation (OperationTypes) expressed by the rule. 
+
+        [PrecedenceOperation] is the operation which defines the precedence 
+            class of the rule
+
+        [CollapseMethod] defines how to merge the output of the rule back into 
+            the parent operation
+
+    The second line should be formatted
+        [ProductionRule] -> ...
+
+    Note: All production rules should begin with an uppercase
+
+
+Precedence:
+    The second section defines precedence classes listed from high to low.
+    
+
+
+# Grammar
+
+@ Return = Reduce
+Line -> return Expr
+
+@ Add + Reduce
+Expr -> Expr + Expr
+
+@ Subtract - Reduce
+Expr -> Expr - Expr
+
+@ Multiply * Reduce
+Expr -> Expr * Expr
+
+@ Divide / Reduce
+Expr -> Expr / Expr
+
+@ And && Reduce
+Expr -> Expr && Expr
+
+@ And and Reduce
+Expr -> Expr and Expr
+
+
+
+@ Print lowest Reduce
+Line -> print Expr
+
+@ Evaluate highest Reduce
+Expr -> Ref ( )
+
+@ Evaluate highest Reduce 
+Expr -> Ref ( Expr )
+
+@ Evaluate highest Reduce
+Expr -> Ref ( Tuple )
+
+@ If highest Reduce
+Line -> if ( Expr ) :
+
+@ While highest Reduce
+Line -> while ( Expr ) :
+
+@ For highest Reduce
+Line -> for ( Ref in Expr ) :
+
+@ DefineMethod highest Custom
+Line -> def Ref ( Tuple ) :
+
+@ DefineMethod highest Custom
+Line -> def Ref ( Expr ) :
+
+@ DefineMethod highest Custom
+Line -> def Ref ( ) :
+
+@ Assign = Reduce
+Line -> Expr = Expr
+
+
+
+
+
+
+
+
+@ Parens highest Retain
+Expr -> ( Expr )
+
+@ Tuple , Merge
+Tuple -> Tuple , Expr
+
+@ Tuple , Reduce
+Tuple -> Expr , Expr
+
+@ Ref subhighest Retain
+Expr -> Ref
+
+@ LineRef lowest Retain
+Line -> Expr 
+
+
+
+# Operator Precedence
+: in
+highest
+( [ .
+subhighest
+!
+* /
++ -
+< > <= >=
+== !=
+&& and
+|| or
+=  
+,
+)
+lowest
+
+### End 
+

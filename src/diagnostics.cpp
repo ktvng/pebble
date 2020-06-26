@@ -311,15 +311,33 @@ String ToString(const Object* obj)
     return ToString(*obj);
 }
 
+String ToString(const Method* method)
+{
+    String methodString = MSG("<Method>\n");
+
+    for(auto ref: method->Parameters->ReferencesIndex)
+    {
+        methodString += IndentLevel(1) + 
+            StringForAttrbute("param", ref->Name);
+    }
+    return methodString;
+}
+
 String ToString(const Reference* ref)
 {
-    String refString = MSG("<Reference> @ %p\n", &ref);
+    String refString = MSG("<Reference> @ %p\n", ref);
 
     refString += IndentLevel(1) +
         StringForAttrbute("Name", ref->Name);
 
-    refString += IndentLevel(1) +
-        StringForAttrbute("ToObject", IndentStringToLevel(ToString(ref->ToObject), 1));
+    if(ObjectOf(ref) != nullptr)
+        refString += IndentLevel(1) +
+            StringForAttrbute("ToObject", IndentStringToLevel(ToString(ObjectOf(ref)), 1));
+
+    
+    if(MethodOf(ref) != nullptr)
+        refString += IndentLevel(1) +
+            StringForAttrbute("ToMethod", ref->Name);
 
     return refString;
 }
@@ -348,7 +366,7 @@ String ToString(const ObjectReferenceMap* map)
 
 String ToString(const Token& token)
 {
-    return StringForAttrbute("Token", MSG("Position: %i\n Type: %s\t Content: %s", 
+    return StringForAttrbute("Token", MSG("Position: %i\t Type: %s\t Content: %s", 
         token.Position,
         GetStringTokenType(token.Type),
         token.Content));
@@ -376,8 +394,8 @@ String ToString(const OperationType& type)
         case OperationType::Add:
         return "Add";
 
-        case OperationType::Return:
-        return "Return";
+        case OperationType::Ref:
+        return "Ref";
 
         case OperationType::Print:
         return "Print";
@@ -397,6 +415,21 @@ String ToString(const OperationType& type)
         case OperationType::And:
         return "And";
 
+        case OperationType::DefineMethod:
+        return "DefineMethod";
+
+        case OperationType::Evaluate:
+        return "Evaluate";
+
+        case OperationType::Divide:
+        return "Divide";
+
+        case OperationType::Multiply:
+        return "Multiply";
+
+        case OperationType::Return:
+        return "Return";
+
         default:
         return "unimplemented";
     }
@@ -407,45 +440,60 @@ String ToString(const Operation& op, int level)
     String opString = "<Operation> L" + std::to_string(level) + "\n";
     opString.reserve(256);
 
-    opString += IndentLevel(level+1) +
-        StringForAttrbute(
-            "LineNumber",
-            MSG("%i", op.LineNumber));
-
-    if(op.Type == OperationType::Return)
-    {
-        opString += IndentLevel(level) + 
+    if(level == 0)
+        opString += IndentLevel(1) +
             StringForAttrbute(
-                "OperationType", 
-                MSG("Return <Reference> %s to %s %s", 
-                    op.Value->Name, 
-                    op.Value->ToObject->Class,
-                    GetStringValue(*op.Value->ToObject)));
+                "LineNumber",
+                MSG("%i", op.LineNumber));
+
+
+    if(op.Type == OperationType::Ref)
+    {
+        if(ObjectOf(op.Value) != nullptr)
+            opString += IndentLevel(1) + 
+                StringForAttrbute(
+                    "OperationType", 
+                    MSG("Ref <Reference> %s to %s %s", 
+                        op.Value->Name, 
+                        ObjectOf(op.Value)->Class,
+                        GetStringValue(*ObjectOf(op.Value))));
+
+        if(MethodOf(op.Value) != nullptr)
+        {
+            opString += IndentLevel(1) +
+                StringForAttrbute("name", op.Value->Name);
+            opString += IndentLevel(1) + 
+                StringForAttrbute(
+                    "OperationType", 
+                    IndentStringToLevel(ToString(MethodOf(op.Value)), 1));
+        }
+
+                    
 
         return opString;
     }
 
-    opString += IndentLevel(level+1) + StringForAttrbute(
+    opString += IndentLevel(1) + StringForAttrbute(
         "OperationType", ToString(op.Type)
         );
 
     if(op.Value != nullptr)
     {
-        opString += IndentLevel(level+1) + StringForAttrbute(
+        opString += IndentLevel(1) + StringForAttrbute(
             "Value",
             MSG(
                 "<Reference> %s to %s %s",
                 op.Value->Name, 
-                op.Value->ToObject->Class,
-                GetStringValue(*op.Value->ToObject
+                ObjectOf(op.Value)->Class,
+                GetStringValue(*ObjectOf(op.Value)
                 )));
     }
 
     for(Operation* operand: op.Operands)
     {
-        opString += IndentLevel(level+1) + IndentStringToLevel(
+        opString += IndentLevel(1) + IndentStringToLevel(
             ToString(operand, level+1),
-            level+1) + "\n";
+            1) + "\n";
     }
     
     return opString;

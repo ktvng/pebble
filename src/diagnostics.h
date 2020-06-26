@@ -52,6 +52,6 @@ void LogDiagnostics(const TokenList* tokenList, String message="object dumpLogIt
 void LogDiagnostics(const Token* token, String message="object dumpLogItDebug", String method="unspecified");
 void LogDiagnostics(const ObjectReferenceMap* map, String message="object dumpLogItDebug", String method="unspecified");
 
-void LogDiagnostics(const Block* b, String message, String method);
+void LogDiagnostics(const Block* b, String message="object dumpLogItDebug", String method="unspecified");
 
 #endif
