@@ -32,8 +32,9 @@ Reference* OperationDefine(Reference* ref);
 Reference* OperationIf(Reference* ref);
 Reference* OperationRef(Reference* ref);
 Reference* OperationDefineMethod(Reference* ref);
-Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters);
+Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters);
 Reference* OperationReturn(Reference* returnRef);
+Reference* OperationTuple(const std::vector<Reference*>& components);
 
 void DecideValueRef(TokenList& tokens, Reference** refValue);
 

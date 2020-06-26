@@ -542,24 +542,68 @@ void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
 }
 
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Tuple operation
+Reference* OperationTuple(const std::vector<Reference*>& components)
+{
+    LogItDebug("called", "OperationTuple");
+    Reference* tupleRef = ReferenceFor(c_returnReferenceName, TupleClass, nullptr);
+    ObjectOf(tupleRef)->Attributes.reserve(components.size());
+
+    for(auto ref: components)
+    {
+        auto copyRef = NullReference(ref->Name);
+        ReassignReference(copyRef, ref->To);
+        ObjectOf(tupleRef)->Attributes.push_back(copyRef);
+    }
+
+    return tupleRef;
+}
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Evaluate operation
 
-Reference* OperationEvaluate(Reference* ref, std::vector<Reference*> parameters)
+std::vector<Reference*> ResolveParamters(Reference* ref, std::vector<Reference*>& parameters)
+{
+    if(parameters.size()<1)
+        return {};
+
+
+    auto obj = ObjectOf(parameters.at(1));
+    if(obj->Class == TupleClass)
+    {
+        std::vector<Reference*> params;
+        for(auto ref: obj->Attributes)
+        {
+            params.push_back(ref);
+        }
+        return params;
+    }
+    else
+    {
+        return { parameters.at(1) };
+    }
+    
+}
+
+
+Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters)
 {
     // TODO: currently just assumes parameters are in order
     // ref should be a method reference
     LogItDebug(MSG("evaluating method %s", ref->Name), "OperationEvaluate");
 
     std::vector<Referable*> originalParams;
+    std::vector<Reference*> params = ResolveParamters(ref, parameters);
 
     Reference* result;
-    for(size_t i=0; i<MethodOf(ref)->Parameters->ReferencesIndex.size() && i<parameters.size()-1; i++)
+    for(size_t i=0; i<MethodOf(ref)->Parameters->ReferencesIndex.size() && i<params.size(); i++)
     {
         Reference* paramRef = MethodOf(ref)->Parameters->ReferencesIndex.at(i);
         originalParams.push_back(paramRef->To);
-        ReassignReference(paramRef, parameters.at(i+1)->To);   
+        auto inputRef = params.at(i);
+        ReassignReference(paramRef, inputRef->To);   
     }
 
     LogDiagnostics(MethodOf(ref)->CodeBlock, "method codeblock");

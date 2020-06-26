@@ -101,6 +101,7 @@ Reference* CreateReferenceInternal(String name, ObjectClass objClass)
     ref->To = obj;
 
     obj->Class = objClass;
+    obj->Value = nullptr;
     
     return ref;
 }
@@ -181,6 +182,10 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
     else if(objClass == ArrayClass)
     {
         return CreateReferenceToArrayObject(name, objClass, *static_cast<int*>(value));
+    }
+    else if(objClass == TupleClass)
+    {
+        return CreateReferenceInternal(name, TupleClass);
     }
     return CreateNullReference();
 }

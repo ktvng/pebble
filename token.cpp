@@ -498,8 +498,8 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::Assign;
     else if(Name=="Define")
         return OperationType::Define;
-    else if(Name=="Param")
-        return OperationType::Evaluate;
+    else if(Name=="Tuple")
+        return OperationType::Tuple;
     else if(Name=="Print")
         return OperationType::Print;
     else if(Name=="Return")
@@ -804,24 +804,31 @@ Operation* CollapseByReduce(CFGRule* rule, OperationsList& components)
     return OperationConstructor(rule->OpType, components);
 }
 
-/// collapse a rule by merging component operands into the same list
+/// collapse a rule by merging all components into the first component's operand list
 Operation* CollapseByMerge(CFGRule* rule, OperationsList& components)
 {
-    OperationsList mergedOperands;
-    for(auto op: components)
+    OperationsList& oplist = components.at(0)->Operands;
+    
+    for(size_t i=1; i< components.size(); i++)
     {
-        // direcly merge ::Ref type operations into the new operandsList
-        if(op->Type == OperationType::Ref)
-            mergedOperands.push_back(op);
-        // for all other operation types, port the operands directly into the new operandsList
-        else
-        {
-            for(auto opOperand: op->Operands)
-                mergedOperands.push_back(opOperand);
-        }
+        oplist.push_back(components.at(i));
     }
+    
+    return components.at(0);
+    // for(auto op: components)
+    // {
+    //     // direcly merge ::Ref type operations into the new operandsList
+    //     if(op->Type == OperationType::Ref)
+    //         mergedOperands.push_back(op);
+    //     // for all other operation types, port the operands directly into the new operandsList
+    //     else
+    //     {
+    //         for(auto opOperand: op->Operands)
+    //             mergedOperands.push_back(opOperand);
+    //     }
+    // }
 
-    return OperationConstructor(rule->OpType, mergedOperands);
+    // return OperationConstructor(rule->OpType, mergedOperands);
 }
 
 /// collapse a rule corresponding to defining a method
@@ -836,13 +843,25 @@ Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
         {
             if(components.size() > 1)
             {
-                // if the operand is already a return operation
-                if(components.at(1)->Type == OperationType::Ref)
-                    NullReference(components.at(1)->Value->Name);
-                // if the operand is a list of parameters
+                if(components.at(1)->Type == OperationType::Tuple)
+                {
+                    for(auto op: components.at(1)->Operands)
+                    {
+                        NullReference(op->Value->Name);
+                    }
+                }
                 else
-                    for(size_t i=0; i<components.at(1)->Operands.size(); i++)
-                        NullReference(components.at(1)->Operands.at(i)->Value->Name);
+                {
+                    NullReference(components.at(1)->Value->Name);
+                }
+                
+                // // if the operand is already a return operation
+                // if(components.at(1)->Type == OperationType::Ref)
+                //     NullReference(components.at(1)->Value->Name);
+                // // if the operand is a list of parameters
+                // else
+                //     for(size_t i=0; i<components.at(1)->Operands.size(); i++)
+                //         NullReference(components.at(1)->Operands.at(i)->Value->Name);
             }
         }
         ExitScope();

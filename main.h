@@ -86,6 +86,7 @@ enum OperationType
 
     If,
     EndLabel,
+    Tuple,
 };
 
 class Operation : public Executable 
@@ -115,6 +116,7 @@ inline const ObjectClass StringClass = "String";
 inline const ObjectClass BooleanClass = "Boolean";
 inline const ObjectClass NullClass = "Nothing";
 inline const ObjectClass ArrayClass = "Array";
+inline const ObjectClass TupleClass = "Tuple";
 
 inline const std::string c_returnReferenceName = "ReturnedObject";
 inline const std::string c_primitiveObjectName = "PrimitiveObject";

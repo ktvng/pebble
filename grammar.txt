@@ -63,8 +63,8 @@ Expr -> Ref ( )
 @ Evaluate highest Reduce 
 Expr -> Ref ( Expr )
 
-@ Evaluate highest Merge
-Expr -> Ref ( Param )
+@ Evaluate highest Reduce
+Expr -> Ref ( Tuple )
 
 @ If highest Reduce
 Line -> if ( Expr ) :
@@ -76,10 +76,10 @@ Line -> while ( Expr ) :
 Line -> for ( Ref in Expr ) :
 
 @ DefineMethod highest Custom
-Line -> def Ref ( Expr ) :
+Line -> def Ref ( Tuple ) :
 
 @ DefineMethod highest Custom
-Line -> def Ref ( Param ) :
+Line -> def Ref ( Expr ) :
 
 @ DefineMethod highest Custom
 Line -> def Ref ( ) :
@@ -97,12 +97,11 @@ Line -> Expr = Expr
 @ Parens highest Retain
 Expr -> ( Expr )
 
+@ Tuple , Merge
+Tuple -> Tuple , Expr
 
-@ Param , Merge
-Param -> Expr , Expr
-
-@ Param , Merge
-Param -> Param , Expr
+@ Tuple , Reduce
+Tuple -> Expr , Expr
 
 @ Ref subhighest Retain
 Expr -> Ref

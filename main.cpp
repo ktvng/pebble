@@ -120,6 +120,9 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::Return:
         return OperationReturn(operands.at(0));
 
+        case OperationType::Tuple:
+        return OperationTuple(operands);
+
         default:
         LogIt(LogSeverityType::Sev1_Notify, "DoOoperationOnReferences", "unimplemented in this case");
         return CreateNullReference();
