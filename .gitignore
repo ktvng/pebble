@@ -1,4 +1,5 @@
 .vscode/
-chief.exe
+*.exe
 program
 logs/
+*.o
