@@ -26,9 +26,6 @@
 
 Program* PROGRAM;
 
-// Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
-
 // Error reporting
 std::vector<SystemMessage> RuntimeMsgBuffer;
 std::vector<SystemMessage> CompileMsgBuffer;

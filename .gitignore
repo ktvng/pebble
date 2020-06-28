@@ -1,5 +1,8 @@
 .vscode/
 *.exe
 program
-logs/
+logs/log
 *.o
+test/src/*.cpp
+test/src/*.h
+*.o.t

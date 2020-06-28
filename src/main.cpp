@@ -9,51 +9,44 @@
 #include "reference.h"
 
 
-
+// Logging
+LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
 
 int main()
 {
-    PurgeLog();
-    CompileGrammar();
 
-    bool PRINT_OPERATIONS = false;
-    bool PRINT_GLOBAL_REFS = false;
+    PurgeLog();                         // cleans log between each run
+    CompileGrammar();                   // compile grammar from grammar.txt
+
+
+    // compile program
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
+
     ParseProgram(".\\program");
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
     
     for(Block* b: PROGRAM->Blocks)
         LogDiagnostics(b, "initial program parse structure", "main");
     
-    // PRINT OPERATIONS
-    if(PRINT_OPERATIONS)
-    {
-    }
-
-
     for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
         LogDiagnostics(map, "initial object reference state", "main");
     }
 
-    // for(auto elem: PROGRAM->Blocks.at(0).LocalScope->ReferencesIndex)
-    //     LogDiagnostics(elem);
 
-    std::cout << "####################\n";
+
+    // run program
+    std::cout << "################################################################################\n";
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
     DoProgram(*PROGRAM);
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
-    std::cout << "####################\n";
-    
-    // PRINT GLOBALREFRENCES
-    if(PRINT_GLOBAL_REFS)
+    std::cout << "################################################################################\n";
+
+    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
-        // for(auto elem: GlobalScope.ReferencesIndex)
-        // {
-        //     std::cout << &elem << "\n";
-        //     LogDiagnostics(*elem);
-        // }
+        LogDiagnostics(map, "final object reference state", "main");
     }
+
     
     // std::string line = "test Of the Token: ;::;4 : 334 par.ser=4 &.&.3&&& = 3.1 haha \"this is awesome\" True";
     // TokenList l = LexLine(line);
@@ -65,12 +58,6 @@ int main()
     //     LogDiagnostics(t);
     // }
     // LogDiagnostics(l);
-
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
-    {
-        LogDiagnostics(map, "final object reference state", "main");
-    }
-
 
     // Testing New Parser
     
@@ -85,6 +72,5 @@ int main()
     // LogDiagnostics(op);
 
     LogItDebug("end reached.", "main");
-
     return 0;
 }
