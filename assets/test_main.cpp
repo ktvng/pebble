@@ -14,11 +14,5 @@ LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 
 int main()
 {
-
-    PurgeLog();                         // cleans log between each run
-    CompileGrammar();                   // compile grammar from grammar.txt
-
-    ParseProgram(".\\program");
-    DoProgram(*PROGRAM);
-    return 0;
+    Test();
 }

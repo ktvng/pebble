@@ -17,11 +17,11 @@ TEST_OBJS=$(SRCS:./src/%.cpp=./build/%.o.t)
 Chief: $(OBJS)
 	$(CC) $(CCFLAGS) -o chief $(OBJS)
 
-Test: TestBuilder $(TEST_OBJS)
-	$(CC) $(CCFLAGS) -o test $(TEST_OBJS)
+Test: $(TEST_OBJS) build/test.o
+	$(CC) $(CCFLAGS) -o test $^
 
-build/test.o:
-	$(CC) $(CCFLAGS) -o ./build/test.o -c ./test/test.cpp
+build/test.o: test/test.cpp
+	$(CC) $(CCFLAGS) -I./test/src -o ./build/test.o -c ./test/test.cpp
 
 build/%.o: src/%.cpp
 	$(CC) $(CCFLAGS) -o $@ -c $<
@@ -29,6 +29,6 @@ build/%.o: src/%.cpp
 build/%.o.t: test/src/%.cpp
 	$(CC) $(CCFLAGS) -o $@ -c $<
 
-TestBuilder: ./test/test.cpp
+TestBuilder: ./test/testbuilder.cpp
 	$(CC) $(CCFLAGS) -o testbuilder $<
 	./testbuilder $(FILES2)
