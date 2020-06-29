@@ -1,3 +1,4 @@
+#include <limits>
 
 #include "test.h"
 #include "main.h"
@@ -46,18 +47,33 @@ int ReferencesInIndex(Program* p)
     return i;
 }
 
+void ResetRun()
+{
+    std::map<std::string, int>::iterator it;
+    for(it=methodHitMap.begin(); it!=methodHitMap.end(); it++)
+    {
+        methodHitMap[it->first] = 0;
+    }
+    
+    std::map<MethodName, InjectedFunction>::iterator it2;
+    for(it2=FunctionInjections.begin(); it2!= FunctionInjections.end(); it2++)
+    {
+        FunctionInjections[it->first] = nullptr;
+    }
+}
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test primitives
 
 /// inject a function [func] to evaluate before method [name] is called
-void InjectBefore(MethodName name, InjectedFunction func)
+inline void InjectBefore(MethodName name, InjectedFunction func)
 {
     FunctionInjections[name] = func;
 }
 
 /// configure the logging properties for speed and optimization
-void ConfigureLogging(LogSeverityType level, bool clearBefore)
+inline void ConfigureLogging(LogSeverityType level, bool clearBefore)
 {
     if(clearBefore)
         PurgeLog();
@@ -65,8 +81,13 @@ void ConfigureLogging(LogSeverityType level, bool clearBefore)
     LogAtLevel = level;
 }
 
+inline void DisableLogging()
+{
+    ConfigureLogging(LogSeverityType::Sev3_Critical, true);
+}
+
 /// compiles the program
-void Compile()
+inline void Compile()
 {
     ProgramOutput = "";
     CompileGrammar();
@@ -74,7 +95,7 @@ void Compile()
 }
 
 /// execute the program
-void Execute()
+inline void Execute()
 {
     DoProgram(*PROGRAM);
 }
@@ -85,11 +106,18 @@ inline int NumberOfCallsTo(const std::string& methodName)
     return methodHitMap[methodName];
 }
 
-void SetProgramToRun(const std::string& fileName)
+inline void SetProgramToRun(const std::string& fileName)
 {
     programFile = "./test/programs/" + fileName;
 }
 
+inline void CompileAndExecuteProgram(const std::string& programName)
+{
+    SetProgramToRun(programName);
+    DisableLogging();
+    Compile();
+    Execute();
+}
 
 /// tests that all objects are accessible
 void TestObjectMemoryLoss()
@@ -100,7 +128,7 @@ void TestObjectMemoryLoss()
     int createdObjs = NumberOfCallsTo("ObjectConstructor") + 1;
     int objsInIndex = ObjectIndexSize(PROGRAM);
 
-    OtherwiseReport("created objects != objects in index");
+    OtherwiseReport(Msg("created objects %i != objects in index %i", createdObjs, objsInIndex));
     Assert(createdObjs == objsInIndex);
 }
 
@@ -119,7 +147,7 @@ void TestReferenceMemoryLoss()
 }
 
 /// tests standard things
-void StandardTestSuite()
+void IncludeStandardAssertSuite()
 {
     TestObjectMemoryLoss();
     TestReferenceMemoryLoss();
@@ -170,8 +198,10 @@ void Assert(bool b)
 /// name of test
 inline void It(const std::string& name)
 {
+    ResetRun();
     testName = name;
 }
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -187,27 +217,62 @@ void TestCustomProgram()
 {
     It("Custom Program executes");
     programFile = "./program";
-    InjectBefore("OperationAdd", testFuncInject);
+    // InjectBefore("OperationAdd", testFuncInject);
 
     ConfigureLogging(LogSeverityType::Sev3_Critical, true);
     Compile();
     Execute();
 
-    StandardTestSuite();
+    IncludeStandardAssertSuite();
 }
 
 void TestIf()
 {
-    It("evalutes an if statement");
+    It("evaluates an if statement");
     
     SetProgramToRun("TestIf");
     ConfigureLogging(LogSeverityType::Sev3_Critical, true);
     Compile();
     Execute();
 
+    IncludeStandardAssertSuite();
+
     Should("conditionally execute code by evaluating if-expression");
     OtherwiseReport("unknown failure condition");
     Assert(ProgramOutput == "INIF\n");
+}
+
+void TestOrderOfOperations()
+{
+    It("evaluates order of operations");
+
+    SetProgramToRun("TestOrderOfOperations");
+    DisableLogging();
+    Compile();
+    Execute();
+
+    IncludeStandardAssertSuite();
+    
+    String correctOutput = "28\n6\n7\n-5\n-10\n8\n";
+
+    Should("execute operations in PEMDAS order");
+    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
+    Assert(ProgramOutput == correctOutput );
+}
+
+void TestMethodWithNoParams()
+{
+    It("can define/evaluate method with no params");
+
+    CompileAndExecuteProgram("TestMethodWithNoParams");
+
+    IncludeStandardAssertSuite();
+    
+    String correctOutput = "48\n60\n";
+
+    Should("define and execute method with no params");
+    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
+    Assert(ProgramOutput == correctOutput );
 }
 
 
@@ -219,6 +284,8 @@ TestFunction Tests[] =
 {
     TestCustomProgram,
     TestIf,
+    TestOrderOfOperations,
+    TestMethodWithNoParams,
 };
 
 
@@ -237,6 +304,8 @@ void DoAllTests()
 
 void Test()
 {
+    std::cout.precision(2);
+
     testBuffer.reserve(2048);
     SetConsoleColor(ConsoleColor::Yellow);
     std::cout << "starting...\n";
@@ -245,7 +314,9 @@ void Test()
     DoAllTests();
 
     SetConsoleColor(ConsoleColor::Yellow);
-    std::cout << "\nfinished " << (succeededAsserts + failedAsserts) << " tests at " <<  (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) << "%" << std::endl;
+    std::cout << "\nfinished " << (succeededAsserts + failedAsserts) << " tests at " 
+        << std::fixed << (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) 
+        << " %" << std::endl;
 
     SetConsoleColor(ConsoleColor::Green);
     std::cout << "  >> passed: " << succeededAsserts << std::endl;

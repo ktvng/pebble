@@ -7,7 +7,7 @@ CC=g++
 vpath %.o src
 
 FILES=$(wildcard ./src/*)
-FILES2=$(FILES:./src/%=%)
+FILE_NAMES=$(FILES:./src/%=%)
 SRCS=$(wildcard ./src/*.cpp)
 OBJS=$(SRCS:./src/%.cpp=./build/%.o)
 
@@ -31,4 +31,4 @@ build/%.o.t: test/src/%.cpp
 
 TestBuilder: ./test/testbuilder.cpp
 	$(CC) $(CCFLAGS) -o testbuilder $<
-	./testbuilder $(FILES2)
+	./testbuilder $(FILE_NAMES)

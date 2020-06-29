@@ -1,0 +1,6 @@
+def TestMethod():
+    X = 4 * 12
+    print X
+    return X
+
+print TestMethod() + 12

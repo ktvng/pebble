@@ -1,0 +1,17 @@
+X = 4 + 8 * 3
+print X
+
+X = 8 - 4 / 2
+print X
+
+X = (12 + 2) / 2
+print X
+
+X = ((3)) - 4 * 2
+print X
+
+X = 4 - 7 - 7
+print X
+
+X = 8 * 5 / 5
+print X

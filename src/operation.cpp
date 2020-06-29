@@ -635,9 +635,8 @@ Reference* OperationTuple(const std::vector<Reference*>& components)
 
 std::vector<Reference*> ResolveParamters(Reference* ref, std::vector<Reference*>& parameters)
 {
-    if(parameters.size()<1)
+    if(parameters.size()<=1)
         return {};
-
 
     auto obj = ObjectOf(parameters.at(1));
     if(obj->Class == TupleClass)
