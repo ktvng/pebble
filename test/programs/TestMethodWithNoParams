@@ -1,4 +1,4 @@
-def TestMethod():
+TestMethod():
     X = 4 * 12
     print X
     return X

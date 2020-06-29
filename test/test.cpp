@@ -1,14 +1,7 @@
 #include <limits>
 
 #include "test.h"
-#include "main.h"
-#include "arch.h"
-#include "program.h"
-#include "token.h"
-#include "diagnostics.h"
-#include "operation.h"
-#include "reference.h"
-
+#include "unittests.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Global variables
@@ -63,68 +56,18 @@ void ResetRun()
 // Test primitives
 
 /// inject a function [func] to evaluate before method [name] is called
-inline void InjectBefore(MethodName name, InjectedFunction func)
-{
-    FunctionInjections[name] = func;
-}
 
-/// configure the logging properties for speed and optimization
-inline void ConfigureLogging(LogSeverityType level, bool clearBefore)
-{
-    if(clearBefore)
-        PurgeLog();
-
-    LogAtLevel = level;
-}
-
-inline void DisableLogging()
-{
-    ConfigureLogging(LogSeverityType::Sev3_Critical, true);
-}
-
-/// compiles the program
-inline void Compile()
-{
-    ProgramOutput = "";
-    CompileGrammar();
-    ParseProgram(programFile);
-}
-
-/// execute the program
-inline void Execute()
-{
-    DoProgram(*PROGRAM);
-}
-
-/// returns the number of calls to [methodName]
-inline int NumberOfCallsTo(const std::string& methodName)
-{
-    return methodHitMap[methodName];
-}
-
-inline void SetProgramToRun(const std::string& fileName)
-{
-    programFile = "./test/programs/" + fileName;
-}
-
-inline void CompileAndExecuteProgram(const std::string& programName)
-{
-    SetProgramToRun(programName);
-    DisableLogging();
-    Compile();
-    Execute();
-}
 
 /// tests that all objects are accessible
 void TestObjectMemoryLoss()
 {
     Should("not lose any objects in memory");
 
-    // add 1 b/c null object is not created through constructor
-    int createdObjs = NumberOfCallsTo("ObjectConstructor") + 1;
+    bool nullObjectCreated = NumberOfCallsTo("NullObject") > 0;
+    int createdObjs = NumberOfCallsTo("ObjectConstructor") + (nullObjectCreated ? 1 : 0);
     int objsInIndex = ObjectIndexSize(PROGRAM);
 
-    OtherwiseReport(Msg("created objects %i != objects in index %i", createdObjs, objsInIndex));
+    OtherwiseReport(Msg("created objects (%i) != objects in index (%i)", createdObjs, objsInIndex));
     Assert(createdObjs == objsInIndex);
 }
 
@@ -134,12 +77,20 @@ void TestReferenceMemoryLoss()
     Should("not lose any references in memory");
 
     int createdRefs = NumberOfCallsTo("ReferenceConstructor");
-    int destroyedRefs = NumberOfCallsTo("Dereference");
+    int destroyedRefs = NumberOfCallsTo("ReferenceDestructor");
     int accessibleRefs = ReferencesInIndex(PROGRAM);
     int methods = NumberOfCallsTo("MethodConstructor");
 
-    OtherwiseReport(Msg("created refs != destroyed + accessible + methods"));
+    OtherwiseReport(Msg("created refs (%i) != destroyed (%i) + accessible (%i) + methods (%i)", createdRefs, destroyedRefs, accessibleRefs, methods));
     Assert(createdRefs == destroyedRefs + accessibleRefs + methods);
+}
+
+void TestNoProgramMessages()
+{
+    Should("not throw system messages");
+
+    OtherwiseReport("reported messages:\n" + ProgramMsgs);
+    Assert(ProgramMsgs == "");
 }
 
 /// tests standard things
@@ -147,143 +98,13 @@ void IncludeStandardAssertSuite()
 {
     TestObjectMemoryLoss();
     TestReferenceMemoryLoss();
+    TestNoProgramMessages();
 }
 
 
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Test fundementals
-
-/// describes the current assertion. MUST BE CALLED BEFORE EACH UNIQUE ASSERTION
-inline void Should(const std::string& descriptionOfTest)
-{
-    assertName = descriptionOfTest;
-}
-
-inline void OtherwiseReport(const std::string& descriptionOfFailureCase)
-{
-    failureDescription = descriptionOfFailureCase;
-}
-
-/// assert that [b] is true. logs error if this is not the case
-void Assert(bool b)
-{
-    if(!b)
-    {
-        failedAsserts++;
-        testBuffer.append("(" + std::to_string(failedAsserts) + "):\n");
-        testBuffer.append(testName + "\n");
-        testBuffer.append("  failed assertion: (should) " + assertName + "\n");
-        testBuffer.append("    > " + failureDescription + "\n\n");
-        SetConsoleColor(ConsoleColor::Red);
-        std::cout << ".";
-        SetConsoleColor(ConsoleColor::White);
-    }
-    else
-    {
-        succeededAsserts++;
-        SetConsoleColor(ConsoleColor::Green);
-        std::cout << ".";
-        SetConsoleColor(ConsoleColor::White);
-    }
-
-    assertName = "*unspecified*";
-    failureDescription = "*unspecified*";
-}
-
-/// name of test
-inline void It(const std::string& name)
-{
-    ResetRun();
-    testName = name;
-}
 
 
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Tests
-
-void testFuncInject(Params& p)
-{
-    const Reference* ref = *static_cast<const Reference* const*>(p.at(0));
-    std::cout << "first object is of type: " << ObjectOf(ref)->Class << std::endl;
-}
-
-void TestCustomProgram()
-{
-    It("Custom Program executes");
-    programFile = "./program";
-    // InjectBefore("OperationAdd", testFuncInject);
-
-    ConfigureLogging(LogSeverityType::Sev3_Critical, true);
-    Compile();
-    Execute();
-
-    IncludeStandardAssertSuite();
-}
-
-void TestIf()
-{
-    It("evaluates an if statement");
-    
-    SetProgramToRun("TestIf");
-    ConfigureLogging(LogSeverityType::Sev3_Critical, true);
-    Compile();
-    Execute();
-
-    IncludeStandardAssertSuite();
-
-    Should("conditionally execute code by evaluating if-expression");
-    OtherwiseReport("unknown failure condition");
-    Assert(ProgramOutput == "INIF\n");
-}
-
-void TestOrderOfOperations()
-{
-    It("evaluates order of operations");
-
-    SetProgramToRun("TestOrderOfOperations");
-    DisableLogging();
-    Compile();
-    Execute();
-
-    IncludeStandardAssertSuite();
-    
-    String correctOutput = "28\n6\n7\n-5\n-10\n8\n";
-
-    Should("execute operations in PEMDAS order");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
-}
-
-void TestMethodWithNoParams()
-{
-    It("can define/evaluate method with no params");
-
-    CompileAndExecuteProgram("TestMethodWithNoParams");
-
-    IncludeStandardAssertSuite();
-
-    String correctOutput = "48\n60\n";
-
-    Should("define and execute method with no params");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
-}
-
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Test index
-
-typedef void (*TestFunction)();
-TestFunction Tests[] = 
-{
-    TestCustomProgram,
-    TestIf,
-    TestOrderOfOperations,
-    TestMethodWithNoParams,
-};
 
 
 

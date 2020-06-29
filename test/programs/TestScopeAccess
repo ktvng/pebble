@@ -1,0 +1,18 @@
+X = 10
+    Y = 6
+print Y
+
+if(X):
+    Z = 6
+print Z
+
+Method():
+    A = 44
+print A
+
+Method()
+print A
+
+MethodWithAccess():
+    print X
+MethodWithAccess()

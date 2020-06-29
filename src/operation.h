@@ -2,10 +2,67 @@
 #define __OPERATION_H
 
 #include "main.h"
-#include "arch.h"
 #include "token.h"
 #include "object.h"
-#include "diagnostics.h"
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Struct definitions
+
+/// different atomic operations which build Pebble code
+enum OperationType
+{
+    Assign,                         // change what a Reference points to
+    IsEqual,                        // returns Reference to BooleanClass result of ==
+    IsNotEqual,                     // returns Reference to BooleanClass result of !=
+    IsLessThan,                     // returns Reference to BooleanClass result of <
+    IsGreaterThan,                  // returns Reference to BooleanClass result of >
+    IsLessThanOrEqualTo,            // returns Reference to BooleanClass result of <=
+    IsGreaterThanOrEqualTo,         // returns Reference to BooleanClass result of >=
+
+    Add,                            // returns Reference to result of +
+    Subtract,                       // returns Reference to result of -
+    Multiply,                       // returns Reference to result of *
+    Divide,                         // returns Reference to result of /
+
+    And,                            // returns Reference to result of &&
+    Or,                             // returns Reference to result of ||
+    Not,                            // returns Reference to result of !
+    Evaluate,                       // returns Reference to result of method call
+    Print,                          // prints a Ref to the screen
+    
+    Ref,                            // terminal of an operation tree, returns a Reference
+    DefineMethod,                   // add a new method Reference to scope, but returns NullReference
+    Return,                         // break out of a method and return a value
+
+    If,                             // conditionally executes the next block of code
+    While,
+    EndLabel,                       // end of an if statement
+    Tuple,                          // constructs and returns a (>1) ordering of references
+    New,
+    ScopeResolution,
+    Class,
+
+
+};
+
+/// a representation of an atomic operation with
+/// [Type] which governs how the operation should be executed
+/// [Operands] which will be evaluated into the inputs to this operation
+/// [Value] which is only used for OperationType::Ref (terminals) of the operation tree
+/// [LineNumber] which is the line of code that the operation was parsed from
+class Operation : public Executable 
+{
+    public:
+    OperationType Type;
+    std::vector<Operation*> Operands;
+    Reference* Value;
+    int LineNumber;
+};
+
+typedef std::vector<Operation*> OperationsList;
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -29,65 +86,38 @@ Method* MethodConstructor(Scope* inheritedScope);
 // ---------------------------------------------------------------------------------------------------------------------
 // Handle the execution of atomic operations
 
-Reference* OperationAssign(Reference* lRef, Reference* rRef);
-Reference* OperationPrint(const Reference* ref);
-Reference* OperationAdd(const Reference* lRef, const Reference* rRef);
-Reference* OperationSubtract(const Reference* lRef, const Reference* rRef);
-Reference* OperationMultiply(const Reference* lRef, const Reference* rRef);
-Reference* OperationDivide(const Reference* lRef, const Reference* rRef);
-Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
-Reference* OperationDefine(Reference* ref);
-Reference* OperationIf(Reference* ref);
-Reference* OperationWhile(Reference* ref);
-Reference* OperationRef(Reference* ref);
-Reference* OperationDefineMethod(Reference* ref);
-Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters);
-Reference* OperationReturn(Reference* returnRef);
-Reference* OperationTuple(const std::vector<Reference*>& components);
-
-void DecideValueRef(TokenList& tokens, Reference** refValue);
+Reference* OperationDefine(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationIsEqual(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationIsNotEqual(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationIsLessThan(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationIsGreaterThan(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationIsLessThanOrEqualTo(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationIsGreaterThanOrEqualTo(Reference* value, std::vector<Reference*>& operands);
 
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Decide the probability that a given line [TokenList] is a particular atomic operation
+Reference* OperationAdd(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationSubtract(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationMultiply(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationDivide(Reference* value, std::vector<Reference*>& operands);
 
-void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityRef(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityIsEqual(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityIsLessThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityIsGreaterThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilitySubtract(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityMultiply(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityDivide(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
-void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, const TokenList& tokens);
+Reference* OperationAnd(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationOr(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationNot(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands);
 
+Reference* OperationRef(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationReturn(Reference* value, std::vector<Reference*>& operands);
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Decide the operands of an atomic operation.
-//   should edit the [tokens] to remove used Tokens
+Reference* OperationIf(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationWhile(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationEndLabel(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationTuple(Reference* value, std::vector<Reference*>& operands);
 
-void DecideOperandsAdd(TokenList& tokens, OperationsList& operands);
-void DecideOperandsDefine(TokenList& tokens, OperationsList& operands);
-void DecideOperandsPrint(TokenList& tokens, OperationsList& operands);
-void DecideOperandsAssign(TokenList& tokens, OperationsList& operands);
-void DecideOperandsIsEqual(TokenList& tokens, OperationsList& operands);
-void DecideOperandsIsLessThan(TokenList& tokens, OperationsList& operands);
-void DecideOperandsIsGreaterThan(TokenList& tokens, OperationsList& operands);
-void DecideOperandsSubtract(TokenList& tokens, OperationsList& operands);
-void DecideOperandsMultiply(TokenList& tokens, OperationsList& operands);
-void DecideOperandsDivide(TokenList& tokens, OperationsList& operands);
-void DecideOperandsAnd(TokenList& tokens, OperationsList& operands);
-void DecideOperandsOr(TokenList& tokens, OperationsList& operands);
-void DecideOperandsNot(TokenList& tokens, OperationsList& operands);
-void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands);
-void DecideOperandsRef(TokenList& tokens, OperationsList& operands);
-void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands);
+Reference* OperationNew(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationScopeResolution(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationClass(Reference* value, std::vector<Reference*>& operands);
 
 #endif

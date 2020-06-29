@@ -2,6 +2,56 @@
 #define __TOKEN_H
 
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Struct definitions
+
+/// used in tokenization to classify each token
+enum class TokenType
+{
+    Simple,                 // any general word/symbol not matching another type
+    Reference,              // encodes a Reference name; must start with capital letter
+    Integer,                // a whole number
+    String,                 // a line of characters enclosed by double quotes
+    Decimal,                // a number with a decimal point
+    Boolean,                // true of false in any case
+};
+
+/// a token contains information about chunks of parsed string including
+/// [Type] describing the token's TokenType
+/// [Content] being the string bit it refers to
+/// [Position] what position in a line does the token occur
+struct Token
+{
+    TokenType Type;
+    String Content;
+    int Position;
+};
+
+/// a list of TokenTypes which represent primitive objects
+const std::vector<TokenType> PrimitiveTokenTypes {
+    TokenType::Integer,
+    TokenType::String,
+    TokenType::Decimal,
+    TokenType::Boolean,
+};
+
+/// tokens which represent any Object 
+const std::vector<TokenType> ObjectTokenTypes {
+    TokenType::Integer,
+    TokenType::String,
+    TokenType::Decimal,
+    TokenType::Boolean,
+    TokenType::Reference,
+};
+
+typedef std::vector<Token*> TokenList;
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Methods
+
+/// returns a new string with each character of [str] changed to lowercase
 String ToLowerCase(const String& str);
 
 // takes in a single line (no newlines) and returns a list of tokens representing the line
@@ -23,6 +73,8 @@ TokenList RightOfToken(const TokenList& tokens, Token* token);
 
 
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Token Matching
 
 /// finds the next token of [type] from [pos] in [tokens] and sets [pos] to the position after this token
 /// returns nullptr and sets [pos] = -1 if no token exists
@@ -47,7 +99,6 @@ Token* NextTokenMatching(const TokenList& tokens, std::vector<String> contents);
 Token* NextTokenMatching(const TokenList& tokens, String content, int& pos);
 Token* NextTokenMatching(const TokenList& tokens, String content);
 
-
 /// returns true if [token] is one of the TokenTypes in [types]
 bool TokenMatchesType(Token* token, TokenType type);
 bool TokenMatchesType(Token* token, std::vector<TokenType> types);
@@ -57,11 +108,5 @@ bool TokenMatchesContent(Token* token, String content);
 bool TokenMatchesContent(Token* token, std::vector<String> contents);
 
 bool TokenListContainsContent(const TokenList& tokenList, std::vector<String> contents);
-
-
-Operation* ExpressionParser(TokenList& line);
-
-void CompileGrammar();
-void PrintPrecedenceRules();
 
 #endif

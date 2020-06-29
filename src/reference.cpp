@@ -2,44 +2,16 @@
 #include "reference.h"
 #include "object.h"
 #include "utils.h"
-#include <iostream>
+#include "scope.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // TODO:
-// 1. Add RefersToObject and RefersToMethod
 
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Scoping
-
-using namespace utils;
-
-/// stack which contains the hierarchy of scopes building up to the current Scope of execution
-static Stack<Scope*> ScopeStack;
-
-/// returns the current scope
-Scope* CurrentScope()
+void ReferenceDestructor(Reference* ref)
 {
-    return ScopeStack.Peek();
-}
-
-/// enters a new scope
-void EnterScope(Scope* newScope)
-{
-    ScopeStack.Push(newScope);
-}
-
-/// removes all references from a scope
-void ClearScope()
-{
-    CurrentScope()->ReferencesIndex.clear();
-}
-
-/// exit the current scope and return to the previous scope (i.e. the scope before entering this one)
-void ExitScope()
-{
-    ScopeStack.Pop();
+    delete ref;
 }
 
 /// Removes [ref] from [scope]
@@ -73,7 +45,7 @@ bool IsTemporaryReference(Reference* ref)
 /// removes all dependencies on [ref] and deletes [ref]
 void Dereference(Reference* ref)
 {
-    if(!IsTemporaryReference(ref))
+    if(!IsTemporaryReference(ref) && !IsNullReference(ref))
         return;
 
     LogItDebug(Msg("dereferencing: %s", ref->Name), "Dereference");
@@ -83,7 +55,7 @@ void Dereference(Reference* ref)
         RemoveReferenceFromObjectIndex(ref);
     }
     RemoveReferenceFromCurrentScope(ref);
-    delete ref;
+    ReferenceDestructor(ref);
 }
 
 /// dereferences each element of [referencesList] from [scope]
@@ -91,20 +63,8 @@ void DereferenceAll(std::vector<Reference*> referenceList)
 {
     for(Reference* ref: referenceList)
     {
-        if(ref->Name == c_temporaryReferenceName)
-        {
-            Dereference(ref);
-        }
+        Dereference(ref);
     }
-}
-
-/// add [ref] to current scope
-void AddReferenceToCurrentScope(Reference* ref)
-{
-    if(CurrentScope() == nullptr)
-        LogItDebug("current scope is not set", "AddReferenceToCurrentScope");
-    LogItDebug("added reference to current scope", "AddReferenceToCurrentScope");
-    CurrentScope()->ReferencesIndex.push_back(ref);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -150,6 +110,16 @@ bool IsObject(Reference* ref)
     if(ref == nullptr)
         return false;
     if(ObjectOf(ref) != nullptr)
+        return true;
+    return false;
+}
+
+bool IsPrimitiveObject(Reference* ref)
+{
+    if(!IsObject(ref))
+        return false;
+    auto objClass = ObjectOf(ref)->Class;
+    if(objClass == BooleanClass || objClass == StringClass || objClass == DecimalClass || objClass == IntegerClass)
         return true;
     return false;
 }
@@ -315,6 +285,15 @@ Reference* ReferenceFor(String refName, double value)
 /// a corresponding new object
 Reference* ReferenceFor(String refName, ObjectClass objClass, void* value)
 {
+    if(objClass == IntegerClass)
+        return ReferenceFor(c_returnReferenceName, *static_cast<int*>(value));
+    else if(objClass == DecimalClass)
+        return ReferenceFor(c_returnReferenceName, *static_cast<double*>(value));
+    else if(objClass == BooleanClass)
+        return ReferenceFor(c_returnReferenceName, *static_cast<bool*>(value));
+    else if(objClass == StringClass)
+        return ReferenceFor(c_returnReferenceName, *static_cast<String*>(value));
+
     Reference* ref = CreateReferenceToNewObject(refName, objClass, value);
     AddReferenceToCurrentScope(ref);
 
@@ -332,7 +311,8 @@ Reference* ReferenceFor(String refName, Referable* refable)
 /// reassign an existing reference [ref] to [to]
 void ReassignReference(Reference* ref, Referable* to)
 {
-    RemoveReferenceFromObjectIndex(ref);
+    if(ObjectOf(ref) != nullptr)
+        RemoveReferenceFromObjectIndex(ref);
     if(to->Type == ReferableType::Object)
         IndexObject(static_cast<Object*>(to), ref);
     
@@ -369,6 +349,12 @@ Reference* NullReference(String refName)
     Reference* ref = CreateNullReference(refName);
     AddReferenceToCurrentScope(ref);
     return ref;
+}
+
+/// true if [ref] is a null reference
+bool IsNullReference(const Reference* ref)
+{
+    return (ObjectOf(ref) != nullptr && ObjectOf(ref) == NullObject());
 }
 
 /// reassign an existing reference [ref] to NullObject

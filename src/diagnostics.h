@@ -5,8 +5,35 @@
 #include <cstdarg>
 
 #include "main.h"
-#include "arch.h"
+#include "operation.h"
+#include "object.h"
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Logging and debugging
+
+/// log events are used for internal Pebble developer debugging
+/// defines how severe a log event is. due to enum -> int casting, definition order is important
+enum LogSeverityType
+{
+    Sev0_Debug,
+    Sev1_Notify,
+    Sev2_Important,
+    Sev3_Critical,
+};
+
+/// converts LogSeverityType to a printable string
+const std::map<LogSeverityType, String> LogSeverityTypeString =
+{
+    { LogSeverityType::Sev3_Critical, "Critical" },
+    { LogSeverityType::Sev2_Important, "Important" },
+    { LogSeverityType::Sev1_Notify, "Notify" },
+    { LogSeverityType::Sev0_Debug, "Debug" }
+};
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Console
 
 /// console display color
 enum ConsoleColor
@@ -33,6 +60,18 @@ enum ConsoleColor
 void SetConsoleColor(ConsoleColor color);
 
 
+// ---------------------------------------------------------------------------------------------------------------------
+// String formatting utilties
+
+/// creates a String by expanding a [message] and its variable arguments
+String Msg(String message, ...);
+
+String IndentStringToLevel(String str, int level, int margin=0);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Pebble system messages
+
 enum class SystemMessageType
 {
     Exception,
@@ -49,20 +88,31 @@ struct SystemMessage
 extern std::vector<SystemMessage> RuntimeMsgBuffer;
 extern std::vector<SystemMessage> CompileMsgBuffer;
 
-void PurgeLog();
-void LogIt(LogSeverityType type, String method, String message);
-void LogItDebug(String message, String method="unspecified");
 void RuntimeMsgPrint(int lineNumber);
 void CompileMsgPrint(int lineNumber);
 
-/// creates a String by expanding a [message] and its variable arguments
-String Msg(String message, ...);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// General logging
+
+void PurgeLog();
+void LogIt(LogSeverityType type, String method, String message);
+void LogItDebug(String message, String method="unspecified");
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ToString methods
 
 String ToString(const OperationType& type);
 String ToString(const Operation& op, int level=0);
 String ToString(const Operation* op, int level=0);
 String ToString(const Block* block, int level=0);
 String ToString(const Block& block, int level=0);
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Logging object dump
 
 void LogDiagnostics(const Object& obj, String message="object dump", String method="unspecified");
 void LogDiagnostics(const Operation& op, String message="object dump", String method="unspecified");

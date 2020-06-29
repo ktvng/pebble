@@ -3,6 +3,7 @@
 #include "operation.h"
 #include "program.h"
 #include "reference.h"
+#include "execute.h"
 
 
 
@@ -15,6 +16,44 @@
 
 
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Operations
+OperationEvaluator OperationEvaluators[] = 
+{
+    OperationAssign,
+    OperationIsEqual,
+    OperationIsNotEqual,
+    OperationIsLessThan,
+    OperationIsGreaterThan,
+    OperationIsLessThanOrEqualTo,
+    OperationIsGreaterThanOrEqualTo,
+
+    OperationAdd,
+    OperationSubtract,
+    OperationMultiply,
+    OperationDivide,
+
+    OperationAnd,
+    OperationOr,
+    OperationNot,
+    OperationEvaluate,
+    OperationPrint,
+
+    OperationRef,
+    OperationDefineMethod,
+    OperationReturn,
+
+    OperationIf,
+    OperationWhile,
+    OperationEndLabel,
+    OperationTuple,
+
+    OperationNew,
+    OperationScopeResolution,
+    OperationClass,
+
+
+};
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -48,53 +87,193 @@ Operation* OperationConstructor(
     return OperationConstructor(type, operands, value);
 }
 
-// constructor for a Method* object with [inheritedScope]
+/// constructor for a Method* object with [inheritedScope]
 Method* MethodConstructor(Scope* inheritedScope)
 {
     Method* m = new Method;
-    m->Parameters = ScopeConstructor(inheritedScope);
     m->CodeBlock = BlockConstructor();
     m->Type = ReferableType::Method;
+    m->ParameterNames = {};
 
     return m;
 }
 
-/// adds a new Operation::Ref type operation for [ref] to [operands]
-void AddRefOperationTo(OperationsList& operands, Reference* ref)
+Reference* ResolveStub(Reference* ref) 
 {
-    operands.push_back(OperationConstructor(OperationType::Ref, ref));
+    if(!IsReferenceStub(ref))
+        return ref;
+
+    if(ref->Name == "that" || ref->Name == "it")
+    {
+        if(PROGRAM->That == nullptr)
+        {
+            ReportRuntimeMsg(SystemMessageType::Exception, "no previous result to use with 'that'/'it' keyword");
+            return NullReference(ref->Name);
+        }
+        return ReferenceFor(c_temporaryReferenceName, PROGRAM->That->To);
+    }
+    
+    auto lookupRef = ReferenceFor(ref->Name);
+    if(lookupRef == nullptr)
+        return NullReference(ref->Name);
+    else
+        return lookupRef;
 }
 
-/// adds an existing Operation [op] to [operands]
-void AddOperationTo(OperationsList& operands, Operation* op)
+inline Reference* NthOf(std::vector<Reference*>& operands, int n)
 {
-    operands.push_back(op);
+    if(operands.size() >= static_cast<size_t>(n))
+        return ResolveStub(operands.at(n-1));
+    return nullptr;
+}
+
+inline Reference* FirstOf(std::vector<Reference*>& operands)
+{
+    return NthOf(operands, 1);
+}
+
+inline Reference* SecondOf(std::vector<Reference*>& operands)
+{
+    return NthOf(operands, 2);
+}
+
+bool ReferencesAreEqual(Reference* lhs, Reference* rhs)
+{
+    return lhs->To == rhs->To;
+}
+
+/// TODO: allow intra primitive comparisions
+Reference* OperationIsEqual(Reference* value, std::vector<Reference*>& operands)
+{
+    Reference* lhs = FirstOf(operands);
+    Reference* rhs = SecondOf(operands);
+    bool areEqual = ReferencesAreEqual(lhs, rhs);
+    
+    return ReferenceFor(c_temporaryReferenceName, areEqual);
+}
+
+Reference* OperationIsNotEqual(Reference* value, std::vector<Reference*>& operands)
+{
+    Reference* lhs = FirstOf(operands);
+    Reference* rhs = SecondOf(operands);
+    bool areEqual = ReferencesAreEqual(lhs, rhs);
+    
+    return ReferenceFor(c_temporaryReferenceName, !areEqual);
+}
+
+Reference* OperationIsLessThan(Reference* value, std::vector<Reference*>& operands)
+{
+    auto lRef = FirstOf(operands);
+    auto rRef = SecondOf(operands);
+    bool comparisonIs = false;
+
+    if(IsNumeric(lRef) && IsNumeric(rRef))
+    {
+        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) < GetDecimalValue(*ObjectOf(rRef));
+    }
+
+    return ReferenceFor(c_temporaryReferenceName, comparisonIs);
+}
+
+Reference* OperationIsGreaterThan(Reference* value, std::vector<Reference*>& operands)
+{
+    auto lRef = FirstOf(operands);
+    auto rRef = SecondOf(operands);
+    bool comparisonIs = false;
+
+    if(IsNumeric(lRef) && IsNumeric(rRef))
+    {
+        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) > GetDecimalValue(*ObjectOf(rRef));
+    }
+
+    return ReferenceFor(c_temporaryReferenceName, comparisonIs);
+}
+
+Reference* OperationIsLessThanOrEqualTo(Reference* value, std::vector<Reference*>& operands)
+{
+    auto lRef = FirstOf(operands);
+    auto rRef = SecondOf(operands);
+    bool comparisonIs = false;
+
+    if(IsNumeric(lRef) && IsNumeric(rRef))
+    {
+        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) <= GetDecimalValue(*ObjectOf(rRef));
+    }
+
+    return ReferenceFor(c_temporaryReferenceName, comparisonIs);
+}
+
+Reference* OperationIsGreaterThanOrEqualTo(Reference* value, std::vector<Reference*>& operands)
+{
+    auto lRef = FirstOf(operands);
+    auto rRef = SecondOf(operands);
+    bool comparisonIs = false;
+
+    if(IsNumeric(lRef) && IsNumeric(rRef))
+    {
+        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) >= GetDecimalValue(*ObjectOf(rRef));
+    }
+    
+    return ReferenceFor(c_temporaryReferenceName, comparisonIs);
 }
 
 
+Reference* OperationOr(Reference* value, std::vector<Reference*>& operands)
+{
+    Reference* lRef = FirstOf(operands);
+    Reference* rRef = SecondOf(operands);
+
+    bool b = GetBoolValue(*ObjectOf(lRef)) || GetBoolValue(*ObjectOf(rRef));
+    return ReferenceFor(c_temporaryReferenceName, b);
+}
+
+Reference* OperationNot(Reference* value, std::vector<Reference*>& operands)
+{
+    Reference* ref = FirstOf(operands);
+
+    bool b = !GetBoolValue(*ObjectOf(ref));
+    return ReferenceFor(c_temporaryReferenceName, b);
+}
+
+Reference* OperationEndLabel(Reference* value, std::vector<Reference*>& operands)
+{
+    LogIt(LogSeverityType::Sev1_Notify, "OperationEndLabel", "unimplemented");
+    return NullReference();
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Atomic Operations
 
 /// handles OperationType::Ref which returns a reference
-Reference* OperationRef(Reference* ref)
+Reference* OperationRef(Reference* value, std::vector<Reference*>& operands)
 {
-    return ref;
+    return value;
 }
 
 /// handles OperationType::Assign which assigns a reference [lRef] to the Referable of [rRef]
 /// returns a temporary reference to the assigned Referable
-Reference* OperationAssign(Reference* lRef, Reference* rRef)
+Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands)
 {
-    ReassignReference(lRef, ObjectOf(rRef));
-    return ReferenceFor(c_temporaryReferenceName, ObjectOf(lRef));
+    Reference* lRef = FirstOf(operands);
+    Reference* rRef = SecondOf(operands);
+
+    if(IsNullReference(rRef))
+    {
+        ReportRuntimeMsg(SystemMessageType::Warning, Msg("cannot assign %s to Nothing", lRef));
+        return ReferenceFor(c_temporaryReferenceName, lRef->To);
+    }
+
+    ReassignReference(lRef, rRef->To);
+    return ReferenceFor(c_temporaryReferenceName, lRef->To);
 }
 
 /// handles OperationType::Print which prints the string value of [ref]
 /// returns a temporary reference to the printed Referable
-Reference* OperationPrint(const Reference* ref)
+Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* ref = FirstOf(operands);
+
     if(g_outputOn)
         std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
     ProgramOutput.append(GetStringValue(*ObjectOf(ref)) + "\n");
@@ -105,8 +284,10 @@ Reference* OperationPrint(const Reference* ref)
 /// handles OperationType::Add which adds the objects of [lRef] and [rRef]
 /// only supports adding objects of numeric type and Strings (by concatenation)
 /// returns a temporary reference to the addition result, which is null on failure
-Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
+Reference* OperationAdd(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* lRef = FirstOf(operands);
+    Reference* rRef = SecondOf(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -149,26 +330,46 @@ Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
 
 /// handles OperationType::And which returns the && of the boolean value for [lRef] and [rRef]
 /// returns a temporary reference to the result
-Reference* OperationAnd(const Reference* lRef, const Reference* rRef)
+Reference* OperationAnd(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* lRef = FirstOf(operands);
+    Reference* rRef = SecondOf(operands);
+
     bool b = GetBoolValue(*ObjectOf(lRef)) && GetBoolValue(*ObjectOf(rRef));
     return ReferenceFor(c_temporaryReferenceName, b);
 }
 
 /// handles OperationType::Define which adds a new reference to the current scope
 /// returns the newly added [ref]
-Reference* OperationDefine(Reference* ref)
+Reference* OperationDefine(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* ref = FirstOf(operands);
+    Reference* containerRef = SecondOf(operands);
+
+    if(containerRef != nullptr)
+    {
+        EnterScope(ObjectOf(containerRef)->Attributes);
+        {
+            AddReferenceToCurrentScope(ref);
+        }
+        ExitScope();
+    }
+    else
+    {
+        AddReferenceToCurrentScope(ref);
+    }
+
     LogItDebug(Msg("added reference [%s] to scope", ref->Name), "OperationDefine");
-    AddReferenceToCurrentScope(ref);
 
     return ref;
 }
 
 /// handles OperationType::Subtract which is only defined for numeric typed objects
 /// returns a temporary reference to the resultant, null if failed
-Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
+Reference* OperationSubtract(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* lRef = FirstOf(operands);
+    Reference* rRef = SecondOf(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -199,21 +400,25 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
 
 /// handles OperationType::If 
 /// returns a temporary reference to an object representing the evaluated if-expression
-Reference* OperationIf(Reference* ref)
+Reference* OperationIf(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* ref = FirstOf(operands);
     return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
-Reference* OperationWhile(Reference* ref)
+Reference* OperationWhile(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* ref = FirstOf(operands);
     return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
 
 /// handles OperationType::Multiply which is only defined for numeric typed objects
 /// returns a temporary reference to the resultant, null if failed
-Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
+Reference* OperationMultiply(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* lRef = FirstOf(operands);
+    Reference* rRef = SecondOf(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -242,10 +447,15 @@ Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
     return resultRef;
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// DivideOperation
+
 /// handles OperationType::Divide which is only defined for numeric typed objects
 /// returns a temporary reference to the resultant, null if failed
-Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
+Reference* OperationDivide(Reference* value, std::vector<Reference*>& operands)
 {
+    Reference* lRef = FirstOf(operands);
+    Reference* rRef = SecondOf(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -276,301 +486,13 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
 
 /// handles OperationType::Return to exit a method
 /// returns a persistant reference to the return value
-Reference* OperationReturn(Reference* returnRef)
+Reference* OperationReturn(Reference* value, std::vector<Reference*>& operands)
 {
-    // TODO: can only return objects for now
-    return ReferenceFor(c_returnReferenceName, ObjectOf(returnRef));
+    Reference* returnRef = FirstOf(operands);
+    return ReferenceFor(c_returnReferenceName, returnRef->To);
 }
 
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Decide Probabilities
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityAdd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    std::vector<String> addKeyWords = { "add", "plus", "+", "adding" };
-    if(TokenListContainsContent(tokens, addKeyWords))
-    {
-        OperationTypeProbability addType = { OperationType::Add, 4.0 };
-        typeProbabilities.push_back(addType);
-    }
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityDefine(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    std::vector<String> defineKeyWords = { "define", "let", "make", "declare" };
-    if(TokenListContainsContent(tokens, defineKeyWords))
-    {
-        OperationTypeProbability defineType = { OperationType::Define, 4.0};
-        typeProbabilities.push_back(defineType);
-    }
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityPrint(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    std::vector<String> printKeyWords = { "print", "display", "show", "output" };
-    if(TokenListContainsContent(tokens, printKeyWords))
-    {
-        OperationTypeProbability printType = { OperationType::Print, 4.0 };
-        typeProbabilities.push_back(printType);
-    }
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityAssign(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    if(Token* pos = FindToken(tokens, "="); pos != nullptr)
-    {
-        OperationTypeProbability assignType = { OperationType::Assign, 6 };
-        typeProbabilities.push_back(assignType);
-    }
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityRef(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    OperationTypeProbability returnType = { OperationType::Ref, 1 };
-    typeProbabilities.push_back(returnType);
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityIsEqual(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityIsLessThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityIsGreaterThan(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilitySubtract(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    std::vector<String> subKeyWords = { "sub", "subtract", "minus", "-", "subtracting" };
-    if(TokenListContainsContent(tokens, subKeyWords))
-    {
-        OperationTypeProbability subType = { OperationType::Subtract, 4.0 };
-        typeProbabilities.push_back(subType);
-    }
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityMultiply(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityDivide(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityAnd(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    std::vector<String> andKeyWords = { "and", "&&", "together", "with" };
-    if(TokenListContainsContent(tokens, andKeyWords))
-    {
-        OperationTypeProbability andType = { OperationType::And, 4.0 };
-        typeProbabilities.push_back(andType);
-    }
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityOr(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    
-}
-
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    
-}
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Decide operation reference value
-
-/// handles OperationType::Ref by assigning the operation.Value to the approriate reference
-void DecideValueRef(TokenList& tokens, Reference** refValue)
-{
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), c_operationReferenceName);
-    *refValue = arg1;
-}
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Decide Operands
-// should edit token list remove used tokens
-
-/// gets references for the next two tokens which refer to Objects
-void GetTwoOperands(TokenList& tokens, OperationsList& operands)
-{
-    int pos = 0;
- 
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), c_operationReferenceName);
-    Reference* arg2 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes, pos), c_operationReferenceName);
-
-    AddRefOperationTo(operands, arg1);
-    AddRefOperationTo(operands, arg2);
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsAdd(TokenList& tokens, OperationsList& operands) // EDIT
-{
-    GetTwoOperands(tokens, operands);
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsDefine(TokenList& tokens, OperationsList& operands)
-{
-    Reference* ref; 
-
-    std::vector<String> arrayWords = { "array", "list", "collection" };
-    if(TokenListContainsContent(tokens, arrayWords))
-    {
-        // do array stuff
-        Token* name = NextTokenMatching(tokens, TokenType::Reference);
-        Token* size = NextTokenMatching(tokens, TokenType::Integer);
-        int* i = new int;
-        *i = std::stoi(size->Content);
-
-        AddRefOperationTo(operands, ReferenceFor(name->Content, ArrayClass, static_cast<void*>(i)));
-        return;
-    }
-
-    // treat as primitive
-    Token* name = NextTokenMatching(tokens, TokenType::Reference);
-    Token* value = NextTokenMatching(tokens, PrimitiveTokenTypes);
-
-    if(name == nullptr){
-        LogIt(LogSeverityType::Sev3_Critical, "DecideOperandsDefine", "cannot determine reference name");
-        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference name");
-        // TODO: should be critical error
-        AddRefOperationTo(operands, NullReference()); 
-        return;
-    }
-    
-    if(value == nullptr)
-    {
-        ReportCompileMsg(SystemMessageType::Exception, "cannot determine reference value");
-        ref = NullReference(name->Content);
-    }
-    else
-    {
-        ref = ReferenceFor(value, name->Content);
-    }
-    AddRefOperationTo(operands, ref);
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsPrint(TokenList& tokens, OperationsList& operands)
-{
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), c_operationReferenceName);
-    AddRefOperationTo(operands, arg1);
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsAssign(TokenList& tokens, OperationsList& operands)
-{
-
-    int pos = 0;
-    Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, TokenType::Reference, pos));
-    AddRefOperationTo(operands, arg1);
-
-    TokenList rightTokens = RightOfToken(tokens, tokens.at(pos));
-    tokens = rightTokens;
-
-    Operation* op2 = ParseLine(tokens);
-    AddOperationTo(operands, op2);
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsIsEqual(TokenList& tokens, OperationsList& operands)
-{
-
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsIsLessThan(TokenList& tokens, OperationsList& operands)
-{
-    
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsIsGreaterThan(TokenList& tokens, OperationsList& operands)
-{
-    
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsSubtract(TokenList& tokens, OperationsList& operands)
-{
-    GetTwoOperands(tokens, operands);
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsMultiply(TokenList& tokens, OperationsList& operands)
-{
-    
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsDivide(TokenList& tokens, OperationsList& operands)
-{
-    
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsAnd(TokenList& tokens, OperationsList& operands)
-{
-    GetTwoOperands(tokens, operands);
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsOr(TokenList& tokens, OperationsList& operands)
-{
-    
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsNot(TokenList& tokens, OperationsList& operands)
-{
-    
-}
-
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsRef(TokenList& tokens, OperationsList& operands)
-{
-    // no operands
-}
 
 
 
@@ -578,57 +500,45 @@ void DecideOperandsRef(TokenList& tokens, OperationsList& operands)
 // OperationType::DefineMethod
 
 /// handle the operation which adds a Method [ref] to the scope
-/// returns a 
-Reference* OperationDefineMethod(Reference* ref)
+Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& operands)
 {
-    AddReferenceToCurrentScope(ref);
+    Reference* ref = FirstOf(operands);
+    if(operands.size() == 2)
+    {
+        Reference* containingRef = SecondOf(operands);
+        EnterScope(ObjectOf(containingRef)->Attributes);
+        {
+            AddReferenceToCurrentScope(ref);
+        }
+        ExitScope();
+    }
+    else
+    {
+        AddReferenceToCurrentScope(ref);
+    }
+    
     return NullReference();
 }
 
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityDefineMethod(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
-{
-    if(FindToken(tokens, "method") != nullptr && FindToken(tokens, ":") != nullptr)
-    {
-        OperationTypeProbability defineMethodType = { OperationType::DefineMethod, 10.0 };
-        typeProbabilities.push_back(defineMethodType);
-    }
-}
 
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
-{
-    // TODO: assumes first reference is method name
-    int i=0;
-    Token* t = NextTokenMatching(tokens, TokenType::Reference, i);
-    String methodName = t->Content;
-    
-    Method* m = MethodConstructor(PROGRAM->GlobalScope);
-
-    for(t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
-    {
-        m->Parameters->ReferencesIndex.push_back(NullReference(t->Content));
-    }
-    
-    Reference* ref = ReferenceFor(methodName, m);
-    AddRefOperationTo(operands, ref);
-}
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Tuple operation
-Reference* OperationTuple(const std::vector<Reference*>& components)
+Reference* OperationTuple(Reference* value, std::vector<Reference*>& operands)
 {
     LogItDebug("called", "OperationTuple");
     Reference* tupleRef = ReferenceFor(c_temporaryReferenceName, TupleClass, nullptr);
-    ObjectOf(tupleRef)->Attributes.reserve(components.size());
 
-    for(auto ref: components)
+    for(auto ref: operands)
     {
-        auto copyRef = NullReference(ref->Name);
-        ReassignReference(copyRef, ref->To);
-        ObjectOf(tupleRef)->Attributes.push_back(copyRef);
+        EnterScope(ObjectOf(tupleRef)->Attributes);
+        {
+            auto copyRef = NullReference(ref->Name);
+            ReassignReference(copyRef, ref->To);
+        }
+        ExitScope();
+
     }
 
     return tupleRef;
@@ -638,16 +548,16 @@ Reference* OperationTuple(const std::vector<Reference*>& components)
 // ---------------------------------------------------------------------------------------------------------------------
 // Evaluate operation
 
-std::vector<Reference*> ResolveParamters(Reference* ref, std::vector<Reference*>& parameters)
+std::vector<Reference*> ResolveParamters(Reference* ref)
 {
-    if(parameters.size()<=1)
+    if(IsNullReference(ref))
         return {};
 
-    auto obj = ObjectOf(parameters.at(1));
-    if(obj->Class == TupleClass)
+    auto obj = ObjectOf(ref);
+    if(obj != nullptr && obj->Class == TupleClass)
     {
         std::vector<Reference*> params;
-        for(auto ref: obj->Attributes)
+        for(auto ref: obj->Attributes->ReferencesIndex)
         {
             params.push_back(ref);
         }
@@ -655,69 +565,186 @@ std::vector<Reference*> ResolveParamters(Reference* ref, std::vector<Reference*>
     }
     else
     {
-        return { parameters.at(1) };
+        return { ref };
     }
     
 }
 
+/// methods are called by a caller, and if no caller is specified, CurrentScope takes on the role of 
+/// caller. the order of operands should be [caller] [methodname] [arguments]
 /// handles OperationType::Evaluate which takes in a Method reference [ref] and [parameters], the first
 /// of which is a reference to the method, and evaluates the method on these parameters
 /// returns a persistant reference to the returned result if a return statement was called
 /// or a temporary reference if no return statement was called
-Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters)
+Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands)
 {
-    // TODO: currently just assumes parameters are in order
-    // ref should be a method reference
-    LogItDebug(Msg("evaluating method %s", ref->Name), "OperationEvaluate");
+    auto explictCallerRef = FirstOf(operands);
+    Reference* caller;
 
-    std::vector<Referable*> originalParams;
-    std::vector<Reference*> params = ResolveParamters(ref, parameters);
+    // no explicit caller is given
+    if(IsNullReference(explictCallerRef))
+    {
+        // look for native 'caller' Referene
+        caller = ReferenceFor("caller");
+        if(caller == nullptr)
+            caller = NullReference();
+    }
+    else
+    {
+        caller = explictCallerRef;
+    }
+    // determine caller scope
+    Scope* callerScope;
+    if(IsNullReference(caller))
+    {
+        /// TODO: change this b/c this doesnt work well
+        callerScope = CurrentScope();
+    }
+    else
+    {
+        callerScope = ObjectOf(caller)->Attributes;
+    }
+    // resolve method call references inside caller scope
+    Reference* method;
+    EnterScope(callerScope);
+    {
+        method = SecondOf(operands);
+    }
+    ExitScope();
+    
+    if(IsNullReference(method))
+    {
+        EnterScope(CurrentScope());
+        {
+            method = SecondOf(operands);
+        }
+        ExitScope();
+    }
+
+    if(IsNullReference(method))
+    {
+        ReportRuntimeMsg(SystemMessageType::Exception, Msg("cannot resolve %s into a method", method->Name));
+        return NullReference();
+    }
+
+    Reference* params = NthOf(operands, 3);
+
+    
+    // resolve param refs from params
+    std::vector<Reference*> givenParamsList = ResolveParamters(params);
+    auto givenNum = givenParamsList.size();
+    auto requiredNum = MethodOf(method)->ParameterNames.size();
+    if(givenNum != requiredNum)
+    {
+        ReportRuntimeMsg(SystemMessageType::Exception, Msg("wrong number of parameters: given %i, but expected %i", givenNum, requiredNum));
+        return NullReference();
+    }
+
+    auto methodParamNames = MethodOf(method)->ParameterNames;
+
+    // add parameters to method scope
+    auto methodScope = ScopeConstructor(callerScope);
+    EnterScope(methodScope);
+    {
+        for(size_t i=0; i<methodParamNames.size(); i++)
+        {
+            ReferenceFor(methodParamNames[i], givenParamsList[i]->To);
+        }
+        ReferenceFor("caller", caller->To);
+    }
+    ExitScope();
 
     Reference* result;
-    for(size_t i=0; i<MethodOf(ref)->Parameters->ReferencesIndex.size() && i<params.size(); i++)
-    {
-        Reference* paramRef = MethodOf(ref)->Parameters->ReferencesIndex.at(i);
-        originalParams.push_back(paramRef->To);
-        auto inputRef = params.at(i);
-        ReassignReference(paramRef, inputRef->To);   
-    }
-
-    LogDiagnostics(MethodOf(ref)->CodeBlock, "method codeblock");
-
-    EnterScope(MethodOf(ref)->Parameters);
-    result = DoBlock(MethodOf(ref)->CodeBlock);
-    ExitScope();
-    LogDiagnostics(result, "evaluate result");
-
+    auto methodBlock = MethodOf(method)->CodeBlock;
+    result = DoBlock(methodBlock, methodScope);
     AddReferenceToCurrentScope(result);
-    
-    for(size_t i=0; i<originalParams.size(); i++)
-    {
-        ReassignReference(MethodOf(ref)->Parameters->ReferencesIndex.at(i), originalParams.at(i));
-    }
+
+    LogDiagnostics(result, "evaluate result");
 
     LogItDebug("finished evaluate", "OperationEvaluate");
     return result;
 }
 
-/// computes the probability that a given line convered into [tokens] is this atomic operation
-/// adds a new OperationTypeProbability to [typeProbabilities]
-void DecideProbabilityEvaluate(PossibleOperationsList& typeProbabilities, const TokenList& tokens)
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// New Operation
+
+/// creates a new object and copies all attributes
+Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
 {
-    if(FindToken(tokens, "(") != nullptr)
+    Reference* ref = FirstOf(operands);
+    
+    for(auto ref: PROGRAM->GlobalScope->ReferencesIndex)
+        LogDiagnostics(ref, "dubaduba");
+
+    LogDiagnostics(ref);
+    if(IsNullReference(ref))
     {
-        OperationTypeProbability evaluateType = { OperationType::Evaluate, 3.0 };
-        typeProbabilities.push_back(evaluateType);
+        ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is Nothing, it must be defined before use", ref->Name));
+        return NullReference();
     }
+
+    Reference* returnRef = ReferenceFor(c_temporaryReferenceName, ObjectOf(ref)->Class, ObjectOf(ref)->Value);
+    for(auto attributeRef: ObjectOf(ref)->Attributes->ReferencesIndex)
+    {
+        EnterScope(ObjectOf(returnRef)->Attributes);
+        {
+            ReferenceFor(attributeRef->Name, attributeRef->To);
+        }
+        ExitScope();
+    }
+    ObjectOf(returnRef)->Attributes->InheritedScope = ObjectOf(ref)->Attributes->InheritedScope;
+
+    return returnRef;
 }
 
-/// given [tokens], queries the proper operands required for this operation and adds them to [operands]
-void DecideOperandsEvaluate(TokenList& tokens, OperationsList& operands)
+// ---------------------------------------------------------------------------------------------------------------------
+// Scope Resolution Operation
+
+/// resolves one link in a scope chain
+Reference* OperationScopeResolution(Reference* value, std::vector<Reference*>& operands)
 {
-    // function name is first parameter
-    int i = 0;
-    for(Token* t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
+    Reference* inContext = FirstOf(operands);
+    Reference* lookFor = SecondOf(operands);
+    Reference* returnRef;
+
+    /// if there is no scope chain, return the first argument
+    if(lookFor == nullptr)
+        return inContext;
+
+    /// if the context we are inside is Nothing, raise error and continue propgating Nothing
+    if(IsNullReference(inContext))
     {
-        AddRefOperationTo(operands, ReferenceFor(t));
+        ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is Nothing and has no attribute %s", inContext->Name, lookFor->Name));
+        return NullReference(lookFor->Name);
     }
+    
+    EnterScope(ObjectOf(inContext)->Attributes);
+    {
+        returnRef = ReferenceFor(lookFor->Name);
+        if(returnRef == nullptr)
+        {
+            returnRef = NullReference(lookFor->Name);
+        }
+    }
+    ExitScope();
+
+    return returnRef;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Class Operation
+
+Reference* OperationClass(Reference* value, std::vector<Reference*>& operands)
+{
+    /// TODO: clean up and handle inheritance
+    Reference* klass = FirstOf(operands);
+    Reference* tempRefToNewObj = ReferenceFor(c_temporaryReferenceName, klass->Name, nullptr);
+    ReassignReference(klass, tempRefToNewObj->To);
+    ObjectOf(klass)->Attributes->InheritedScope = PROGRAM->GlobalScope;
+    Dereference(tempRefToNewObj);
+
+    return klass;
 }
