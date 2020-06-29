@@ -4,7 +4,7 @@ still providing advanced capabilities.
 
 Knowledge of programming, more and more, is becoming both useful and necessary. Every day we interact with technology in ways we can only begin to imagine. Code governs some of our most nuclear and personal experiences. But we often take that code for granted, and we treat it as a black box.
 
-We're developing Chief because we believe that knowledge of coding is vital to be informed citizens and well rounded individuals. Our goal is to create a language that anyone can pickup, understand, and master. It is our hope that in the process, newcomers will develop a stronger understanding of how code works and a more nuanced understanding of how coding can impact our society. In short, our mission is to make learning to program accessilbe to everyone.
+We're developing Chief because we believe that knowledge of coding is vital to be informed citizens and well rounded individuals. Our goal is to create a language that anyone can pickup, understand, and master. It is our hope that in the process, newcomers will develop a stronger understanding of how code works and a more nuanced understanding of how coding can impact our society. In short, our mission is to make learning to program accessible to everyone.
 
 Currently Chief is in early beta and many features are unimplemented. Please check frequently for updates.
 
