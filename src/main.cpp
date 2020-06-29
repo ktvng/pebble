@@ -172,15 +172,17 @@ Operation* TreatAsOperation(Executable* exec)
 }
 
 /// handles the If operation
-Reference* HandleControlFlowIf(Operation* op, size_t& execLine, Scope* scope)
+Reference* HandleConditional(Operation* op, size_t& execLine, Scope* scope)
 {
-    Reference* ifExpressionResult = DoOperation(scope, op);
-    bool ifIsTrue = GetBoolValue(*ObjectOf(ifExpressionResult));
-    if(op->Type == OperationType::If && !ifIsTrue)
+    Reference* expressionResult = DoOperation(scope, op);
+    bool ifIsTrue = GetBoolValue(*ObjectOf(expressionResult));
+    if((op->Type == OperationType::If || op->Type == OperationType::While) && !ifIsTrue)
     {
         execLine++;
+    } else if (op->Type == OperationType::While) {
+        //
     }
-    return ifExpressionResult;
+    return expressionResult;
 }
 
 /// executes [op] in [scope] and updates [execLine] based on the control flow properties
@@ -190,7 +192,8 @@ Reference* HandleControlFlow(Operation* op, size_t& execLine, Scope* scope)
     switch(op->Type)
     {
         case OperationType::If:
-        return HandleControlFlowIf(op, execLine, scope);
+        case OperationType::While:
+        return HandleConditional(op, execLine, scope);
 
         // for any non-control flow operation;
         default:
@@ -249,6 +252,8 @@ Reference* DoBlock(Block* codeBlock)
                     shouldReturn = true;
                     break;
                 }
+
+
             }
             else if(exec->ExecType == ExecutableType::Block)
             {
@@ -261,6 +266,7 @@ Reference* DoBlock(Block* codeBlock)
                 UpdatePreviousResult(CurrentScope(), &result, &previousResult);
 
                 LogItDebug("exiting child block", "DoBlock");
+
             }
 
             
