@@ -9,6 +9,7 @@
 #include <ctime>
 #include <algorithm>
 
+
 #include "main.h"
 #include "arch.h"
 #include "token.h"
@@ -16,7 +17,13 @@
 #include "diagnostics.h"
 #include "program.h"
 
-
+#include <windows.h>
+void SetConsoleColor(ConsoleColor color)
+{
+    HANDLE hConsole;
+    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, color);
+}
 
 // indent formatting
 const String c_indentString = "  ";
@@ -73,8 +80,8 @@ String AddRightEdge(String str)
 String itos2(int i)
 {
     if(i < 10)
-        return MSG("0%i", i);
-    return MSG("%i", i);
+        return Msg("0%i", i);
+    return Msg("%i", i);
 }
 
 void PurgeLog()
@@ -97,7 +104,7 @@ void LogIt(LogSeverityType type, String method, String message)
     timeInfo = std::localtime(&rawTime);
 
 
-    String timeString = MSG("[%i/%s/%s %s:%s:%s]", 
+    String timeString = Msg("[%i/%s/%s %s:%s:%s]", 
         (1900 + timeInfo->tm_year), 
         itos2(timeInfo->tm_mon), 
         itos2(timeInfo->tm_mday), 
@@ -107,7 +114,7 @@ void LogIt(LogSeverityType type, String method, String message)
 
     std::ofstream logfile;
     logfile.open(".\\logs\\log", std::ios::app);
-    logfile << timeString << MSG("[%s]", LogSeverityTypeString.at(type)) << MSG("[%s]: ", method) << message << std::endl;
+    logfile << timeString << Msg("[%s]", LogSeverityTypeString.at(type)) << Msg("[%s]: ", method) << message << std::endl;
     logfile.close();
 }
 
@@ -146,10 +153,13 @@ void ReportMsgInternal(std::vector<SystemMessage>& msgBuffer, int lineNumber)
     if(!c_ERROR)
         return;
 
+    SetConsoleColor(ConsoleColor::Red);
     for(SystemMessage msg: msgBuffer)
     {
-        std::cerr << MSG("(!) %s at line[%i]: ", SystemMessageTypeString(msg.Type), lineNumber)  << msg.Content << "\n";
+        if(g_outputOn)
+            std::cerr << Msg("(!) %s at line[%i]: ", SystemMessageTypeString(msg.Type), lineNumber)  << msg.Content << "\n";
     }
+    SetConsoleColor(ConsoleColor::White);
     msgBuffer.clear();
 }
 
@@ -163,7 +173,7 @@ void CompileMsgPrint(int lineNumber)
     ReportMsgInternal(CompileMsgBuffer, lineNumber);
 }
 
-String MSG(String message, ...)
+String Msg(String message, ...)
 {
     va_list vl;
     va_start(vl, message);
@@ -224,7 +234,7 @@ String MSG(String message, ...)
 
 String StringForAttrbute(String name, String value)
 {
-    return MSG("-[%s]: %s\n", name, value);
+    return Msg("-[%s]: %s\n", name, value);
 }
 
 int ValueStartOffset(String name)
@@ -272,8 +282,8 @@ template <typename T>
 String ToString(std::vector<T> list, String typeString)
 {
     if(list.size() == 0)
-        return MSG("<List<%s>>", typeString);
-    String listString = MSG("<List<%s>>\n", typeString);
+        return Msg("<List<%s>>", typeString);
+    String listString = Msg("<List<%s>>\n", typeString);
     for(size_t i=0; i<list.size(); i++)
     {
         int offset = ValueStartOffset(std::to_string(i));
@@ -313,7 +323,7 @@ String ToString(const Object* obj)
 
 String ToString(const Method* method)
 {
-    String methodString = MSG("<Method>\n");
+    String methodString = Msg("<Method>\n");
 
     for(auto ref: method->Parameters->ReferencesIndex)
     {
@@ -325,7 +335,7 @@ String ToString(const Method* method)
 
 String ToString(const Reference* ref)
 {
-    String refString = MSG("<Reference> @ %p\n", ref);
+    String refString = Msg("<Reference> @ %p\n", ref);
 
     refString += IndentLevel(1) +
         StringForAttrbute("Name", ref->Name);
@@ -353,7 +363,7 @@ String ToString(const ObjectReferenceMap& map)
     {
         mapString += IndentLevel(2) + 
             StringForAttrbute(std::to_string(i), map.References.at(i)->Name 
-            + MSG(" @ %p", map.References.at(i)));
+            + Msg(" @ %p", map.References.at(i)));
     }
 
     return mapString;
@@ -366,7 +376,7 @@ String ToString(const ObjectReferenceMap* map)
 
 String ToString(const Token& token)
 {
-    return StringForAttrbute("Token", MSG("Position: %i\t Type: %s\t Content: %s", 
+    return StringForAttrbute("Token", Msg("Position: %i\t Type: %s\t Content: %s", 
         token.Position,
         GetStringTokenType(token.Type),
         token.Content));
@@ -444,7 +454,7 @@ String ToString(const Operation& op, int level)
         opString += IndentLevel(1) +
             StringForAttrbute(
                 "LineNumber",
-                MSG("%i", op.LineNumber));
+                Msg("%i", op.LineNumber));
 
 
     if(op.Type == OperationType::Ref)
@@ -453,7 +463,7 @@ String ToString(const Operation& op, int level)
             opString += IndentLevel(1) + 
                 StringForAttrbute(
                     "OperationType", 
-                    MSG("Ref <Reference> %s to %s %s", 
+                    Msg("Ref <Reference> %s to %s %s", 
                         op.Value->Name, 
                         ObjectOf(op.Value)->Class,
                         GetStringValue(*ObjectOf(op.Value))));
@@ -481,7 +491,7 @@ String ToString(const Operation& op, int level)
     {
         opString += IndentLevel(1) + StringForAttrbute(
             "Value",
-            MSG(
+            Msg(
                 "<Reference> %s to %s %s",
                 op.Value->Name, 
                 ObjectOf(op.Value)->Class,

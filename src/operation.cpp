@@ -95,7 +95,10 @@ Reference* OperationAssign(Reference* lRef, Reference* rRef)
 /// returns a temporary reference to the printed Referable
 Reference* OperationPrint(const Reference* ref)
 {
-    std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
+    if(g_outputOn)
+        std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
+    ProgramOutput.append(GetStringValue(*ObjectOf(ref)) + "\n");
+    
     return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
@@ -137,7 +140,7 @@ Reference* OperationAdd(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot add types %s and %s", 
+    ReportRuntimeMsg(SystemMessageType::Warning, Msg("cannot add types %s and %s", 
         ObjectOf(lRef)->Class, 
         ObjectOf(rRef)->Class));
 
@@ -156,7 +159,7 @@ Reference* OperationAnd(const Reference* lRef, const Reference* rRef)
 /// returns the newly added [ref]
 Reference* OperationDefine(Reference* ref)
 {
-    LogItDebug(MSG("added reference [%s] to scope", ref->Name), "OperationDefine");
+    LogItDebug(Msg("added reference [%s] to scope", ref->Name), "OperationDefine");
     AddReferenceToCurrentScope(ref);
 
     return ref;
@@ -190,7 +193,7 @@ Reference* OperationSubtract(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot subtract %s from %s", ObjectOf(rRef)->Class, ObjectOf(lRef)->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, Msg("cannot subtract %s from %s", ObjectOf(rRef)->Class, ObjectOf(lRef)->Class));
     return resultRef;
 }
 
@@ -230,7 +233,7 @@ Reference* OperationMultiply(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot multiply %s and %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, Msg("cannot multiply %s and %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
     return resultRef;
 }
 
@@ -262,7 +265,7 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef)
     }
 
     resultRef = NullReference();
-    ReportRuntimeMsg(SystemMessageType::Warning, MSG("cannot divide %s by %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
+    ReportRuntimeMsg(SystemMessageType::Warning, Msg("cannot divide %s by %s", ObjectOf(lRef)->Class, ObjectOf(rRef)->Class));
     return resultRef;
 }
 
@@ -661,7 +664,7 @@ Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters
 {
     // TODO: currently just assumes parameters are in order
     // ref should be a method reference
-    LogItDebug(MSG("evaluating method %s", ref->Name), "OperationEvaluate");
+    LogItDebug(Msg("evaluating method %s", ref->Name), "OperationEvaluate");
 
     std::vector<Referable*> originalParams;
     std::vector<Reference*> params = ResolveParamters(ref, parameters);

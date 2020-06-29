@@ -11,6 +11,7 @@
 
 // Logging
 LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
+bool g_outputOn = false;
 
 int main()
 {

@@ -26,6 +26,9 @@
 
 Program* PROGRAM;
 
+// output retention
+std::string ProgramOutput;
+
 // Error reporting
 std::vector<SystemMessage> RuntimeMsgBuffer;
 std::vector<SystemMessage> CompileMsgBuffer;
@@ -91,7 +94,7 @@ void LogDiagnosticsForRuntimeLine(Scope* scope, Operation* op)
 {
     for(; scope != nullptr; scope=scope->InheritedScope)
         for(auto ref: scope->ReferencesIndex)
-            LogDiagnostics(ref, MSG("scope before %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
+            LogDiagnostics(ref, Msg("scope before %s line %i", ToString(op->Type), op->LineNumber), "DoOperationOnReferences");
 }
 
 
@@ -173,7 +176,7 @@ Reference* DoOperation(Scope* scope, Operation* op)
     std::vector<Reference*> operandReferences = GetOperandReferences(scope, op);
 
     Reference* returnRef = DoOperationOnReferences(scope, op, operandReferences);
-    LogItDebug(MSG("line[%i] operation %s returned a reference", op->LineNumber, ToString(op->Type)), "DoOperation");
+    LogItDebug(Msg("line[%i] operation %s returned a reference", op->LineNumber, ToString(op->Type)), "DoOperation");
 
     DereferenceAll(operandReferences);
     
@@ -261,13 +264,13 @@ Reference* DoBlock(Block* codeBlock)
 
                 // LogDiagnosticsForRuntimeLine(CurrentScope(), op);
 
-                LogItDebug(MSG("starting execute line [%i]", op->LineNumber), "DoBlock");
+                LogItDebug(Msg("starting execute line [%i]", op->LineNumber), "DoBlock");
 
                 result = HandleControlFlow(op, i, CurrentScope()); 
                 UpdatePreviousResult(CurrentScope(), &result, &previousResult);
                 HandleRuntimeMessages(op->LineNumber);
                 
-                LogItDebug(MSG("finishes execute line [%i]", op->LineNumber), "DoBlock");
+                LogItDebug(Msg("finishes execute line [%i]", op->LineNumber), "DoBlock");
 
                 if(op->Type == OperationType::Return)
                 {
@@ -561,7 +564,7 @@ Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& 
     OperationType opType;
     DecideOperationType(typeProbabilities, opType);
 
-    LogItDebug(MSG("operation type is %s", ToString(opType)), "ParseOutAtomic");
+    LogItDebug(Msg("operation type is %s", ToString(opType)), "ParseOutAtomic");
     // these operands act on references!
     Reference* refValue = nullptr;
     if(opType == OperationType::Ref)
@@ -708,10 +711,10 @@ Block* ParseBlock(
         {
             if(IsChildBlock(it, previousLineLevel))
             {
-                LogItDebug(MSG("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
+                LogItDebug(Msg("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
                 int blockSize = SizeOfBlock(it, end);
                 Block* b = ParseBlock(it, it+blockSize);
-                LogItDebug(MSG("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
+                LogItDebug(Msg("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
 
                 // increment iterator to end of block
                 it += blockSize - 1;
@@ -720,10 +723,10 @@ Block* ParseBlock(
             }
             else
             {
-                LogItDebug(MSG("starting compile line [%i]", it->LineNumber), "ParseBlock");
+                LogItDebug(Msg("starting compile line [%i]", it->LineNumber), "ParseBlock");
                 Operation* op = ParseLine(it->Tokens);
                 NumberOperation(op, it->LineNumber);
-                LogItDebug(MSG("finishes compile line [%i]", it->LineNumber), "ParseBlock");
+                LogItDebug(Msg("finishes compile line [%i]", it->LineNumber), "ParseBlock");
 
                 HandleDefineMethod(&it, &end, CurrentScope(), op);
 

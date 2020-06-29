@@ -376,7 +376,7 @@ namespace TestBuild
             }
 
             if(!insideMethodDef)                                                // output content when exited method def and
-    {                                                                           // clear buffer
+            {                                                                   // clear buffer
                 outFile.write(outputBuffer.c_str(), outputBuffer.size());
                 outputBuffer.clear();
             }

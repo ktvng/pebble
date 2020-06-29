@@ -1,3 +1,4 @@
+
 #include "test.h"
 #include "main.h"
 #include "arch.h"
@@ -7,14 +8,28 @@
 #include "operation.h"
 #include "reference.h"
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Global variables
+
 std::map<std::string, int> methodHitMap;
 std::map<MethodName, InjectedFunction> FunctionInjections;
 
-void InjectBefore(MethodName name, InjectedFunction func)
-{
-    FunctionInjections[name] = func;
-}
+std::string testBuffer;
 
+std::string assertName = "*unspecified*";
+std::string failureDescription = "*unspecified*";
+std::string testName = "*unspecified*";
+
+std::string programFile = "./program";
+
+
+int failedAsserts = 0;
+int succeededAsserts = 0;
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Test helpers
 
 int ObjectIndexSize(Program* p)
 {
@@ -31,12 +46,17 @@ int ReferencesInIndex(Program* p)
     return i;
 }
 
-void testFuncInject(Params& p)
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Test primitives
+
+/// inject a function [func] to evaluate before method [name] is called
+void InjectBefore(MethodName name, InjectedFunction func)
 {
-    const Reference* ref = *static_cast<const Reference* const*>(p.at(0));
-    std::cout << ObjectOf(ref)->Class << std::endl;
+    FunctionInjections[name] = func;
 }
 
+/// configure the logging properties for speed and optimization
 void ConfigureLogging(LogSeverityType level, bool clearBefore)
 {
     if(clearBefore)
@@ -45,39 +65,200 @@ void ConfigureLogging(LogSeverityType level, bool clearBefore)
     LogAtLevel = level;
 }
 
-std::string chiefFile = "./program";
-
+/// compiles the program
 void Compile()
 {
+    ProgramOutput = "";
     CompileGrammar();
-    ParseProgram(chiefFile);
+    ParseProgram(programFile);
 }
 
+/// execute the program
 void Execute()
 {
-    std::cout << "################################################################\n";
     DoProgram(*PROGRAM);
-    std::cout << "################################################################\n";
 }
 
-void Test()
+/// returns the number of calls to [methodName]
+inline int NumberOfCallsTo(const std::string& methodName)
 {
+    return methodHitMap[methodName];
+}
+
+void SetProgramToRun(const std::string& fileName)
+{
+    programFile = "./test/programs/" + fileName;
+}
+
+
+/// tests that all objects are accessible
+void TestObjectMemoryLoss()
+{
+    Should("not lose any objects in memory");
+
+    // add 1 b/c null object is not created through constructor
+    int createdObjs = NumberOfCallsTo("ObjectConstructor") + 1;
+    int objsInIndex = ObjectIndexSize(PROGRAM);
+
+    OtherwiseReport("created objects != objects in index");
+    Assert(createdObjs == objsInIndex);
+}
+
+/// tests that all references are accessible
+void TestReferenceMemoryLoss()
+{
+    Should("not lose any references in memory");
+
+    int createdRefs = NumberOfCallsTo("ReferenceConstructor");
+    int destroyedRefs = NumberOfCallsTo("Dereference");
+    int accessibleRefs = ReferencesInIndex(PROGRAM);
+    int methods = NumberOfCallsTo("MethodConstructor");
+
+    OtherwiseReport(Msg("created refs != destroyed + accessible + methods"));
+    Assert(createdRefs == destroyedRefs + accessibleRefs + methods);
+}
+
+/// tests standard things
+void StandardTestSuite()
+{
+    TestObjectMemoryLoss();
+    TestReferenceMemoryLoss();
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Test fundementals
+
+/// describes the current assertion. MUST BE CALLED BEFORE EACH UNIQUE ASSERTION
+inline void Should(const std::string& descriptionOfTest)
+{
+    assertName = descriptionOfTest;
+}
+
+inline void OtherwiseReport(const std::string& descriptionOfFailureCase)
+{
+    failureDescription = descriptionOfFailureCase;
+}
+
+/// assert that [b] is true. logs error if this is not the case
+void Assert(bool b)
+{
+    if(!b)
+    {
+        failedAsserts++;
+        testBuffer.append("(" + std::to_string(failedAsserts) + "):\n");
+        testBuffer.append(testName + "\n");
+        testBuffer.append("  failed assertion: (should) " + assertName + "\n");
+        testBuffer.append("    > " + failureDescription + "\n\n");
+        SetConsoleColor(ConsoleColor::Red);
+        std::cout << ".";
+        SetConsoleColor(ConsoleColor::White);
+    }
+    else
+    {
+        succeededAsserts++;
+        SetConsoleColor(ConsoleColor::Green);
+        std::cout << ".";
+        SetConsoleColor(ConsoleColor::White);
+    }
+
+    assertName = "*unspecified*";
+    failureDescription = "*unspecified*";
+}
+
+/// name of test
+inline void It(const std::string& name)
+{
+    testName = name;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Tests
+
+void testFuncInject(Params& p)
+{
+    const Reference* ref = *static_cast<const Reference* const*>(p.at(0));
+    std::cout << ObjectOf(ref)->Class << std::endl;
+}
+
+void TestCustomProgram()
+{
+    It("Custom Program executes");
+    programFile = "./program";
     InjectBefore("OperationAdd", testFuncInject);
 
     ConfigureLogging(LogSeverityType::Sev3_Critical, true);
     Compile();
     Execute();
 
+    StandardTestSuite();
+}
+
+void TestIf()
+{
+    It("evalutes an if statement");
+    
+    SetProgramToRun("TestIf");
+    ConfigureLogging(LogSeverityType::Sev3_Critical, true);
+    Compile();
+    Execute();
+
+    Should("conditionally execute code by evaluating if-expression");
+    OtherwiseReport("unknown failure condition");
+    Assert(ProgramOutput == "INIF\n");
+}
 
 
-    std::cout << "INFO:\n";
-    std::cout << "Objects created: " << methodHitMap["ObjectConstructor"]+1 << std::endl; // +1 for null
-    std::cout << "Objects in Index: " << ObjectIndexSize(PROGRAM) << std::endl;
+// ---------------------------------------------------------------------------------------------------------------------
+// Test index
 
-    std::cout << std::endl;
+typedef void (*TestFunction)();
+TestFunction Tests[] = 
+{
+    TestCustomProgram,
+    TestIf,
+};
 
-    std::cout << "References created: " << methodHitMap["ReferenceConstructor"] << std::endl;
-    std::cout << "References in index: " << ReferencesInIndex(PROGRAM) << std::endl;
-    std::cout << "References destroyed: " << methodHitMap["Dereference"] << std::endl;
-    std::cout << "Methods: " << methodHitMap["MethodConstructor"] << std::endl;
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Test execution
+
+void DoAllTests()
+{
+    for(auto test: Tests)
+    {
+        testName = "*unspecified*";
+        test();
+    }
+}
+
+void Test()
+{
+    testBuffer.reserve(2048);
+    SetConsoleColor(ConsoleColor::Yellow);
+    std::cout << "starting...\n";
+    SetConsoleColor(ConsoleColor::Green);
+
+    DoAllTests();
+
+    SetConsoleColor(ConsoleColor::Yellow);
+    std::cout << "\nfinished " << (succeededAsserts + failedAsserts) << " tests at " <<  (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) << "%" << std::endl;
+
+    SetConsoleColor(ConsoleColor::Green);
+    std::cout << "  >> passed: " << succeededAsserts << std::endl;
+    SetConsoleColor(ConsoleColor::Red);
+    std::cout << "  >> failed: " << failedAsserts << std::endl << std::endl;
+
+
+    if(failedAsserts)
+    {
+        SetConsoleColor(ConsoleColor::Yellow);
+        std::cout << "failure report: \n";
+        SetConsoleColor(ConsoleColor::Red);
+        std::cout << testBuffer;
+    }
+    SetConsoleColor(ConsoleColor::White);
 }

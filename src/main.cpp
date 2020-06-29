@@ -9,8 +9,10 @@
 #include "reference.h"
 
 
+
 // Logging
 LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
+bool g_outputOn = true;
 
 int main()
 {
@@ -36,11 +38,17 @@ int main()
 
 
     // run program
+    SetConsoleColor(ConsoleColor::Yellow);
     std::cout << "################################################################################\n";
+    SetConsoleColor(ConsoleColor::White);
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
+
     DoProgram(*PROGRAM);
+    
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
+    SetConsoleColor(ConsoleColor::Yellow);
     std::cout << "################################################################################\n";
+    SetConsoleColor(ConsoleColor::White);
 
     for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {

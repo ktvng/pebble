@@ -17,6 +17,8 @@ extern bool CompileMsgFlag;
 extern std::vector<SystemMessage> RuntimeMsgBuffer;
 extern std::vector<SystemMessage> CompileMsgBuffer;
 
+extern std::string ProgramOutput;
+
 extern Program* PROGRAM;
 
 
