@@ -1,6 +1,5 @@
 SOURCE_DIR=./src
 BUILD_DIR=./build
-MAKER=mingw32-make.exe
 CCFLAGS=-g -pedantic -ansi -Wall -std=c++17
 CC=g++
 
