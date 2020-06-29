@@ -189,7 +189,7 @@ const std::map<LogSeverityType, String> LogSeverityTypeString =
     { LogSeverityType::Sev0_Debug, "Debug" }
 };
 
-/// if true will turn on output for 'print' command of chief
+/// if true will turn on output for 'print' command of the language
 extern bool g_outputOn;
 
 

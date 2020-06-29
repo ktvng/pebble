@@ -55,11 +55,7 @@ void ResetRun()
         methodHitMap[it->first] = 0;
     }
     
-    std::map<MethodName, InjectedFunction>::iterator it2;
-    for(it2=FunctionInjections.begin(); it2!= FunctionInjections.end(); it2++)
-    {
-        FunctionInjections[it->first] = nullptr;
-    }
+    FunctionInjections.clear();
 }
 
 
@@ -210,7 +206,7 @@ inline void It(const std::string& name)
 void testFuncInject(Params& p)
 {
     const Reference* ref = *static_cast<const Reference* const*>(p.at(0));
-    std::cout << ObjectOf(ref)->Class << std::endl;
+    std::cout << "first object is of type: " << ObjectOf(ref)->Class << std::endl;
 }
 
 void TestCustomProgram()
@@ -267,13 +263,14 @@ void TestMethodWithNoParams()
     CompileAndExecuteProgram("TestMethodWithNoParams");
 
     IncludeStandardAssertSuite();
-    
+
     String correctOutput = "48\n60\n";
 
     Should("define and execute method with no params");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
     Assert(ProgramOutput == correctOutput );
 }
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -309,7 +306,7 @@ void Test()
     testBuffer.reserve(2048);
     SetConsoleColor(ConsoleColor::Yellow);
     std::cout << "starting...\n";
-    SetConsoleColor(ConsoleColor::Green);
+    SetConsoleColor(ConsoleColor::White);
 
     DoAllTests();
 
