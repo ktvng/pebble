@@ -189,19 +189,8 @@ const std::map<LogSeverityType, String> LogSeverityTypeString =
     { LogSeverityType::Sev0_Debug, "Debug" }
 };
 
+/// if true will turn on output for 'print' command of the language
+extern bool g_outputOn;
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Method declarations
-
-Scope* ScopeConstructor(Scope* inheritedScope);
-Block* BlockConstructor();
-
-Operation* ParseLine(TokenList& tokens);
-Block* ParseBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::iterator end);
-
-TokenList LexLine(const std::string& line);
-
-Reference* DoOperation(Scope* scope, Operation* op);
-Reference* DoBlock(Block* codeBlock);
 
 #endif

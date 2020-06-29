@@ -1,0 +1,7 @@
+X = 4
+if(X):
+    print "INIF"
+
+X = 0
+if(X):
+    print "INIF"

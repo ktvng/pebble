@@ -558,7 +558,7 @@ int PrecedenceOf(String opSymbol)
         }
         i++;
     }
-    LogIt(Sev3_Critical, "PrecedenceOf", MSG("unknown operation symbol %s", opSymbol));
+    LogIt(Sev3_Critical, "PrecedenceOf", Msg("unknown operation symbol %s", opSymbol));
     return 0;
 }
 
@@ -614,7 +614,7 @@ void AddGrammarRule(TokenList& tokens, CFGRule** rule)
 void CompileGrammar()
 {
     std::fstream file;
-    file.open(".\\grammar.txt", std::ios::in);
+    file.open(".\\assets\\grammar.txt", std::ios::in);
 
 
     CFGRule* rule = nullptr;
@@ -946,7 +946,7 @@ void ResolveRefOperation(Operation* refOp)
         
         if(resolvedRef == nullptr)
         {
-            ReportCompileMsg(SystemMessageType::Exception, MSG("cannot resolve reference %s. make sure it has been defined", stub->Name));
+            ReportCompileMsg(SystemMessageType::Exception, Msg("cannot resolve reference %s. make sure it has been defined", stub->Name));
             resolvedRef = NullReference(stub->Name);
         }
         refOp->Value = resolvedRef;

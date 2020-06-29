@@ -8,6 +8,31 @@
 #include "arch.h"
 
 
+/// console display color
+enum ConsoleColor
+{
+    None,
+    Blue,
+    DarkGreen,
+    LightBlue,
+    Red,
+    Purple,
+    Yellow,
+    White,
+    Grey,
+    DarkBlue,
+    Green,
+    Cyan,
+    DarkRed,
+    Purple2,
+    Yellow2,
+    StarkWhite
+};
+
+/// changes the color for std::cout
+void SetConsoleColor(ConsoleColor color);
+
+
 enum class SystemMessageType
 {
     Exception,
@@ -31,7 +56,7 @@ void RuntimeMsgPrint(int lineNumber);
 void CompileMsgPrint(int lineNumber);
 
 /// creates a String by expanding a [message] and its variable arguments
-String MSG(String message, ...);
+String Msg(String message, ...);
 
 String ToString(const OperationType& type);
 String ToString(const Operation& op, int level=0);

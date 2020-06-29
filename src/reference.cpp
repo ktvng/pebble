@@ -76,7 +76,7 @@ void Dereference(Reference* ref)
     if(!IsTemporaryReference(ref))
         return;
 
-    LogItDebug(MSG("dereferencing: %s", ref->Name), "Dereference");
+    LogItDebug(Msg("dereferencing: %s", ref->Name), "Dereference");
 
     if(ObjectOf(ref) != nullptr)
     {
