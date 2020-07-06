@@ -1,0 +1,28 @@
+let's define the integer X to be 24
+define integer ThisInt 1
+define integer Result 0
+Result = X add, 
+
+ThisInt
+output Result
+Result = Result - ThisInt
+output Result
+
+define NewResult false
+NewResult = "hi" and ThisInt
+display NewResult
+
+define integer Y 3
+print Y
+
+while Y :
+    print "while"
+    print Y
+    Y = Y - 1
+    print Y
+
+print "this is Y:"
+print Y
+
+if Y :
+    print "NOO"

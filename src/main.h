@@ -95,7 +95,9 @@ enum OperationType
     Return,                         // break out of a method and return a value
 
     If,                             // conditionally executes the next block of code
-    EndLabel,                       // end of an if statement
+    While,                          // conditionally continues to execute the next block of code
+    EndIf,                          // end of an if statement
+    EndWhile,                       // end of a while block
     Tuple,                          // constructs and returns a (>1) ordering of references
 };
 
