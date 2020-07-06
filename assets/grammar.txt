@@ -30,9 +30,44 @@ Precedence:
 
 
 # Grammar
+@ Class class Reduce
+Class -> class Ref
+
+@ Class class Merge
+Class -> Class < Ref
+
+@ Class class Retain
+Line -> Class :
+
+@ Promote ! Retain
+> =
+Expr -> SRef
+
+@ New new Reduce
+Expr -> new Ref
+
+@ ScopeResolution . Reduce
+> (
+< to
+SRef -> SRef . Ref
+SRef -> SRef 's Ref
+
+SRef -> Ref
 
 @ Return = Reduce
 Line -> return Expr
+
+
+
+
+@ IsEqual == Reduce
+Expr -> Expr == Expr
+Expr -> Expr is Expr
+
+@ IsNotEqual != Reduce
+Expr -> Expr != Expr
+Expr -> Expr is not Expr
+
 
 @ Add + Reduce
 Expr -> Expr + Expr
@@ -46,55 +81,81 @@ Expr -> Expr * Expr
 @ Divide / Reduce
 Expr -> Expr / Expr
 
+
+
 @ And && Reduce
 Expr -> Expr && Expr
-
-@ And and Reduce
 Expr -> Expr and Expr
+
+@ Or || Reduce
+Expr -> Expr || Expr
+Expr -> Expr or Expr
+
+@ Not ! Retain
+Expr -> ! Expr
+Expr -> not Expr
+
+
+
+
+@ IsGreaterThan > Reduce
+Expr -> Expr > Expr
+
+@ IsLessThan > Reduce
+Expr -> Expr < Expr
+
+@ IsGreaterThanOrEqualTo >= Reduce
+Expr -> Expr >= Expr
+
+@ IsLessThanOrEqualTo <= Reduce
+Expr -> Expr <= Expr
 
 
 
 @ Print lowest Reduce
 Line -> print Expr
 
-@ Evaluate highest Reduce
+
+@ Evaluate ( ScopedEval
+> :
+Expr -> SRef . Ref ( )
+Expr -> SRef . Ref ( Expr )
+Expr -> SRef . Ref ( Tuple )
+
+Expr -> Ref . Ref ( )
+Expr -> Ref . Ref ( Expr )
+Expr -> Ref . Ref ( Tuple )
+
+@ Evaluate ( UnscopedEval
+> :
 Expr -> Ref ( )
-
-@ Evaluate highest Reduce 
 Expr -> Ref ( Expr )
-
-@ Evaluate highest Reduce
 Expr -> Ref ( Tuple )
 
-@ If highest Reduce
-Line -> if ( Expr ) :
 
-@ While highest Reduce
-Line -> while ( Expr ) :
 
-@ For highest Reduce
+@ If : Reduce
+Line -> if Expr :
+
+@ While : Reduce
+Line -> while Expr :
+
+@ For : Reduce
 Line -> for ( Ref in Expr ) :
+Line -> for Ref in Expr :
 
-@ DefineMethod highest Custom
-Line -> def Ref ( Tuple ) :
-
-@ DefineMethod highest Custom
-Line -> def Ref ( Expr ) :
-
-@ DefineMethod highest Custom
-Line -> def Ref ( ) :
+@ DefineMethod : Custom
+Line -> Ref ( Tuple ) :
+Line -> Ref ( Expr ) :
+Line -> Ref ( ) :
 
 @ Assign = Reduce
-Line -> Expr = Expr
+Line -> set SRef to Expr
+Line -> SRef = Expr
+Line -> SRef = ( Tuple )
 
 
-
-
-
-
-
-
-@ Parens highest Retain
+@ Parens ( Retain
 Expr -> ( Expr )
 
 @ Tuple , Merge
@@ -103,30 +164,29 @@ Tuple -> Tuple , Expr
 @ Tuple , Reduce
 Tuple -> Expr , Expr
 
-@ Ref subhighest Retain
-Expr -> Ref
 
 @ LineRef lowest Retain
-Line -> Expr 
+Line -> consider Expr
+Line -> take Expr
+Line -> Expr
+
 
 
 
 # Operator Precedence
-: in
-highest
-( [ .
-subhighest
+in new class to
+(
+[ . 's
 !
 * /
 + -
 < > <= >=
-== !=
+== != is
 && and
 || or
-=  
+=
 ,
-)
-lowest
+) :
+lowest 
 
 ### End 
-

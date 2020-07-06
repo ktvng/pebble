@@ -1,0 +1,7 @@
+SingleParamMethod(X):
+    X = X + 3
+    print X
+
+X = 7
+SingleParamMethod(X)
+print X

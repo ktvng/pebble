@@ -1,0 +1,10 @@
+MultiParamMethod(X, Y, Z):
+    print X + Y + Z
+    return X + Y - Z
+
+
+X = 4
+Y = 2
+Z = 3
+
+print MultiParamMethod(X, Y, Z)

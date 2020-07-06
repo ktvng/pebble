@@ -1,12 +1,12 @@
 #include <iostream>
 
 #include "main.h"
-#include "arch.h"
 #include "program.h"
 #include "token.h"
 #include "diagnostics.h"
 #include "operation.h"
 #include "reference.h"
+#include "parse.h"
 
 
 // Logging

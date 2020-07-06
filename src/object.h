@@ -2,7 +2,64 @@
 #define __OBJECT_H
 
 #include "main.h"
-#include "arch.h"
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Referables (Objects/Methods)
+
+/// defines the class of an object which imbues type properties
+typedef std::string ObjectClass;
+
+/// type of a referable object
+enum class ReferableType
+{
+    Object,
+    Method
+};
+
+/// abstract class for anything that a Reference can point to
+class Referable
+{
+    public:
+    ReferableType Type;
+    
+};
+
+/// emulated object in Pebble
+/// [Class] refers to the Object Class which governs type properties
+/// [Attributes] are references to other Objects/Methods
+/// [Value] is used by primitive objects for basic operations.
+///         there are currently only int*, double*, bool*, std::string* value types
+class Object : public Referable
+{
+    public:
+    ObjectClass Class;
+    Scope* Attributes;
+    void* Value;
+};
+
+/// emulated method in Pebble
+/// [CodeBlock] is the code associated with the method
+/// [Parameters] are the parameters input to the method
+class Method : public Referable
+{
+    public:
+    Block* CodeBlock;
+    std::vector<std::string> ParameterNames;
+};
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ObjectClasses
+
+inline const ObjectClass BaseClass = "Object";
+inline const ObjectClass IntegerClass = "Integer";
+inline const ObjectClass DecimalClass = "Decimal";
+inline const ObjectClass StringClass = "String";
+inline const ObjectClass BooleanClass = "Boolean";
+inline const ObjectClass NullClass = "Nothing";
+inline const ObjectClass ArrayClass = "Array";
+inline const ObjectClass TupleClass = "Tuple";
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Global Object Index
@@ -33,12 +90,14 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
 
 Reference* CreateReference(String name, Referable* refable);
 
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Create reference to NullObject (Nothing)
 
 Reference* CreateNullReference();
 Reference* CreateNullReference(String name);
 Object* NullObject();
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Create reference from Token 

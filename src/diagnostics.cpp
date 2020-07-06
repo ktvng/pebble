@@ -11,11 +11,13 @@
 
 
 #include "main.h"
-#include "arch.h"
+#include "diagnostics.h"
+
 #include "token.h"
 #include "object.h"
-#include "diagnostics.h"
 #include "program.h"
+#include "reference.h"
+#include "operation.h"
 
 #include <windows.h>
 void SetConsoleColor(ConsoleColor color)
@@ -42,7 +44,7 @@ String IndentLevel(int level)
     return levelString;
 }
 
-String IndentStringToLevel(String str, int level, int margin=0)
+String IndentStringToLevel(String str, int level, int margin)
 {
     String leveledStr = "";
     for(size_t i=0; i<str.size(); i++)
@@ -148,18 +150,42 @@ String SystemMessageTypeString(SystemMessageType type)
     }
 }
 
+void SetConsoleColorForMessage(SystemMessageType type)
+{
+    switch(type)
+    {
+        case SystemMessageType::Exception:
+        SetConsoleColor(ConsoleColor::Red);
+        return;
+
+        case SystemMessageType::Warning:
+        SetConsoleColor(ConsoleColor::Yellow2);
+        return;
+
+        case SystemMessageType::Advice:
+        SetConsoleColor(ConsoleColor::Cyan);
+        return;
+    }
+}
+
 void ReportMsgInternal(std::vector<SystemMessage>& msgBuffer, int lineNumber)
 {
     if(!c_ERROR)
         return;
 
-    SetConsoleColor(ConsoleColor::Red);
+    String fatalStatus = (FatalCompileError ? "Fatal" : "" );
+
+
     for(SystemMessage msg: msgBuffer)
     {
+        auto stringMsg = Msg("(!) %s %s at line[%i]: ", fatalStatus, SystemMessageTypeString(msg.Type), lineNumber) + msg.Content + "\n";
+        SetConsoleColorForMessage(msg.Type);
         if(g_outputOn)
-            std::cerr << Msg("(!) %s at line[%i]: ", SystemMessageTypeString(msg.Type), lineNumber)  << msg.Content << "\n";
+            std::cerr << stringMsg;
+        SetConsoleColor(ConsoleColor::White);
+        ProgramMsgs.append(stringMsg);
+        
     }
-    SetConsoleColor(ConsoleColor::White);
     msgBuffer.clear();
 }
 
@@ -311,7 +337,7 @@ String ToString(const Object& obj)
         StringForAttrbute("Value", GetStringValue(obj));
     
     objString += IndentLevel(1) +
-        StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes, "Reference"), 1));
+        StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes->ReferencesIndex, "Reference"), 1));
 
     return objString;
 }
@@ -325,10 +351,10 @@ String ToString(const Method* method)
 {
     String methodString = Msg("<Method>\n");
 
-    for(auto ref: method->Parameters->ReferencesIndex)
+    for(auto ref: method->ParameterNames)
     {
         methodString += IndentLevel(1) + 
-            StringForAttrbute("param", ref->Name);
+            StringForAttrbute("param", ref);
     }
     return methodString;
 }
@@ -413,9 +439,6 @@ String ToString(const OperationType& type)
         case OperationType::Assign:
         return "Assign";
 
-        case OperationType::Define:
-        return "Define";
-
         case OperationType::Subtract:
         return "Subtract";
         
@@ -442,6 +465,15 @@ String ToString(const OperationType& type)
 
         case OperationType::Return:
         return "Return";
+
+        case OperationType::ScopeResolution:
+        return "ScopeResolution";
+
+        case OperationType::New:
+        return "New";
+
+        case OperationType::Class:
+        return "Class";
 
         default:
         return "unimplemented";
@@ -471,7 +503,7 @@ String ToString(const Operation& op, int level)
                         ObjectOf(op.Value)->Class,
                         GetStringValue(*ObjectOf(op.Value))));
 
-        if(MethodOf(op.Value) != nullptr)
+        else if(MethodOf(op.Value) != nullptr)
         {
             opString += IndentLevel(1) +
                 StringForAttrbute("name", op.Value->Name);
@@ -481,7 +513,11 @@ String ToString(const Operation& op, int level)
                     IndentStringToLevel(ToString(MethodOf(op.Value)), 1));
         }
 
-                    
+        else
+        {
+            opString += IndentLevel(1) +
+                StringForAttrbute("Name", op.Value->Name);
+        }
 
         return opString;
     }

@@ -4,6 +4,7 @@
 #include "object.h"
 #include "diagnostics.h"
 #include "program.h"
+#include "reference.h"
 
 Reference* ReferenceConstructor()
 {
@@ -19,7 +20,7 @@ Object* ObjectConstructor()
 {
     // LogItDebug("space allocated for new object", "ObjectConstructor");
     Object* obj = new Object;
-    obj->Attributes = {};
+    obj->Attributes = ScopeConstructor(CurrentScope());
     obj->Class = NullClass;
     obj->Value = nullptr;
     obj->Type = ReferableType::Object;
@@ -205,7 +206,14 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
     {
         return CreateReferenceInternal(name, TupleClass);
     }
-    return CreateNullReference();
+    else if(objClass == BaseClass)
+    {
+        return CreateReferenceInternal(name, BaseClass);
+    }
+    else 
+    {
+        return CreateReferenceInternal(name, objClass);
+    }
 }
 
 
@@ -228,7 +236,7 @@ Object* NullObject()
     static Object nullObject;
     nullObject.Class = NullClass;
     nullObject.Value = nullptr;
-    nullObject.Attributes = {};
+    nullObject.Attributes = ScopeConstructor(nullptr);
 
     return &nullObject;
 }
@@ -286,6 +294,10 @@ String GetStringValue(const Object& obj)
     else if(obj.Class == NullClass)
     {
         return "Nothing";
+    }
+    else if(obj.Class == BaseClass)
+    {
+        return "Object";
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";
