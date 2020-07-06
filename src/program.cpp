@@ -218,8 +218,8 @@ Reference* HandleControlFlowIf(Operation* op, size_t& execLine, Scope* scope)
 /// handles the while operation
 Reference* HandleControlFlowWhile(Operation* op, size_t& execLine, Scope* scope, Block* codeBlock)
 {
-    Reference* ifExpressionResult = DoOperation(scope, op);
-    bool condition = GetBoolValue(*ObjectOf(ifExpressionResult));
+    Reference* whileExpression = DoOperation(scope, op);
+    bool condition = GetBoolValue(*ObjectOf(whileExpression));
     if(op->Type == OperationType::While && !condition)
     {
         execLine++;
@@ -230,7 +230,7 @@ Reference* HandleControlFlowWhile(Operation* op, size_t& execLine, Scope* scope,
             execLine -= 1;
         }
     }
-    return ifExpressionResult;
+    return whileExpression;
 }
 
 /// executes [op] in [scope] and updates [execLine] based on the control flow properties
@@ -331,6 +331,8 @@ Reference* DoBlock(Block* codeBlock)
         CurrentScope()->ReferencesIndex.clear();
     }
     ExitScope();
+
+
     if(result != nullptr)
         return result;
     else
