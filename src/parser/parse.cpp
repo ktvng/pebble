@@ -52,6 +52,8 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::Evaluate;
     else if(Name=="If")
         return OperationType::If;
+    else if(Name=="While")
+        return OperationType::While;
     else if(Name=="DefineMethod")
         return OperationType::DefineMethod;
     else if(Name=="Assign")

@@ -91,7 +91,9 @@ Reference* HandleControlFlowWhile(Operation* op, size_t& execLine, Block* codeBl
     } else if(op->Type == OperationType::While && condition){
         if(codeBlock->Executables.size() > execLine + 1 && codeBlock->Executables.at(execLine+1)->ExecType == ExecutableType::Block)
         {
-            DoBlock(static_cast<Block *> (codeBlock->Executables.at(execLine+1)));
+            auto ref = DoBlock(static_cast<Block *> (codeBlock->Executables.at(execLine+1)));
+            AddReferenceToCurrentScope(ref);
+            Dereference(ref);
             execLine -= 1;
         }
     }
