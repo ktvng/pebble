@@ -97,7 +97,6 @@ enum OperationType
     If,                             // conditionally executes the next block of code
     While,                          // conditionally continues to execute the next block of code
     EndIf,                          // end of an if statement
-    EndWhile,                       // end of a while block
     Tuple,                          // constructs and returns a (>1) ordering of references
 };
 
