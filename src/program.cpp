@@ -132,6 +132,9 @@ Reference* DoOperationOnReferences(Scope* scope, Operation* op, std::vector<Refe
         case OperationType::If:
         return OperationIf(operands.at(0));
 
+        case OperationType::While:
+        return OperationWhile(operands.at(0));
+
         case OperationType::DefineMethod:
         return OperationDefineMethod(operands.at(0));
 
@@ -212,14 +215,35 @@ Reference* HandleControlFlowIf(Operation* op, size_t& execLine, Scope* scope)
     return ifExpressionResult;
 }
 
+/// handles the while operation
+Reference* HandleControlFlowWhile(Operation* op, size_t& execLine, Scope* scope, Block* codeBlock)
+{
+    Reference* whileExpression = DoOperation(scope, op);
+    bool condition = GetBoolValue(*ObjectOf(whileExpression));
+    if(op->Type == OperationType::While && !condition)
+    {
+        execLine++;
+    } else if(op->Type == OperationType::While && condition){
+        if(codeBlock->Executables.size() > execLine + 1 && codeBlock->Executables.at(execLine+1)->ExecType == ExecutableType::Block)
+        {
+            DoBlock(static_cast<Block *> (codeBlock->Executables.at(execLine+1)));
+            execLine -= 1;
+        }
+    }
+    return whileExpression;
+}
+
 /// executes [op] in [scope] and updates [execLine] based on the control flow properties
 /// of [op]
-Reference* HandleControlFlow(Operation* op, size_t& execLine, Scope* scope)
+Reference* HandleControlFlow(Operation* op, size_t& execLine, Scope* scope, Block* codeBlock)
 {
     switch(op->Type)
     {
         case OperationType::If:
         return HandleControlFlowIf(op, execLine, scope);
+
+        case OperationType::While:
+        return HandleControlFlowWhile(op, execLine, scope, codeBlock);
 
         // for any non-control flow operation;
         default:
@@ -266,9 +290,10 @@ Reference* DoBlock(Block* codeBlock)
 
                 LogItDebug(Msg("starting execute line [%i]", op->LineNumber), "DoBlock");
 
-                result = HandleControlFlow(op, i, CurrentScope()); 
+                result = HandleControlFlow(op, i, CurrentScope(), codeBlock); 
                 UpdatePreviousResult(CurrentScope(), &result, &previousResult);
                 HandleRuntimeMessages(op->LineNumber);
+
                 
                 LogItDebug(Msg("finishes execute line [%i]", op->LineNumber), "DoBlock");
 
@@ -306,6 +331,8 @@ Reference* DoBlock(Block* codeBlock)
         CurrentScope()->ReferencesIndex.clear();
     }
     ExitScope();
+
+
     if(result != nullptr)
         return result;
     else
@@ -384,6 +411,8 @@ void DecideLineType(PossibleOperationsList& typeProbabilities, const TokenList& 
 
     if(FindToken(tokens, "if") != nullptr && FindToken(tokens, ":") != nullptr)
         lineType = LineType::IfLine;
+    else if(FindToken(tokens, "while") != nullptr && FindToken(tokens, ":") != nullptr)
+        lineType = LineType::WhileLine;
     else
     {
         double totalProb;
@@ -600,9 +629,23 @@ Operation* ParseIf(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
     LogDiagnostics(newList, "printing token list after removing if stuff");
 
     Operation* condition = ParseLine(newList);
-    Operation* op = OperationConstructor(
-        OperationType::If, 
-        { condition });
+    Operation* op = OperationConstructor(OperationType::If, { condition });
+
+    return op;
+}
+
+Operation* ParseWhile(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
+{
+    // Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
+
+    TokenList newList;
+    newList = RightOfToken(tokens, FindToken(tokens, "while"));
+    newList = LeftOfToken(newList, FindToken(newList, ":"));
+
+    LogDiagnostics(newList, "printing token list after removing if stuff");
+
+    Operation* condition = ParseLine(newList);
+    Operation* op = OperationConstructor(OperationType::While, { condition });
 
     return op;
 }
@@ -644,7 +687,8 @@ Operation* ParseLine(TokenList& tokens)
         case LineType::IfLine:
         return ParseIf(typeProbabilities, tokens);
 
-        case LineType::While:
+        case LineType::WhileLine:
+        return ParseWhile(typeProbabilities, tokens);
 
         default:
         LogIt(LogSeverityType::Sev1_Notify, "ParseLine", "unimplemented in case");

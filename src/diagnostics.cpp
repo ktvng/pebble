@@ -422,6 +422,9 @@ String ToString(const OperationType& type)
         case OperationType::If:
         return "If";
 
+        case OperationType::While:
+        return "While";
+
         case OperationType::And:
         return "And";
 

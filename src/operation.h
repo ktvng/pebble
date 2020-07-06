@@ -38,6 +38,7 @@ Reference* OperationDivide(const Reference* lRef, const Reference* rRef);
 Reference* OperationAnd(const Reference* lRef, const Reference* rRef);
 Reference* OperationDefine(Reference* ref);
 Reference* OperationIf(Reference* ref);
+Reference* OperationWhile(Reference* ref);
 Reference* OperationRef(Reference* ref);
 Reference* OperationDefineMethod(Reference* ref);
 Reference* OperationEvaluate(Reference* ref, std::vector<Reference*>& parameters);
