@@ -57,6 +57,8 @@ TEST_INCLUDE_PATH=-I./test/
 
 TestBuilder: ./test/testbuilder.cpp
 	$(CC) $(CCFLAGS) -o testbuilder $<
+	pwd
+	ls
 	./testbuilder.exe $(PARSER_SRCS) $(SRCS)
 
 build/test.o: test/test.cpp test/test.h
