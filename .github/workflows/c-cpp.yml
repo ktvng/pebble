@@ -13,8 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: make TestBuilder.exe
-      run: make TestBuilder.exe
+    - name: make TestBuilder
+      run: make TestBuilder
     - name: make pebble_textbuild.exe
       run: make pebble_testbuild.exe
     - name: run pebble_testbuild.exe
