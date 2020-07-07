@@ -13,6 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: print dir
+      run: pwd
     - name: make TestBuilder
       run: make TestBuilder
     - name: make pebble_textbuild.exe
