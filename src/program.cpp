@@ -480,6 +480,7 @@ Program* ParseProgram(const std::string filepath)
 
     for(std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
     {
+        std::cout << line << std::endl;
         TokenList tokens = LexLine(line);
         lineLevel = LevelOfLine(line);
 
