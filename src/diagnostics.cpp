@@ -95,7 +95,7 @@ String itos2(int i)
 void PurgeLog()
 {
     std::ofstream logfile;
-    logfile.open(".\\logs\\log");
+    logfile.open("./logs/log");
     logfile << "";
     logfile.close();
 }
@@ -121,7 +121,7 @@ void LogIt(LogSeverityType type, String method, String message)
         itos2(timeInfo->tm_sec));
 
     std::ofstream logfile;
-    logfile.open(".\\logs\\log", std::ios::app);
+    logfile.open("./logs/log", std::ios::app);
     logfile << timeString << Msg("[%s]", LogSeverityTypeString.at(type)) << Msg("[%s]: ", method) << message << std::endl;
     logfile.close();
 }

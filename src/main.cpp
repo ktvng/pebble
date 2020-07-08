@@ -26,7 +26,7 @@ int main()
     // compile program
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
 
-    ParseProgram(".\\program.pebl");
+    ParseProgram("./program.pebl");
     if(FatalCompileError)
         return 1;
 

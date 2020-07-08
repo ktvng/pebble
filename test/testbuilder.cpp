@@ -328,7 +328,7 @@ namespace TestBuild
         filename.reserve(32);
 
         size_t i;
-        for(i=filepath.size(); i>=0 && filepath[i] != '\\' && filepath[i] != '/'; i--);
+        for(i=filepath.size(); i>=0 && filepath[i] != '/' && filepath[i] != '/'; i--);
         while(++i<filepath.size())
             filename.push_back(filepath[i]);
 
