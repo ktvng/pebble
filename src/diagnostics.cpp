@@ -19,12 +19,18 @@
 #include "reference.h"
 #include "operation.h"
 
+#ifdef _WIN32 
 #include <windows.h>
+#endif
 void SetConsoleColor(ConsoleColor color)
 {
+#ifdef _WIN32
     HANDLE hConsole;
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(hConsole, color);
+#else
+    LogIt(LogSeverityType::Sev1_Notify, "console color is not supported on linux");
+#endif
 }
 
 // indent formatting
