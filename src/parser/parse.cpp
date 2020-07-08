@@ -233,7 +233,7 @@ void AddGrammarRule(TokenList& tokens, CFGRule** rule)
 void CompileGrammar()
 {
     std::fstream file;
-    file.open(".\\assets\\grammar.txt", std::ios::in);
+    file.open("./assets/grammar.txt", std::ios::in);
 
 
     CFGRule* rule = nullptr;

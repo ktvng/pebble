@@ -469,6 +469,10 @@ Program* ParseProgram(const std::string filepath)
 
     std::fstream file;
     file.open(filepath, std::ios::in);
+    if(!file.is_open())
+    {
+        std::cout << "\ncould not open file: " << filepath << std::endl;
+    }
 
     int lineLevel = 0;
     int nextLinePos = 1;

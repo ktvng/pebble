@@ -328,7 +328,7 @@ namespace TestBuild
         filename.reserve(32);
 
         size_t i;
-        for(i=filepath.size(); i>=0 && filepath[i] != '\\' && filepath[i] != '/'; i--);
+        for(i=filepath.size(); i>=0 && filepath[i] != '/' && filepath[i] != '/'; i--);
         while(++i<filepath.size())
             filename.push_back(filepath[i]);
 
@@ -352,7 +352,7 @@ namespace TestBuild
         std::fstream outFile;
         outFile.open("./test/src/" + filename, std::ios::out);
 
-        std::string testInclude = "#include \"..\\test.h\"\n";
+        std::string testInclude = "#include \"test.h\"\n";
         outFile.write(testInclude.c_str(), testInclude.size());
 
         std::string line;
@@ -446,7 +446,7 @@ namespace TestBuild
         std::fstream overrideFile;
         overrideFile.open("./assets/test_main.cpp", std::ios::in);
 
-        std::string testInclude = "#include \"..\\test.h\"\n";
+        std::string testInclude = "#include \"test.h\"\n";
         file.write(testInclude.c_str(), testInclude.size());
  
         std::string line;

@@ -17,9 +17,7 @@ struct ObjectReferenceMap;
 struct Scope;
 struct CodeLine;
 struct Program;
-struct Method;
 struct Reference;
-struct Block;
 
 
 // ---------------------------------------------------------------------------------------------------------------------

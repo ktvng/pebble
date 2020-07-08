@@ -83,7 +83,7 @@ ObjectReferenceMap* EntryInIndexOf(const Object* obj)
 {
     for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
-        if(map->Object == obj)
+        if(map->IndexedObject == obj)
             return map;
     }
     return nullptr;

@@ -21,6 +21,8 @@ std::string programFile = "./program";
 int failedAsserts = 0;
 int succeededAsserts = 0;
 
+bool g_shouldRunCustomProgram = true;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers
@@ -120,7 +122,7 @@ void DoAllTests()
     }
 }
 
-void Test()
+bool Test()
 {
     std::cout.precision(2);
 
@@ -150,4 +152,8 @@ void Test()
         std::cout << testBuffer;
     }
     SetConsoleColor(ConsoleColor::White);
+    if(failedAsserts) 
+        return 1;
+    
+    return 0;
 }

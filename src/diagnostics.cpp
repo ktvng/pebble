@@ -19,12 +19,18 @@
 #include "reference.h"
 #include "operation.h"
 
+#ifdef _WIN32 
 #include <windows.h>
+#endif
 void SetConsoleColor(ConsoleColor color)
 {
+#ifdef _WIN32
     HANDLE hConsole;
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(hConsole, color);
+#else
+    LogIt(LogSeverityType::Sev1_Notify, "SetConsoleColor", "console color is not supported on linux");
+#endif
 }
 
 // indent formatting
@@ -89,7 +95,7 @@ String itos2(int i)
 void PurgeLog()
 {
     std::ofstream logfile;
-    logfile.open(".\\logs\\log");
+    logfile.open("./logs/log");
     logfile << "";
     logfile.close();
 }
@@ -115,7 +121,7 @@ void LogIt(LogSeverityType type, String method, String message)
         itos2(timeInfo->tm_sec));
 
     std::ofstream logfile;
-    logfile.open(".\\logs\\log", std::ios::app);
+    logfile.open("./logs/log", std::ios::app);
     logfile << timeString << Msg("[%s]", LogSeverityTypeString.at(type)) << Msg("[%s]: ", method) << message << std::endl;
     logfile.close();
 }
@@ -382,7 +388,7 @@ String ToString(const ObjectReferenceMap& map)
 {
     String mapString = "<ObjectReferenceMap>\n";
     mapString += IndentLevel(1) + 
-        StringForAttrbute("Object", IndentStringToLevel(ToString(*map.Object),1));
+        StringForAttrbute("Object", IndentStringToLevel(ToString(*map.IndexedObject),1));
 
     mapString += IndentLevel(1) + StringForAttrbute("Reference", "<List<Reference*>");
     for(size_t i=0; i<map.References.size(); i++)
