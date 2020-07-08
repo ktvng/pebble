@@ -22,5 +22,5 @@ jobs:
       run: make TestBuilder
     - name: make pebble_textbuild.exe
       run: make pebble_testbuild.exe
-    - name: run pebble_testbuild.exe --ignore-custom
-      run: ./pebble_testbuild.exe
+    - name: run pebble_testbuild.exe
+      run: ./pebble_testbuild.exe --ignore-custom
