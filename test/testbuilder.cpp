@@ -446,7 +446,7 @@ namespace TestBuild
         std::fstream overrideFile;
         overrideFile.open("./assets/test_main.cpp", std::ios::in);
 
-        std::string testInclude = "#include \"..\\test.h\"\n";
+        std::string testInclude = "#include \"test.h\"\n";
         file.write(testInclude.c_str(), testInclude.size());
  
         std::string line;
