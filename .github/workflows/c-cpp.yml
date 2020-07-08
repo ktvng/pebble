@@ -20,6 +20,8 @@ jobs:
       
     - name: make TestBuilder
       run: make TestBuilder
+    - name: test build success
+      run: ./testbuilder.exe ./src/main.cpp
     - name: make pebble_textbuild.exe
       run: make pebble_testbuild.exe
     - name: run pebble_testbuild.exe
