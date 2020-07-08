@@ -56,7 +56,8 @@ TEST_OBJS=$(TEST_SRCS:./test/src/%.cpp=./build/%.o.t)
 TEST_INCLUDE_PATH=-I./test/
 
 TestBuilder: ./test/testbuilder.cpp
-	$(CC) $(CCFLAGS) -o testbuilder $<
+	$(CC) $(CCFLAGS) -o testbuilder.exe $<
+	./testbuilder.exe $(PARSER_SRCS) $(SRCS)
 
 build/test.o: test/test.cpp test/test.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/test.o -c ./test/test.cpp
