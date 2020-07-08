@@ -38,7 +38,7 @@ extern std::map<MethodName, int> methodHitMap;
 
 extern bool g_shouldRunCustomProgram;
 
-void Test();
+bool Test();
 void ResetRun();
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -142,6 +142,7 @@ inline int NumberOfCallsTo(const std::string& methodName)
 inline void SetProgramToRun(const std::string& fileName)
 {
     programFile = "./test/programs/" + fileName;
+    std::cout << programFile;
 }
 
 inline void RunCustomProgram()

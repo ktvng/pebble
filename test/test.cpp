@@ -122,7 +122,7 @@ void DoAllTests()
     }
 }
 
-void Test()
+bool Test()
 {
     std::cout.precision(2);
 
@@ -152,4 +152,8 @@ void Test()
         std::cout << testBuffer;
     }
     SetConsoleColor(ConsoleColor::White);
+    if(failedAsserts) 
+        return false;
+    
+    return true;
 }

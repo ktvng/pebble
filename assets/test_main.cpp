@@ -23,5 +23,8 @@ int main(int argc, char *argv[])
             g_shouldRunCustomProgram = false;
         
     }
-    Test();
+    bool testsFailed = Test();
+    if(testsFailed)
+        return 1;
+    return 0;
 }
