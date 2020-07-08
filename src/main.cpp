@@ -62,6 +62,7 @@ int main()
         }
     }
 
+    ProgramDestructor(PROGRAM);
     LogItDebug("end reached.", "main");
     return 0;
 }

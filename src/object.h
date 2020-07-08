@@ -47,6 +47,7 @@ class Method : public Referable
     std::vector<std::string> ParameterNames;
 };
 
+void ObjectDestructor(Object* obj);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ObjectClasses

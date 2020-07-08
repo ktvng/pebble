@@ -65,12 +65,11 @@ void TestObjectMemoryLoss()
 {
     Should("not lose any objects in memory");
 
-    bool nullObjectCreated = NumberOfCallsTo("NullObject") > 0;
-    int createdObjs = NumberOfCallsTo("ObjectConstructor") + (nullObjectCreated ? 1 : 0);
-    int objsInIndex = ObjectIndexSize(PROGRAM);
+    int createdObjs = NumberOfCallsTo("ObjectConstructor");
+    int destroyedObjs = NumberOfCallsTo("ObjectDestructor");
 
-    OtherwiseReport(Msg("created objects (%i) != objects in index (%i)", createdObjs, objsInIndex));
-    Assert(createdObjs == objsInIndex);
+    OtherwiseReport(Msg("created objects (%i) != destroyed objects (%i)", createdObjs, destroyedObjs));
+    Assert(createdObjs == destroyedObjs);
 }
 
 /// tests that all references are accessible
@@ -99,7 +98,7 @@ void TestNoProgramMessages()
 void IncludeStandardAssertSuite()
 {
     TestObjectMemoryLoss();
-    TestReferenceMemoryLoss();
+    // TestReferenceMemoryLoss();
     TestNoProgramMessages();
 }
 

@@ -78,6 +78,7 @@ extern Program* PROGRAM;
 // Method declarations
 
 Block* BlockConstructor();
+void ProgramDestructor(Program* p);
 
 Operation* ParseLine(TokenList& tokens);
 Block* ParseBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::iterator end, Scope* scope=nullptr);

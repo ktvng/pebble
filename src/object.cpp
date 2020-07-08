@@ -28,6 +28,11 @@ Object* ObjectConstructor()
     return obj;
 }
 
+void ObjectDestructor(Object* obj)
+{
+    delete obj;
+}
+
 Object* ObjectOf(const Reference* ref)
 {
     if(ref->To == nullptr)

@@ -492,3 +492,18 @@ Program* ParseProgram(const std::string filepath)
     PROGRAM->Main = b;
     return PROGRAM;
 }
+
+void ProgramDestructor(Program* p)
+{
+    for(size_t i=0; i<p->ObjectsIndex.size(); i++)
+    {
+        auto map = p->ObjectsIndex[i];
+        for(auto ref: map->References)
+        {
+            ReferenceDestructor(ref);
+        }
+        if(map->IndexedObject == NullObject())
+            continue;
+        ObjectDestructor(map->IndexedObject);
+    }
+}

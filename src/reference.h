@@ -20,6 +20,7 @@ struct Reference
     Referable* To = nullptr;
 };
 
+void ReferenceDestructor(Reference* ref);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Constants

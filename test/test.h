@@ -130,6 +130,7 @@ inline void Execute()
     if(!FatalCompileError)
     {
         DoProgram(*PROGRAM);
+        ProgramDestructor(PROGRAM);
     }
 }
 
