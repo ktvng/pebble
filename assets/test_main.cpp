@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include "main.h"
 #include "program.h"
@@ -13,7 +14,14 @@
 LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 bool g_outputOn = false;
 
-int main()
+int main(int argc, char *argv[])
 {
+    for(int i=1; i<argc; i++)
+    {
+        std::string arg = argv[i];
+        if(arg == "--ignore-custom")
+            g_shouldRunCustomProgram = false;
+        
+    }
     Test();
 }

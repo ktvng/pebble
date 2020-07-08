@@ -66,4 +66,4 @@ build/unittests.o: test/unittests.cpp test/unittests.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/unittests.o -c ./test/unittests.cpp
 
 pebble_testbuild.exe: $(TEST_OBJS) build/test.o build/unittests.o
-	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o pebble_testbuild $^
+	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o pebble_testbuild.exe $^

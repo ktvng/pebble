@@ -36,6 +36,8 @@ extern std::map<MethodName, InjectedFunction> FunctionInjections;
 
 extern std::map<MethodName, int> methodHitMap;
 
+extern bool g_shouldRunCustomProgram;
+
 void Test();
 void ResetRun();
 

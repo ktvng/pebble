@@ -21,6 +21,8 @@ std::string programFile = "./program";
 int failedAsserts = 0;
 int succeededAsserts = 0;
 
+bool g_shouldRunCustomProgram = true;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers

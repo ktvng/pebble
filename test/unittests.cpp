@@ -11,6 +11,9 @@ void testFuncInject(Params& p)
 
 void TestCustomProgram()
 {
+    if(!g_shouldRunCustomProgram)
+        return;
+        
     It("Custom Program executes");
     RunCustomProgram();
     // InjectBefore("OperationAdd", testFuncInject);
