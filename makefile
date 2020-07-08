@@ -17,7 +17,7 @@ build/%.o: src/%.cpp src/%.h
 
 # TEST BUILD .O
 build/%.o.t: src/%.cpp src/%.h test/src/%.cpp
-	./testbuilder $<
+	./testbuilder.exe $<
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) -o $@ -c $(word 3, $^)
 
 
@@ -34,7 +34,7 @@ build/%.o: src/parser/%.cpp src/parser/%.h
 
 # TEST BUILD .O 
 build/%.o.t: src/parser/%.cpp src/parser/%.h test/src/%.cpp
-	./testbuilder $<
+	./testbuilder.exe $<
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) -o $@ -c $(word 3, $^)
 
 
@@ -43,7 +43,7 @@ build/%.o.t: src/parser/%.cpp src/parser/%.h test/src/%.cpp
 # PEBBLE MAIN BUILD 
 ################################################################################
 pebble.exe: $(OBJS) $(PARSER_OBJS)
-	$(CC) $(CCFLAGS) -o pebble $(OBJS) $(PARSER_OBJS)
+	$(CC) $(CCFLAGS) -o pebble.exe $(OBJS) $(PARSER_OBJS)
 
 
 
@@ -56,7 +56,7 @@ TEST_OBJS=$(TEST_SRCS:./test/src/%.cpp=./build/%.o.t)
 TEST_INCLUDE_PATH=-I./test/
 
 TestBuilder: ./test/testbuilder.cpp
-	$(CC) $(CCFLAGS) -o testbuilder $<
+	$(CC) $(CCFLAGS) -o testbuilder.exe $<
 	./testbuilder.exe $(PARSER_SRCS) $(SRCS)
 
 build/test.o: test/test.cpp test/test.h

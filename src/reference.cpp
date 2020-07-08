@@ -134,7 +134,7 @@ Reference* ReferenceForPrimitive(int value, String name)
 {
     for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->Object;
+        Object* obj = map->IndexedObject;
         if(obj->Class == IntegerClass && GetIntValue(*obj) == value)
             return CreateReference(name, obj);
     }
@@ -147,7 +147,7 @@ Reference* ReferenceForPrimitive(double value, String name)
 {
     for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->Object;
+        Object* obj = map->IndexedObject;
         if(obj->Class == DecimalClass && GetDecimalValue(*obj) == value)
             return CreateReference(name, obj);
     }
@@ -160,7 +160,7 @@ Reference* ReferenceForPrimitive(bool value, String name)
 {
     for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->Object;
+        Object* obj = map->IndexedObject;
         if(obj->Class == BooleanClass && GetBoolValue(*obj) == value)
             return CreateReference(name, obj);
     }
@@ -173,7 +173,7 @@ Reference* ReferenceForPrimitive(String value, String name)
 {
     for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->Object;
+        Object* obj = map->IndexedObject;
         if(obj->Class == StringClass && GetStringValue(*obj) == value)
             return CreateReference(name, obj);
     }

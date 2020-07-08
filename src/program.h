@@ -12,13 +12,13 @@
 /// used to keep track of objects and their references
 struct ObjectReferenceMap
 {
-    Object* Object;
+    Object* IndexedObject;
     std::vector<Reference*> References;
 };
 
 struct MethodReferenceMap
 {
-    Method* Method;
+    Method* IndexedMethod;
     std::vector<Reference*> References;
 };
 
