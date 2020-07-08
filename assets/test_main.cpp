@@ -26,6 +26,5 @@ int main(int argc, char *argv[])
     bool testsFailed = Test();
     if(testsFailed)
         return 1;
-    std::cout << "all tests succeded\n";
     return 0;
 }

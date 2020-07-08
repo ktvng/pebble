@@ -153,7 +153,7 @@ bool Test()
     }
     SetConsoleColor(ConsoleColor::White);
     if(failedAsserts) 
-        return false;
+        return 1;
     
-    return true;
+    return 0;
 }
