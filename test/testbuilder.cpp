@@ -352,7 +352,7 @@ namespace TestBuild
         std::fstream outFile;
         outFile.open("./test/src/" + filename, std::ios::out);
 
-        std::string testInclude = "#include \"..\\test.h\"\n";
+        std::string testInclude = "#include \"test.h\"\n";
         outFile.write(testInclude.c_str(), testInclude.size());
 
         std::string line;
