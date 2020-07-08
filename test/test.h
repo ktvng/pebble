@@ -142,7 +142,6 @@ inline int NumberOfCallsTo(const std::string& methodName)
 inline void SetProgramToRun(const std::string& fileName)
 {
     programFile = "./test/programs/" + fileName;
-    std::cout << fileName << std::endl;
 }
 
 inline void RunCustomProgram()
