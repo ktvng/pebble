@@ -80,13 +80,35 @@ Operation* OperationConstructor(
 }
 
 /// constructor for an operation of [type], with [operands], and value [value]. only operations
-/// of type Ref::Operation should have non-nullptr value.
+/// of type Ref::Operation should have non-nullptr value. For memcheck purposes, cannot call the
+/// other constructor
 Operation* OperationConstructor(
     OperationType type, 
     Reference* value,
     OperationsList operands)
 {
-    return OperationConstructor(type, operands, value);
+    Operation* op = new Operation;
+    op->LineNumber = -1;
+    op->Operands = operands;
+    op->Type = type;
+    op->Value = value;
+
+    op->ExecType = ExecutableType::Operation;
+
+    return op;
+}
+
+void OperationDestructor(Operation* op)
+{
+    delete op;
+}
+
+void DeleteOperationRecursive(Operation* op)
+{
+    for(auto operand: op->Operands)
+        DeleteOperationRecursive(operand);
+    
+    OperationDestructor(op);
 }
 
 Reference* ResolveStub(Reference* ref) 
@@ -242,8 +264,8 @@ Reference* OperationRef(Reference* value, std::vector<Reference*>& operands)
     return value;
 }
 
-/// handles OperationType::Assign which assigns a reference [lRef] to the Referable of [rRef]
-/// returns a temporary reference to the assigned Referable
+/// handles OperationType::Assign which assigns a reference [lRef] to the Object of [rRef]
+/// returns a temporary reference to the assigned Object
 Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands)
 {
     Reference* lRef = FirstOf(operands);
@@ -260,7 +282,7 @@ Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands)
 }
 
 /// handles OperationType::Print which prints the string value of [ref]
-/// returns a temporary reference to the printed Referable
+/// returns a temporary reference to the printed Object
 Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands)
 {
     Reference* ref = FirstOf(operands);
@@ -650,6 +672,7 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
     result = DoBlock(methodBlock, methodScope);
     AddReferenceToCurrentScope(result);
 
+    ScopeDestructor(methodScope);
     LogDiagnostics(result, "evaluate result");
 
     LogItDebug("finished evaluate", "OperationEvaluate");

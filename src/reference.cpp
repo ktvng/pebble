@@ -98,24 +98,12 @@ Reference* GetReference(String refName)
 // ---------------------------------------------------------------------------------------------------------------------
 // Reference Info
 
-/// true if [ref] points to a Method
-bool IsMethod(Reference* ref)
-{
-    if(ref == nullptr)
-        return false;
-    if(MethodOf(ref) != nullptr)
-        return true;
-    return false;
-}
-
 /// true if [ref] points to an Object
 bool IsObject(Reference* ref)
 {
     if(ref == nullptr)
         return false;
-    if(ObjectOf(ref) != nullptr)
-        return true;
-    return false;
+    return true;
 }
 
 bool IsPrimitiveObject(Reference* ref)
@@ -304,19 +292,19 @@ Reference* ReferenceFor(String refName, ObjectClass objClass, void* value)
     return ref;
 }
 
-/// defines a new reference named [refName] to [referable]
-Reference* ReferenceFor(String refName, Referable* refable)
+/// defines a new reference named [refName] to [Object]
+Reference* ReferenceFor(String refName, Object* obj)
 {
-    Reference* ref = CreateReference(refName, refable);
+    Reference* ref = CreateReference(refName, obj);
     AddReferenceToCurrentScope(ref);
     return ref;
 }
 
 /// reassign an existing reference [ref] to [to]
-void ReassignReference(Reference* ref, Referable* to)
+void ReassignReference(Reference* ref, Object* to)
 {
     RemoveReferenceFromObjectIndex(ref);
-    IndexObject(static_cast<Object*>(to), ref);
+    IndexObject(to, ref);
     
     ref->To = to;
 }
@@ -338,7 +326,7 @@ Reference* ReferenceStub(String refName)
 /// true if [ref] is a stub
 bool IsReferenceStub(Reference* ref)
 {
-    return ObjectOf(ref) == nullptr && MethodOf(ref) == nullptr;
+    return ObjectOf(ref) == nullptr;
 }
 
 

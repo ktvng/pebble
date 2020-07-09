@@ -257,12 +257,17 @@ void CompileGrammar()
     String line;
     while(std::getline(file, line))
     {
+        /// TODO: we don't need to lex every line we should skip the comments
         TokenList tokens = LexLine(line);
         if(tokens.empty())
+        {
+            DeleteTokenList(tokens);
             continue;
+        }
 
         if(tokens.at(0)->Content == "#")
         {
+            DeleteTokenList(tokens);
             state++;
             continue;
         }
@@ -271,12 +276,15 @@ void CompileGrammar()
         {
             case 1:
             AddGrammarRule(tokens, &rule);
+            DeleteTokenList(tokens);
             continue;
             case 2:
             AddPrecedenceClass(tokens);
+            DeleteTokenList(tokens);
             break;
 
             default:
+            DeleteTokenList(tokens);
             continue;
         }
     }
@@ -341,6 +349,7 @@ Operation* RefOperation(Token* refToken)
     {
         ref = ReferenceStub(refToken->Content);
     }
+
     Operation* op = OperationConstructor(OperationType::Ref, ref);
 
     return op;
@@ -530,7 +539,10 @@ Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
             auto chain = components.at(1);
             params.push_back(ScopeChainTerminal(chain)->Name);
         }
+        DeleteOperationRecursive(components.at(1));
     }
+
+    DeleteOperationRecursive(components.at(0));
 
     Reference* refToMethodObj = CreateReferenceToNewObject(methodName, BaseClass, nullptr, CurrentScope());
     ObjectOf(refToMethodObj)->Action->ParameterNames = params;

@@ -71,6 +71,11 @@ Block* BlockConstructor()
     return b;
 }
 
+void BlockDestructor(Block* b)
+{
+    delete b;
+}
+
 void Reset()
 {
     ProgramOutput.clear();
@@ -404,7 +409,7 @@ void HandleDefineMethod(
         }
         b = ParseBlock((*it)+1, (*it)+blockSize+1);
     }
-    ExitScope();
+    ExitScope(true);
 
     *it += blockSize;
     ObjectOf(op->Operands.at(0)->Value)->Action->CodeBlock = b;
@@ -419,8 +424,14 @@ Block* ParseBlock(
     Block* thisBlock = BlockConstructor();
     
     LogItDebug("entered new block", "ParseBlock");
+    bool scopeIsLocal = false;
+
     if(scope == nullptr)
+    {
         scope = ScopeConstructor(CurrentScope());
+        scopeIsLocal = true;
+    }
+
     EnterScope(scope);
     {
         int previousLineLevel = it->Level;
@@ -460,7 +471,7 @@ Block* ParseBlock(
             }
         }
     }
-    ExitScope();
+    ExitScope(scopeIsLocal);
 
     return thisBlock;
 }
@@ -487,6 +498,7 @@ Program* ParseProgram(const std::string filepath)
 
         CodeLine ls = { tokens , lineStart, lineLevel };
         PROGRAM->Lines.push_back(ls);
+
     }
 
     // TODO: Allow different blocks
@@ -494,6 +506,19 @@ Program* ParseProgram(const std::string filepath)
     PROGRAM->Main = b;
     return PROGRAM;
 }
+
+void DeleteBlockRecursive(Block* b)
+{
+    for(auto exec: b->Executables)
+    {
+        if(exec->ExecType == ExecutableType::Block)
+            DeleteBlockRecursive(static_cast<Block*>(exec));
+        else
+            DeleteOperationRecursive(static_cast<Operation*>(exec));
+    }
+    BlockDestructor(b);
+}
+
 
 void ProgramDestructor(Program* p)
 {
@@ -508,4 +533,13 @@ void ProgramDestructor(Program* p)
             continue;
         ObjectDestructor(map->IndexedObject);
     }
+
+    ScopeDestructor(p->GlobalScope);
+
+    for(auto codeLine: p->Lines)
+    {
+        DeleteTokenList(codeLine.Tokens);
+    }
+
+    DeleteBlockRecursive(p->Main);
 }

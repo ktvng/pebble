@@ -43,7 +43,8 @@ Operation* OperationConstructor(
     Reference* value = nullptr
 );
 
-
+void DeleteOperationRecursive(Operation* op);
+void OperationDestructor(Operation* op);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Handle the execution of atomic operations

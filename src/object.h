@@ -4,32 +4,16 @@
 #include "abstract.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Referables (Objects/Methods)
+// Objects/Methods
 
 /// defines the class of an object which imbues type properties
 typedef std::string ObjectClass;
-
-/// type of a referable object
-enum class ReferableType
-{
-    Object,
-    Method
-};
-
-/// abstract class for anything that a Reference can point to
-class Referable
-{
-    public:
-    ReferableType Type;
-    
-};
-
 /// emulated object in Pebble
 /// [Class] refers to the Object Class which governs type properties
 /// [Attributes] are references to other Objects/Methods
 /// [Value] is used by primitive objects for basic operations.
 ///         there are currently only int*, double*, bool*, std::string* value types
-class Object : public Referable
+class Object
 {
     public:
     ObjectClass Class;
@@ -41,7 +25,7 @@ class Object : public Referable
 /// emulated method in Pebble
 /// [CodeBlock] is the code associated with the method
 /// [Parameters] are the parameters input to the method
-class Method : public Referable
+class Method
 {
     public:
     Block* CodeBlock;
@@ -75,7 +59,6 @@ void MethodDestructor(Method* m);
 // Access referenced objects/methods
 
 Object* ObjectOf(const Reference* ref);
-Method* MethodOf(const Reference* ref);
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -89,9 +72,9 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value, Scope* methodInheritedScope);
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Create references to existing Referable (object/method)
+// Create references to existing Object
 
-Reference* CreateReference(String name, Referable* refable);
+Reference* CreateReference(String name, Object* obj);
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -115,6 +98,8 @@ Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);
 ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2);
 bool IsNumeric(const Reference* ref);
 bool IsString(const Reference* ref);
+bool IsCallable(const Reference* ref);
+bool IsCallable(const Object* obj);
 
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -156,9 +156,7 @@ inline void CompileAndExecuteProgram(const std::string& programName)
     Execute();
 }
 
-void TestObjectMemoryLoss();
-void TestReferenceMemoryLoss();
-void TestNoProgramMessages();
+void TestGenericMemoryLoss(String className);
 void IncludeStandardAssertSuite();
 
 

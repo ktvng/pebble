@@ -123,8 +123,8 @@ void TestScopeAccess()
 
     CompileAndExecuteProgram("TestScopeAccess");
 
-    TestObjectMemoryLoss();
-    TestReferenceMemoryLoss();
+    TestGenericMemoryLoss("Object");
+    TestGenericMemoryLoss("Reference");
 
     String correctOutput = "Nothing\nNothing\nNothing\nNothing\n10\n";
 

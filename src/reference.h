@@ -9,13 +9,13 @@
 // ---------------------------------------------------------------------------------------------------------------------
 // Struct definitions
 
-/// these are used as names to references either Referable things (either object or methods)
+/// these are used as names to references either  things (either object or methods)
 /// [Name] is the name which is used to call the Reference
-/// [To] a Referable (Method/Object) 
+/// [To] a Object (Method/Object) 
 struct Reference
 {
     std::string Name;
-    Referable* To = nullptr;
+    Object* To = nullptr;
 };
 
 void ReferenceDestructor(Reference* ref);
@@ -45,7 +45,7 @@ void DereferenceAll(std::vector<Reference*> referenceList);
 
 
 /// changes [ref]->To into [to] and updates all dependencies
-void ReassignReference(Reference* ref, Referable* to);
+void ReassignReference(Reference* ref, Object* to);
 
 /// changes [ref->To] into the NullObject and updates all dependencies
 void AssignToNull(Reference* ref);
@@ -64,7 +64,7 @@ Reference* ReferenceFor(String refName, double value);
 Reference* ReferenceFor(String refName, String value);
 
 // for existing object
-Reference* ReferenceFor(String refName, Referable* refable);
+Reference* ReferenceFor(String refName, Object* refable);
 Reference* ReferenceFor(String refName);
 
 // for null
@@ -88,9 +88,6 @@ bool IsReferenceStub(Reference* ref);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Reference info
-
-/// true if [ref]->To is a method
-bool IsMethod(Reference* ref);
 
 /// true if [ref]->To is an object
 bool IsObject(Reference* ref);

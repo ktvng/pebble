@@ -18,6 +18,10 @@ Scope* ScopeConstructor(Scope* inheritedScope)
     return s;
 }
 
+void ScopeDestructor(Scope* scope)
+{
+    delete scope;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Scopestack
@@ -46,9 +50,11 @@ void ClearScope()
 }
 
 /// exit the current scope and return to the previous scope (i.e. the scope before entering this one)
-void ExitScope()
+void ExitScope(bool andDestroy)
 {
-    ScopeStack.Pop();
+    auto scope = ScopeStack.Pop();
+    if(andDestroy)
+        ScopeDestructor(scope);
 }
 
 /// add [ref] to current scope

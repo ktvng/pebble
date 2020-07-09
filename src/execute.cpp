@@ -162,9 +162,12 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
     Reference* previousResult = nullptr;
 
     shouldReturn = false;
-
+    bool scopeIsLocal = false;
     if(scope == nullptr)
+    {
+        scopeIsLocal = true;
         scope = ScopeConstructor(CurrentScope());
+    }
     
     EnterScope(scope);
     {
@@ -212,7 +215,7 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
 
         // CurrentScope()->ReferencesIndex.clear();
     }
-    ExitScope();
+    ExitScope(scopeIsLocal);
     if(result != nullptr)
         return result;
     else

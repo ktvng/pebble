@@ -25,7 +25,6 @@ Object* ObjectConstructor()
     obj->Attributes = ScopeConstructor(CurrentScope());
     obj->Class = NullClass;
     obj->Value = nullptr;
-    obj->Type = ReferableType::Object;
     obj->Action = nullptr;
 
     return obj;
@@ -33,6 +32,11 @@ Object* ObjectConstructor()
 
 void ObjectDestructor(Object* obj)
 {
+    ScopeDestructor(obj->Attributes);
+    if(IsCallable(obj))
+    {
+        MethodDestructor(obj->Action);
+    }
     delete obj;
 }
 
@@ -44,8 +48,7 @@ void ObjectDestructor(Object* obj)
 Method* MethodConstructor(Scope* inheritedScope)
 {
     Method* m = new Method;
-    m->CodeBlock = BlockConstructor();
-    m->Type = ReferableType::Method;
+    m->CodeBlock = nullptr;
     m->ParameterNames = {};
 
     return m;
@@ -53,6 +56,7 @@ Method* MethodConstructor(Scope* inheritedScope)
 
 void MethodDestructor(Method* m)
 {
+    DeleteBlockRecursive(m->CodeBlock);
     delete m;
 }
 
@@ -63,24 +67,18 @@ Object* ObjectOf(const Reference* ref)
     if(ref->To == nullptr)
         return nullptr;
 
-    if(ref->To->Type == ReferableType::Object)
-        return static_cast<Object*>(ref->To);
-
-    return nullptr;
+    return ref->To;
 }
 
-Method* MethodOf(const Reference* ref)
+bool IsCallable(const Reference* ref)
 {
-    if(ref->To == nullptr)
-        return nullptr;
-
-    if(ref->To->Type == ReferableType::Method)
-        return static_cast<Method*>(ref->To);
-
-    return nullptr;
+    return ref->To->Action != nullptr;
 }
 
-
+bool IsCallable(const Object* obj)
+{
+    return obj->Action != nullptr;
+}
 
 // TODO: should ensure that ref is actually an object
 bool IsNumeric(const Reference* ref)
@@ -259,14 +257,13 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
 
 
 
-Reference* CreateReference(String name, Referable* refable)
+Reference* CreateReference(String name, Object* obj)
 {
     Reference* ref = ReferenceConstructor();
-    if(refable->Type == ReferableType::Object)
-        IndexObject(static_cast<Object*>(refable), ref);
+    IndexObject(obj, ref);
 
     ref->Name = name;
-    ref->To = refable;
+    ref->To = obj;
 
     return ref;
 }
@@ -275,9 +272,10 @@ Reference* CreateReference(String name, Referable* refable)
 Object* NullObject()
 {
     static Object nullObject;
+    static Scope nullScope;
     nullObject.Class = NullClass;
     nullObject.Value = nullptr;
-    nullObject.Attributes = ScopeConstructor(nullptr);
+    nullObject.Attributes = &nullScope;
 
     return &nullObject;
 }

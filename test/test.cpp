@@ -57,44 +57,15 @@ void ResetRun()
 // ---------------------------------------------------------------------------------------------------------------------
 // Test primitives
 
-/// inject a function [func] to evaluate before method [name] is called
-
-
-/// tests that all objects are accessible
-void TestObjectMemoryLoss()
+void TestGenericMemoryLoss(String typeName)
 {
-    Should("not lose any objects in memory");
+    Should("not lose any " + typeName +"s in memory");
+    
+    int created = NumberOfCallsTo(typeName + "Constructor");
+    int destroyed = NumberOfCallsTo(typeName + "Destructor");
 
-    int createdObjs = NumberOfCallsTo("ObjectConstructor");
-    int destroyedObjs = NumberOfCallsTo("ObjectDestructor");
-
-    OtherwiseReport(Msg("created objects (%i) != destroyed objects (%i)", createdObjs, destroyedObjs));
-    Assert(createdObjs == destroyedObjs);
-}
-
-void TestMethodMemoryLoss()
-{
-    Should("not lose any objects in memory");
-
-    int createdMethods = NumberOfCallsTo("MethodConstructor");
-    int destroyedMethods = NumberOfCallsTo("MethodDestructor");
-
-    OtherwiseReport(Msg("createdMethods (%i) != destroyedMethods (%i)", createdMethods, destroyedMethods));
-    Assert(createdMethods == destroyedMethods);
-}
-
-/// tests that all references are accessible
-void TestReferenceMemoryLoss()
-{
-    Should("not lose any references in memory");
-
-    int createdRefs = NumberOfCallsTo("ReferenceConstructor");
-    int destroyedRefs = NumberOfCallsTo("ReferenceDestructor");
-    int accessibleRefs = ReferencesInIndex(PROGRAM);
-    int methods = NumberOfCallsTo("MethodConstructor");
-
-    OtherwiseReport(Msg("created refs (%i) != destroyed (%i) + accessible (%i) + methods (%i)", createdRefs, destroyedRefs, accessibleRefs, methods));
-    Assert(createdRefs == destroyedRefs + accessibleRefs + methods);
+    OtherwiseReport(Msg("created (%i) != destroyed (%i)", created, destroyed));
+    Assert(created == destroyed);    
 }
 
 void TestNoProgramMessages()
@@ -108,8 +79,14 @@ void TestNoProgramMessages()
 /// tests standard things
 void IncludeStandardAssertSuite()
 {
-    TestObjectMemoryLoss();
-    // TestReferenceMemoryLoss();
+    TestGenericMemoryLoss("Object");
+    TestGenericMemoryLoss("Reference");
+    TestGenericMemoryLoss("Scope");
+    TestGenericMemoryLoss("Method");
+    TestGenericMemoryLoss("Token");
+    TestGenericMemoryLoss("Block");
+    TestGenericMemoryLoss("Operation");
+
     TestNoProgramMessages();
 }
 

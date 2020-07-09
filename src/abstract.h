@@ -14,7 +14,6 @@ struct CodeLine;
 struct Program;
 struct Reference;
 
-class Referable;
 class Object;
 class Method;
 

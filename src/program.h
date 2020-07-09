@@ -96,4 +96,6 @@ Program* ParseProgram(const std::string filepath);
 void ReportCompileMsg(SystemMessageType type, String message);
 void ReportRuntimeMsg(SystemMessageType type, String message);
 
+void DeleteBlockRecursive(Block* b);
+
 #endif

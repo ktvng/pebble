@@ -384,11 +384,6 @@ String ToString(const Reference* ref)
         refString += IndentLevel(1) +
             StringForAttrbute("ToObject", IndentStringToLevel(ToString(ObjectOf(ref)), 1));
 
-    
-    if(MethodOf(ref) != nullptr)
-        refString += IndentLevel(1) +
-            StringForAttrbute("ToMethod", ref->Name);
-
     return refString;
 }
 
@@ -516,17 +511,6 @@ String ToString(const Operation& op, int level)
                         op.Value->Name, 
                         ObjectOf(op.Value)->Class,
                         GetStringValue(*ObjectOf(op.Value))));
-
-        else if(MethodOf(op.Value) != nullptr)
-        {
-            opString += IndentLevel(1) +
-                StringForAttrbute("name", op.Value->Name);
-            opString += IndentLevel(1) + 
-                StringForAttrbute(
-                    "OperationType", 
-                    IndentStringToLevel(ToString(MethodOf(op.Value)), 1));
-        }
-
         else
         {
             opString += IndentLevel(1) +

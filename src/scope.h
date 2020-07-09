@@ -28,6 +28,8 @@ struct Scope
 /// create a new scope with [inheritedScope]
 Scope* ScopeConstructor(Scope* inheritedScope);
 
+/// destroys the [scope]
+void ScopeDestructor(Scope* scope);
 
 /// add [newscope] to the top of the scope stack so all reference matching is done inside [newscope] 
 void EnterScope(Scope* newScope);
@@ -36,7 +38,7 @@ void EnterScope(Scope* newScope);
 Scope* CurrentScope();
 
 /// pops the top of the scope stack to return to the previous scope
-void ExitScope(); 
+void ExitScope(bool andDestroy = false); 
 
 /// removes all references in the current scope
 void ClearScope();
