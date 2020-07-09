@@ -22,7 +22,7 @@ int failedAsserts = 0;
 int succeededAsserts = 0;
 
 bool g_shouldRunCustomProgram = true;
-
+bool g_noisyReport = false;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers
@@ -37,7 +37,7 @@ int ReferencesInIndex(Program* p)
     int i=0;
     for(auto entry: p->ObjectsIndex)
     {
-        i+= entry->References.size();
+        i+= entry.References.size();
     }
     return i;
 }
@@ -104,6 +104,12 @@ void DoAllTests()
 {
     for(auto test: Tests)
     {
+        if(g_noisyReport)
+        {
+            SetConsoleColor(ConsoleColor::Purple2);
+            std::cout << "\n finished " << testName;
+            SetConsoleColor(ConsoleColor::White);
+        }
         testName = "*unspecified*";
         test();
     }

@@ -524,14 +524,14 @@ void ProgramDestructor(Program* p)
 {
     for(size_t i=0; i<p->ObjectsIndex.size(); i++)
     {
-        auto map = p->ObjectsIndex[i];
-        for(auto ref: map->References)
+        auto& map = p->ObjectsIndex[i];
+        for(auto ref: map.References)
         {
             ReferenceDestructor(ref);
         }
-        if(map->IndexedObject == NullObject())
+        if(map.IndexedObject == NullObject())
             continue;
-        ObjectDestructor(map->IndexedObject);
+        ObjectDestructor(map.IndexedObject);
     }
 
     ScopeDestructor(p->GlobalScope);

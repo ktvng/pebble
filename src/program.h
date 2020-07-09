@@ -35,7 +35,7 @@ struct Program
     std::vector<CodeLine> Lines;
     Scope* GlobalScope;
     Block* Main;
-    std::vector<ObjectReferenceMap*> ObjectsIndex;
+    std::vector<ObjectReferenceMap> ObjectsIndex;
     Reference* That;
 };
 

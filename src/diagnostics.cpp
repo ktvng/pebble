@@ -404,11 +404,6 @@ String ToString(const ObjectReferenceMap& map)
     return mapString;
 }
 
-String ToString(const ObjectReferenceMap* map)
-{
-    return ToString(*map);
-}
-
 String ToString(const Token& token)
 {
     return StringForAttrbute("Token", Msg("Position: %i\t Type: %s\t Content: %s", 
@@ -647,12 +642,5 @@ void LogDiagnostics(const ObjectReferenceMap& map, String message, String method
 {
     DebugDumpObjectToLog(DisplayString(map), message, method);
 }
-
-void LogDiagnostics(const ObjectReferenceMap* map, String message, String method)
-{
-    LogDiagnostics(*map, message, method);
-}
-
-
 
 #endif

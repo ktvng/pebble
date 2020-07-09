@@ -50,7 +50,7 @@ inline const ObjectClass TupleClass = "Tuple";
 // ---------------------------------------------------------------------------------------------------------------------
 // Global Object Index
 
-ObjectReferenceMap* EntryInIndexOf(const Object* obj);
+bool FoundEntryInIndexOf(const Object* obj, ObjectReferenceMap** foundMap);
 void IndexObject(Object* obj, Reference* ref);
 
 void MethodDestructor(Method* m);

@@ -37,7 +37,7 @@ int main()
     if(ShouldPrintInitialCompileResult)
     {
         LogDiagnostics(PROGRAM->Main, "initial program parse structure", "main");
-        for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+        for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
         {
             LogDiagnostics(map, "initial object reference state", "main");
         }
@@ -58,7 +58,7 @@ int main()
 
     if(ShouldPrintProgramExecutionFinalResult)
     {
-        for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+        for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
         {
             LogDiagnostics(map, "final object reference state", "main");
         }

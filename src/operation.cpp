@@ -271,6 +271,9 @@ Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands)
     Reference* lRef = FirstOf(operands);
     Reference* rRef = SecondOf(operands);
 
+    for(auto map: PROGRAM->ObjectsIndex)
+        LogDiagnostics(map);
+
     if(IsNullReference(rRef))
     {
         ReportRuntimeMsg(SystemMessageType::Warning, Msg("cannot assign %s to Nothing", lRef));

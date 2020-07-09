@@ -96,9 +96,9 @@ bool IsString(const Reference* ref)
 
 
 
-bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
+bool ObjectHasReference(const ObjectReferenceMap& map, const Reference* ref)
 {
-    for(Reference* objRef: map->References)
+    for(Reference* objRef: map.References)
     {
         if(ref == objRef)
             return true;
@@ -107,34 +107,35 @@ bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
 }
 
 /// returns the ObjectReferenceMap corresonding to [obj] or nullptr if not found
-ObjectReferenceMap* EntryInIndexOf(const Object* obj)
+bool FoundEntryInIndexOf(const Object* obj, ObjectReferenceMap** foundMap)
 {
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
-        if(map->IndexedObject == obj)
-            return map;
+        if(map.IndexedObject == obj)
+        {
+            *foundMap = &map;            
+            return true;
+        }
     }
-    return nullptr;
+    foundMap = nullptr;
+    return false;
 }
 
 void IndexObject(Object* obj, Reference* ref)
 {
-    ObjectReferenceMap* map = EntryInIndexOf(obj);
-
-    if(map == nullptr)
+    ObjectReferenceMap* map = nullptr;
+    if(FoundEntryInIndexOf(obj, &map))
     {
-        ObjectReferenceMap* objMap = new ObjectReferenceMap;
+        map->References.push_back(ref);
+    }
+    else
+    {
         std::vector<Reference*> refs = { ref };
         
-        *objMap = ObjectReferenceMap{ obj, refs };
+        ObjectReferenceMap objMap = { obj, refs };
         PROGRAM->ObjectsIndex.push_back(objMap);
-        
-        // LogItDebug("reference added for new object", "IndexObject");
-        return;
     }
-    
-    // LogItDebug("reference added for existing object", "IndexObject");
-    map->References.push_back(ref);
+
 }
 
 Reference* CreateReferenceInternal(String name, ObjectClass objClass)
