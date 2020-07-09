@@ -1,5 +1,12 @@
 #include "decision.h"
 
+#include "main.h"
+#include "reference.h"
+#include "operation.h"
+#include "program.h"
+#include "token.h"
+#include "object.h"
+#include "diagnostics.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Deciding stuff

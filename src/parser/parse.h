@@ -7,11 +7,7 @@
 #include <list>
 #include <iostream>
 
-#include "main.h"
-#include "token.h"
-#include "diagnostics.h"
-#include "reference.h"
-#include "operation.h"
+#include "abstract.h"
 
 
 

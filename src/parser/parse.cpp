@@ -1,5 +1,14 @@
 #include "parse.h"
 
+#include "main.h"
+#include "token.h"
+#include "diagnostics.h"
+#include "reference.h"
+#include "operation.h"
+#include "scope.h"
+#include "object.h"
+#include "program.h"
+
 // ---------------------------------------------------------------------------------------------------------------------
 // PrecedenceClass
 bool PrecedenceClass::Contains(String symb)

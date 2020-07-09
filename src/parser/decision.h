@@ -3,10 +3,7 @@
 
 #include <algorithm>
 
-#include "main.h"
-#include "reference.h"
-#include "operation.h"
-#include "program.h"
+#include "abstract.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Struct definitions

@@ -12,6 +12,8 @@
 #include "decision.h"
 #include "parse.h"
 #include "object.h"
+#include "execute.h"
+#include "scope.h"
 
 /// program to execute
 Program* PROGRAM;
@@ -505,5 +507,15 @@ void ProgramDestructor(Program* p)
         if(map->IndexedObject == NullObject())
             continue;
         ObjectDestructor(map->IndexedObject);
+    }
+
+    for(size_t i=0; i<p->MethodsIndex.size(); i++)
+    {
+        auto map = p->MethodsIndex[i];
+        for(auto ref: map->References)
+        {
+            ReferenceDestructor(ref);
+        }
+        MethodDestructor(map->IndexedMethod);
     }
 }

@@ -1,11 +1,10 @@
 #ifndef __SCOPE_H
 #define __SCOPE_H
 
-#include "main.h"
-#include "object.h"
-#include "diagnostics.h"
-#include "program.h"
-#include "reference.h"
+#include "abstract.h"
+
+
+
 
 
 

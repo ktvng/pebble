@@ -5,6 +5,8 @@
 #include "diagnostics.h"
 #include "program.h"
 #include "reference.h"
+#include "scope.h"
+#include "token.h"
 
 Reference* ReferenceConstructor()
 {

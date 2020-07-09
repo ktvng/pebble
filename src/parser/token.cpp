@@ -4,6 +4,8 @@
 #include <cctype>
 #include <fstream>
 
+#include "token.h"
+
 #include "main.h"
 #include "diagnostics.h"
 #include "reference.h"

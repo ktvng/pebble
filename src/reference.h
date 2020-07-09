@@ -1,10 +1,8 @@
 #ifndef __REFERENCE_H
 #define __REFERENCE_H
 
-#include "main.h"
-#include "program.h"
-#include "token.h"
-#include "scope.h"
+#include "abstract.h"
+
 
 
 

@@ -1,6 +1,13 @@
 #include <iostream>
 
 #include "execute.h"
+#include "main.h"
+#include "diagnostics.h"
+#include "scope.h"
+#include "operation.h"
+#include "reference.h"
+#include "program.h"
+#include "object.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Diagnostics

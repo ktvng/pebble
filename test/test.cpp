@@ -72,6 +72,17 @@ void TestObjectMemoryLoss()
     Assert(createdObjs == destroyedObjs);
 }
 
+void TestMethodMemoryLoss()
+{
+    Should("not lose any objects in memory");
+
+    int createdMethods = NumberOfCallsTo("MethodConstructor");
+    int destroyedMethods = NumberOfCallsTo("MethodDestructor");
+
+    OtherwiseReport(Msg("createdMethods (%i) != destroyedMethods (%i)", createdMethods, destroyedMethods));
+    Assert(createdMethods == destroyedMethods);
+}
+
 /// tests that all references are accessible
 void TestReferenceMemoryLoss()
 {

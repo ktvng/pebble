@@ -18,6 +18,8 @@
 #include "program.h"
 #include "reference.h"
 #include "operation.h"
+#include "scope.h"
+
 
 #ifdef _WIN32 
 #include <windows.h>

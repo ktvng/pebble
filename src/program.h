@@ -1,9 +1,7 @@
 #ifndef __PROGRAM_H
 #define __PROGRAM_H
 
-#include "main.h"
-#include "diagnostics.h"
-#include "execute.h"
+#include "abstract.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -48,6 +46,24 @@ struct Program
     Reference* That;
 };
 
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Pebble system messages
+
+enum class SystemMessageType
+{
+    Exception,
+    Warning,
+    Advice
+};
+
+struct SystemMessage
+{
+    String Content;
+    SystemMessageType Type;
+};
 
 /// log all messages at or above this level
 extern LogSeverityType LogAtLevel;

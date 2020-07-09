@@ -4,23 +4,12 @@
 #include <string>
 #include <cstdarg>
 
-#include "main.h"
-#include "operation.h"
-#include "object.h"
+#include "abstract.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Logging and debugging
 
-/// log events are used for internal Pebble developer debugging
-/// defines how severe a log event is. due to enum -> int casting, definition order is important
-enum LogSeverityType
-{
-    Sev0_Debug,
-    Sev1_Notify,
-    Sev2_Important,
-    Sev3_Critical,
-};
 
 /// converts LogSeverityType to a printable string
 const std::map<LogSeverityType, String> LogSeverityTypeString =
@@ -72,18 +61,6 @@ String IndentStringToLevel(String str, int level, int margin=0);
 // ---------------------------------------------------------------------------------------------------------------------
 // Pebble system messages
 
-enum class SystemMessageType
-{
-    Exception,
-    Warning,
-    Advice
-};
-
-struct SystemMessage
-{
-    String Content;
-    SystemMessageType Type;
-};
 
 extern std::vector<SystemMessage> RuntimeMsgBuffer;
 extern std::vector<SystemMessage> CompileMsgBuffer;

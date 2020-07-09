@@ -6,12 +6,10 @@
 #include <vector>
 #include <iostream>
 
-#include "main.h"
-#include "program.h"
-#include "token.h"
+#include "abstract.h"
 #include "diagnostics.h"
-#include "operation.h"
-#include "reference.h"
+#include "program.h"
+#include "execute.h"
 #include "parse.h"
 
 

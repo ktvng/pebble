@@ -4,8 +4,11 @@
 #include "program.h"
 #include "reference.h"
 #include "execute.h"
-
-
+#include "main.h"
+#include "token.h"
+#include "object.h"
+#include "scope.h"
+#include "diagnostics.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -13,7 +16,6 @@
 // 1. Refactor code to put similar methods in the same section (i.e. DecideProbabilityX, OperationX, DecideOperandsX)
 // 2. Implement unimplemented operations
 // 3. Revamp the DecideOperandsX system
-
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -87,6 +89,48 @@ Operation* OperationConstructor(
     return OperationConstructor(type, operands, value);
 }
 
+
+/// returns the ObjectReferenceMap corresonding to [obj] or nullptr if not found
+MethodReferenceMap* EntryInMethodIndexOf(const Method* m)
+{
+    for(MethodReferenceMap* map: PROGRAM->MethodsIndex)
+    {
+        if(map->IndexedMethod == m)
+            return map;
+    }
+    return nullptr;
+}
+
+void IndexMethod(Method* m, Reference* ref)
+{
+    MethodReferenceMap* map = EntryInMethodIndexOf(m);
+
+    if(map == nullptr)
+    {
+        MethodReferenceMap* methodMap = new MethodReferenceMap;
+        
+        if(ref != nullptr)
+        {
+            *methodMap = MethodReferenceMap{ m, {ref} };
+        }
+        else
+        {
+            *methodMap = MethodReferenceMap{ m, {}};
+        }
+
+        PROGRAM->MethodsIndex.push_back(methodMap);
+        
+        return;
+    }
+    else
+    {
+        if(ref != nullptr)
+        {
+            map->References.push_back(ref);
+        }
+    }
+}
+
 /// constructor for a Method* object with [inheritedScope]
 Method* MethodConstructor(Scope* inheritedScope)
 {
@@ -95,7 +139,14 @@ Method* MethodConstructor(Scope* inheritedScope)
     m->Type = ReferableType::Method;
     m->ParameterNames = {};
 
+    IndexMethod(m);
+
     return m;
+}
+
+void MethodDestructor(Method* m)
+{
+    delete m;
 }
 
 Reference* ResolveStub(Reference* ref) 
