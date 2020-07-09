@@ -37,6 +37,8 @@ extern std::map<MethodName, int> methodHitMap;
 extern bool g_shouldRunCustomProgram;
 extern bool g_noisyReport;
 
+extern Program* programToRun;
+
 bool Test();
 void ResetRun();
 
@@ -120,7 +122,7 @@ inline void Compile()
     ProgramMsgs = "";
     FatalCompileError = false;
     CompileGrammar();
-    ParseProgram(programFile);
+    programToRun = ParseProgram(programFile);
 }
 
 /// execute the program
@@ -128,8 +130,8 @@ inline void Execute()
 {
     if(!FatalCompileError)
     {
-        DoProgram(*PROGRAM);
-        ProgramDestructor(PROGRAM);
+        DoProgram(programToRun);
+        ProgramDestructor(programToRun);
     }
 }
 

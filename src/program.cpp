@@ -89,21 +89,32 @@ void Reset()
     CompileMsgCount = 0;
 }
 
-void InitializePROGRAM()
+void EnterProgram(Program* p)
 {
-    PROGRAM = new Program;
-    PROGRAM->GlobalScope = ScopeConstructor(nullptr);
+    PROGRAM = p;
+}
 
-    EnterScope(PROGRAM->GlobalScope);
+void ExitProgram()
+{
+    PROGRAM = nullptr;
+}
+
+Program* ProgramConstructor()
+{
+    Program* p = new Program;
+    p->GlobalScope = ScopeConstructor(nullptr);
+
+    EnterProgram(p);
+    EnterScope(p->GlobalScope);
     {
         Reference* ref = CreateReferenceToNewObject("Object", BaseClass, nullptr);
         AddReferenceToCurrentScope(ref);
     }
     ExitScope();
+    ExitProgram();
+
+    return p;
 }
-
-
-
 
 
 
@@ -478,7 +489,8 @@ Block* ParseBlock(
 
 Program* ParseProgram(const std::string filepath)
 {
-    InitializePROGRAM();
+    Program* p = ProgramConstructor();
+    EnterProgram(p);
 
     std::fstream file;
     file.open(filepath, std::ios::in);
@@ -497,14 +509,16 @@ Program* ParseProgram(const std::string filepath)
         lineLevel = LevelOfLine(line);
 
         CodeLine ls = { tokens , lineStart, lineLevel };
-        PROGRAM->Lines.push_back(ls);
+        p->Lines.push_back(ls);
 
     }
 
     // TODO: Allow different blocks
-    Block* b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end(), PROGRAM->GlobalScope);
-    PROGRAM->Main = b;
-    return PROGRAM;
+    Block* b = ParseBlock(p->Lines.begin(), p->Lines.end(), p->GlobalScope);
+    p->Main = b;
+
+    ExitProgram();
+    return p;
 }
 
 void DeleteBlockRecursive(Block* b)
@@ -542,4 +556,6 @@ void ProgramDestructor(Program* p)
     }
 
     DeleteBlockRecursive(p->Main);
+
+    delete p;
 }

@@ -223,7 +223,11 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
 }
 
 /// executes all blocks of [program]
-void DoProgram(Program& program)
+void DoProgram(Program* program)
 {
-    DoBlock(program.Main, program.GlobalScope);
+    EnterProgram(program);
+    {
+        DoBlock(program->Main, program->GlobalScope);
+    }
+    ExitProgram();
 }

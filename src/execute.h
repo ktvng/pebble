@@ -9,6 +9,6 @@ extern OperationEvaluator OperationEvaluators[];
 
 Reference* DoOperation(Operation* op);
 Reference* DoBlock(Block* codeBlock, Scope* scope=nullptr);
-void DoProgram(Program& program);
+void DoProgram(Program* program);
 
 #endif

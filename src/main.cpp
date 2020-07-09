@@ -28,7 +28,7 @@ int main()
     // compile program
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
 
-    ParseProgram("./program.pebl");
+    auto prog = ParseProgram("./program.pebl");
     if(FatalCompileError)
         return 1;
 
@@ -36,6 +36,7 @@ int main()
 
     if(ShouldPrintInitialCompileResult)
     {
+        EnterProgram(prog);
         LogDiagnostics(PROGRAM->Main, "initial program parse structure", "main");
         for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
         {
@@ -49,7 +50,7 @@ int main()
     SetConsoleColor(ConsoleColor::White);
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
 
-    DoProgram(*PROGRAM);
+    DoProgram(prog);
     
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
     SetConsoleColor(ConsoleColor::LightBlue);
@@ -58,6 +59,7 @@ int main()
 
     if(ShouldPrintProgramExecutionFinalResult)
     {
+        EnterProgram(prog);
         for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
         {
             LogDiagnostics(map, "final object reference state", "main");

@@ -17,6 +17,7 @@ std::string testName = "*unspecified*";
 
 std::string programFile = "./program";
 
+Program* programToRun = nullptr;
 
 int failedAsserts = 0;
 int succeededAsserts = 0;
