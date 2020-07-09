@@ -77,8 +77,7 @@ void TestNoProgramMessages()
     Assert(ProgramMsgs == "");
 }
 
-/// tests standard things
-void IncludeStandardAssertSuite()
+void Valgrind()
 {
     std::vector<String> objectsToTest = 
     {
@@ -98,7 +97,12 @@ void IncludeStandardAssertSuite()
     {
         TestGenericMemoryLoss(str);
     }
-    
+}
+
+/// tests standard things
+void IncludeStandardAssertSuite()
+{
+    Valgrind();
     TestNoProgramMessages();
 }
 

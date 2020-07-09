@@ -161,6 +161,7 @@ inline void CompileAndExecuteProgram(const std::string& programName)
 
 void TestGenericMemoryLoss(String className);
 void IncludeStandardAssertSuite();
+void Valgrind();
 
 
 #endif
