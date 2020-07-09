@@ -138,9 +138,9 @@ int PrecedenceOf(Token* lookaheadToken)
 
 void AssignRulePrecedences()
 {
-    for(auto rule: Grammar)
+    for(auto& rule: Grammar)
     {
-        rule->Precedence = PrecedenceOf(rule->Symbol);
+        rule.Precedence = PrecedenceOf(rule.Symbol);
     }
 }
 
@@ -162,34 +162,34 @@ void AddGrammarRuleInternal(
     PrecedenceClass& higherpclass, 
     PrecedenceClass& lowerpclass)
 {
-    CFGRule* rule = new CFGRule;
+    CFGRule rule;
 
-    rule->HasHigherPrecedenceClassOverride = false;
-    rule->HasLowerPrecedenceClassOverride = false;
+    rule.HasHigherPrecedenceClassOverride = false;
+    rule.HasLowerPrecedenceClassOverride = false;
 
-    rule->Name = name;
-    rule->Symbol = symbol; 
-    rule->ParseMethod = parseMethod; 
+    rule.Name = name;
+    rule.Symbol = symbol; 
+    rule.ParseMethod = parseMethod; 
 
-    rule->OpType = StringNameToOperationType(rule->Name);
-    rule->FromProduction = tokens.at(0)->Content;
-    AddProductionVariable(rule->FromProduction);
+    rule.OpType = StringNameToOperationType(rule.Name);
+    rule.FromProduction = tokens.at(0)->Content;
+    AddProductionVariable(rule.FromProduction);
 
     if(!higherpclass.Members.empty())
     {
-        rule->HasHigherPrecedenceClassOverride = true;
-        rule->HigherPrecedenceClass = higherpclass;
+        rule.HasHigherPrecedenceClassOverride = true;
+        rule.HigherPrecedenceClass = higherpclass;
     }
 
     if(!lowerpclass.Members.empty())
     {
-        rule->HasLowerPrecedenceClassOverride = true;
-        rule->LowerPrecedenceClass = lowerpclass;
+        rule.HasLowerPrecedenceClassOverride = true;
+        rule.LowerPrecedenceClass = lowerpclass;
     }
 
     for(size_t i=3; i<tokens.size(); i++)
     {
-        rule->IntoPattern.push_back(tokens.at(i)->Content);
+        rule.IntoPattern.push_back(tokens.at(i)->Content);
     }
 
     Grammar.push_back(rule);
@@ -359,11 +359,11 @@ Operation* RefOperation(Token* refToken)
 
 bool MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail, CFGRule& match)
 {
-    for(CFGRule* rule: Grammar)
+    for(CFGRule& rule: Grammar)
     {
         bool isMatchForRule = true;
         ParseToken* listItr = listTail;
-        for(int i=rule->IntoPattern.size()-1; i>=0; i--, listItr = listItr->Prev)
+        for(int i=rule.IntoPattern.size()-1; i>=0; i--, listItr = listItr->Prev)
         {
             // false if rule is longer than the list
             if(listItr == nullptr)
@@ -372,7 +372,7 @@ bool MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail, CFGRule& m
                 break;
             }
 
-            if(listItr->TokenType != rule->IntoPattern.at(i))
+            if(listItr->TokenType != rule.IntoPattern.at(i))
             {
                 isMatchForRule = false;
                 break;
@@ -380,7 +380,7 @@ bool MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail, CFGRule& m
         }
         if(isMatchForRule)
         {
-            match = *rule;
+            match = rule;
             return true;
         }
     }

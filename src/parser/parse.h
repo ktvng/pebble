@@ -66,7 +66,7 @@ struct ParseToken
 // Static definitions
 
 /// the [Grammar] consists of a list of production rules represented as [CFGRules]
-static std::vector<CFGRule*> Grammar;
+static std::vector<CFGRule> Grammar;
 
 /// the [PrecedenceRules] are a linked list of PrecedenceClasses order from lowest precedence to highest precedence
 static std::list<PrecedenceClass> PrecedenceRules;
