@@ -341,6 +341,11 @@ ParseToken* ParseTokenConstructor(String tokenType)
     return gt;
 }
 
+void ParseTokenDestructor(ParseToken* token)
+{
+    delete token;
+}
+
 /// constructs a operation of type OperationType::Ref with either a primitive value or a named Reference stub
 Operation* RefOperation(Token* refToken)
 {
@@ -389,7 +394,7 @@ void DestroyList(ParseToken* listHead)
     {
         prevToken = listHead;
         listHead = listHead->Next;
-        delete prevToken;
+        ParseTokenDestructor(prevToken);
     }
 }
 
@@ -712,6 +717,7 @@ Operation* ExpressionParser(TokenList& line)
     // if the line could not be parsed
     if(listHead != listTail)
     {
+        DestroyList(listHead);
         ReportCompileMsg(SystemMessageType::Exception, "syntax error");
         FatalCompileError = true;
         return nullptr;
@@ -719,5 +725,9 @@ Operation* ExpressionParser(TokenList& line)
 
     // resolving references will be done at runtime
     LogItDebug("end reached", "ExpressionParser");
-    return listHead->Value;
+    
+    auto ast = listHead->Value;
+    DestroyList(listHead);
+
+    return ast;
 }

@@ -80,14 +80,24 @@ void TestNoProgramMessages()
 /// tests standard things
 void IncludeStandardAssertSuite()
 {
-    TestGenericMemoryLoss("Object");
-    TestGenericMemoryLoss("Reference");
-    TestGenericMemoryLoss("Scope");
-    TestGenericMemoryLoss("Method");
-    TestGenericMemoryLoss("Token");
-    TestGenericMemoryLoss("Block");
-    TestGenericMemoryLoss("Operation");
+    std::vector<String> objectsToTest = 
+    {
+        "Object",
+        "Reference",
+        "Scope",
+        "Method",
+        "Token",
+        "Block",
+        "Operation",
+        "Program",
+        "ParseToken"
+    };
 
+    for(auto str: objectsToTest)
+    {
+        TestGenericMemoryLoss(str);
+    }
+    
     TestNoProgramMessages();
 }
 
