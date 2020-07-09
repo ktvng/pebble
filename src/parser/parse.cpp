@@ -515,25 +515,26 @@ Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
 
     auto methodName = components.at(0)->Value->Name;
     
-    Method* m = MethodConstructor(CurrentScope());
+    ParameterList params;
     if(components.size() > 1)
     {
         if(components.at(1)->Type == OperationType::Tuple)
         {
             for(auto op: components.at(1)->Operands)
             {
-                m->ParameterNames.push_back(ScopeChainTerminal(op)->Name);
+                params.push_back(ScopeChainTerminal(op)->Name);
             }
         }
         else
         {
             auto chain = components.at(1);
-            m->ParameterNames.push_back(ScopeChainTerminal(chain)->Name);
+            params.push_back(ScopeChainTerminal(chain)->Name);
         }
     }
 
-    Reference* ref = ReferenceFor(methodName, m);
-    return OperationConstructor(OperationType::DefineMethod, { OperationConstructor(OperationType::Ref, ref) } );
+    Reference* refToMethodObj = CreateReferenceToNewObject(methodName, BaseClass, nullptr, CurrentScope());
+    ObjectOf(refToMethodObj)->Action->ParameterNames = params;
+    return OperationConstructor(OperationType::DefineMethod, { OperationConstructor(OperationType::Ref, refToMethodObj) } );
 }
 
 Operation* CollapseByChain(CFGRule* rule, OperationsList& components)

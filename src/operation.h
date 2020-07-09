@@ -43,10 +43,7 @@ Operation* OperationConstructor(
     Reference* value = nullptr
 );
 
-Method* MethodConstructor(Scope* inheritedScope);
-void IndexMethod(Method* m, Reference* ref=nullptr);
-void MethodDestructor(Method* m);
-MethodReferenceMap* EntryInMethodIndexOf(const Method* m);
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Handle the execution of atomic operations

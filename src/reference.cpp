@@ -40,19 +40,6 @@ void RemoveReferenceFromObjectIndex(Reference* ref)
     map->References.erase(map->References.begin()+refLoc);
 }
 
-void RemoveReferenceFromMethodIndex(Reference* ref)
-{
-    MethodReferenceMap* map = EntryInMethodIndexOf(MethodOf(ref));
-    if(map == nullptr)
-    {
-        LogIt(LogSeverityType::Sev3_Critical, "RemoveReferenceFromMethodIndex", "cannot find reference in ObjectIndex");
-        return;
-    }
-    size_t refLoc;
-    for(refLoc=0; refLoc<map->References.size() && ref != map->References.at(refLoc); refLoc++);
-    map->References.erase(map->References.begin()+refLoc);
-}
-
 /// true if [ref] is a temporary reference
 bool IsTemporaryReference(Reference* ref)
 {
@@ -328,24 +315,9 @@ Reference* ReferenceFor(String refName, Referable* refable)
 /// reassign an existing reference [ref] to [to]
 void ReassignReference(Reference* ref, Referable* to)
 {
-    if(ObjectOf(ref) != nullptr)
-    {
-        RemoveReferenceFromObjectIndex(ref);
-    }
-    else
-    {
-        RemoveReferenceFromMethodIndex(ref);
-    }
-
-    if(to->Type == ReferableType::Object)
-    {
-        IndexObject(static_cast<Object*>(to), ref);
-    }
-    else
-    {
-        IndexMethod(static_cast<Method*>(to), ref);
-    }
-
+    RemoveReferenceFromObjectIndex(ref);
+    IndexObject(static_cast<Object*>(to), ref);
+    
     ref->To = to;
 }
 

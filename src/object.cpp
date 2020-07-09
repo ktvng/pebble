@@ -26,6 +26,7 @@ Object* ObjectConstructor()
     obj->Class = NullClass;
     obj->Value = nullptr;
     obj->Type = ReferableType::Object;
+    obj->Action = nullptr;
 
     return obj;
 }
@@ -34,6 +35,28 @@ void ObjectDestructor(Object* obj)
 {
     delete obj;
 }
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Methods
+
+/// constructor for a Method* object with [inheritedScope]
+Method* MethodConstructor(Scope* inheritedScope)
+{
+    Method* m = new Method;
+    m->CodeBlock = BlockConstructor();
+    m->Type = ReferableType::Method;
+    m->ParameterNames = {};
+
+    return m;
+}
+
+void MethodDestructor(Method* m)
+{
+    delete m;
+}
+
+
 
 Object* ObjectOf(const Reference* ref)
 {
@@ -185,6 +208,17 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
     *s = value;
     ObjectOf(ref)->Value = s;
     
+    return ref;
+}
+
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value, Scope* methodInheritedScope)
+{
+    Reference* ref = CreateReferenceInternal(name, objClass);
+    ObjectOf(ref)->Value = value;
+    
+    auto method = MethodConstructor(methodInheritedScope);
+    ObjectOf(ref)->Action = method;
+
     return ref;
 }
 

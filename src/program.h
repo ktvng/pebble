@@ -14,12 +14,6 @@ struct ObjectReferenceMap
     std::vector<Reference*> References;
 };
 
-struct MethodReferenceMap
-{
-    Method* IndexedMethod;
-    std::vector<Reference*> References;
-};
-
 
 /// represents the result of tokenizing a line with additional metadata
 /// [Tokens] are the tokens resulting from processing an effective line of code
@@ -42,7 +36,6 @@ struct Program
     Scope* GlobalScope;
     Block* Main;
     std::vector<ObjectReferenceMap*> ObjectsIndex;
-    std::vector<MethodReferenceMap*> MethodsIndex;
     Reference* That;
 };
 

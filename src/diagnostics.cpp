@@ -332,8 +332,20 @@ String ToString(const String& str)
     return str;
 }
 
-
 // Diagnostic printing
+
+String ToString(const Method* method)
+{
+    String methodString = Msg("<Method>\n");
+
+    for(auto ref: method->ParameterNames)
+    {
+        methodString += IndentLevel(1) + 
+            StringForAttrbute("param", ref);
+    }
+    return methodString;
+}
+
 String ToString(const Object& obj)
 {
     String objString = "<Object>\n";
@@ -347,24 +359,18 @@ String ToString(const Object& obj)
     objString += IndentLevel(1) +
         StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes->ReferencesIndex, "Reference"), 1));
 
+    if(obj.Action != nullptr)
+    {
+        objString += IndentLevel(1) + 
+            StringForAttrbute("Action", IndentStringToLevel(ToString(obj.Action), 1));
+    }
+
     return objString;
 }
 
 String ToString(const Object* obj)
 {
     return ToString(*obj);
-}
-
-String ToString(const Method* method)
-{
-    String methodString = Msg("<Method>\n");
-
-    for(auto ref: method->ParameterNames)
-    {
-        methodString += IndentLevel(1) + 
-            StringForAttrbute("param", ref);
-    }
-    return methodString;
 }
 
 String ToString(const Reference* ref)

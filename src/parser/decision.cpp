@@ -437,15 +437,16 @@ void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
     Token* t = NextTokenMatching(tokens, TokenType::Reference, i);
     String methodName = t->Content;
     
-    Method* m = MethodConstructor(PROGRAM->GlobalScope);
-
+    ParameterList paramNames;
     for(t = NextTokenMatching(tokens, TokenType::Reference, i); t != nullptr; t = NextTokenMatching(tokens, TokenType::Reference, i))
     {
-        m->ParameterNames.push_back(t->Content);
+        paramNames.push_back(t->Content);
     }
+
+    Reference* refToMethodObj = CreateReferenceToNewObject(methodName, BaseClass, nullptr, PROGRAM->GlobalScope);
+    ObjectOf(refToMethodObj)->Action->ParameterNames = paramNames;
     
-    Reference* ref = ReferenceFor(methodName, m);
-    AddRefOperationTo(operands, ref);
+    AddRefOperationTo(operands, refToMethodObj);
 }
 
 

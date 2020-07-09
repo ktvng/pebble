@@ -35,6 +35,7 @@ class Object : public Referable
     ObjectClass Class;
     Scope* Attributes;
     void* Value;
+    Method* Action;
 };
 
 /// emulated method in Pebble
@@ -44,7 +45,7 @@ class Method : public Referable
 {
     public:
     Block* CodeBlock;
-    std::vector<std::string> ParameterNames;
+    ParameterList ParameterNames;
 };
 
 void ObjectDestructor(Object* obj);
@@ -68,6 +69,7 @@ inline const ObjectClass TupleClass = "Tuple";
 ObjectReferenceMap* EntryInIndexOf(const Object* obj);
 void IndexObject(Object* obj, Reference* ref);
 
+void MethodDestructor(Method* m);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Access referenced objects/methods
@@ -84,7 +86,7 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int val
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value);
-
+Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value, Scope* methodInheritedScope);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Create references to existing Referable (object/method)

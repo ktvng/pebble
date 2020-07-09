@@ -89,66 +89,6 @@ Operation* OperationConstructor(
     return OperationConstructor(type, operands, value);
 }
 
-
-/// returns the ObjectReferenceMap corresonding to [obj] or nullptr if not found
-MethodReferenceMap* EntryInMethodIndexOf(const Method* m)
-{
-    for(MethodReferenceMap* map: PROGRAM->MethodsIndex)
-    {
-        if(map->IndexedMethod == m)
-            return map;
-    }
-    return nullptr;
-}
-
-void IndexMethod(Method* m, Reference* ref)
-{
-    MethodReferenceMap* map = EntryInMethodIndexOf(m);
-
-    if(map == nullptr)
-    {
-        MethodReferenceMap* methodMap = new MethodReferenceMap;
-        
-        if(ref != nullptr)
-        {
-            *methodMap = MethodReferenceMap{ m, {ref} };
-        }
-        else
-        {
-            *methodMap = MethodReferenceMap{ m, {}};
-        }
-
-        PROGRAM->MethodsIndex.push_back(methodMap);
-        
-        return;
-    }
-    else
-    {
-        if(ref != nullptr)
-        {
-            map->References.push_back(ref);
-        }
-    }
-}
-
-/// constructor for a Method* object with [inheritedScope]
-Method* MethodConstructor(Scope* inheritedScope)
-{
-    Method* m = new Method;
-    m->CodeBlock = BlockConstructor();
-    m->Type = ReferableType::Method;
-    m->ParameterNames = {};
-
-    IndexMethod(m);
-
-    return m;
-}
-
-void MethodDestructor(Method* m)
-{
-    delete m;
-}
-
 Reference* ResolveStub(Reference* ref) 
 {
     if(!IsReferenceStub(ref))
@@ -684,14 +624,14 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
     // resolve param refs from params
     std::vector<Reference*> givenParamsList = ResolveParamters(params);
     auto givenNum = givenParamsList.size();
-    auto requiredNum = MethodOf(method)->ParameterNames.size();
+    auto requiredNum = ObjectOf(method)->Action->ParameterNames.size();
     if(givenNum != requiredNum)
     {
         ReportRuntimeMsg(SystemMessageType::Exception, Msg("wrong number of parameters: given %i, but expected %i", givenNum, requiredNum));
         return NullReference();
     }
 
-    auto methodParamNames = MethodOf(method)->ParameterNames;
+    auto methodParamNames = ObjectOf(method)->Action->ParameterNames;
 
     // add parameters to method scope
     auto methodScope = ScopeConstructor(callerScope);
@@ -706,7 +646,7 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
     ExitScope();
 
     Reference* result;
-    auto methodBlock = MethodOf(method)->CodeBlock;
+    auto methodBlock = ObjectOf(method)->Action->CodeBlock;
     result = DoBlock(methodBlock, methodScope);
     AddReferenceToCurrentScope(result);
 

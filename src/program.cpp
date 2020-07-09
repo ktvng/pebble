@@ -390,7 +390,7 @@ void HandleDefineMethod(
     if(op->Type != OperationType::DefineMethod)
         return;
 
-    auto method = MethodOf(op->Operands[0]->Value);
+    auto method = ObjectOf(op->Operands[0]->Value)->Action;
 
     // assumes there is a block
     int blockSize = SizeOfBlock((*it)+1, *end);
@@ -407,7 +407,7 @@ void HandleDefineMethod(
     ExitScope();
 
     *it += blockSize;
-    MethodOf(op->Operands.at(0)->Value)->CodeBlock = b;
+    ObjectOf(op->Operands.at(0)->Value)->Action->CodeBlock = b;
     LogItDebug("exit method", "HandleDefineMethod");
 }
 
@@ -507,15 +507,5 @@ void ProgramDestructor(Program* p)
         if(map->IndexedObject == NullObject())
             continue;
         ObjectDestructor(map->IndexedObject);
-    }
-
-    for(size_t i=0; i<p->MethodsIndex.size(); i++)
-    {
-        auto map = p->MethodsIndex[i];
-        for(auto ref: map->References)
-        {
-            ReferenceDestructor(ref);
-        }
-        MethodDestructor(map->IndexedMethod);
     }
 }
