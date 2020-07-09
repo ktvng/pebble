@@ -156,44 +156,43 @@ void AddPrecedenceClass(TokenList& tokens)
 
 void AddGrammarRuleInternal(
     TokenList&tokens, 
-    CFGRule** rule, 
     String& name, 
     String& symbol, 
     String& parseMethod, 
     PrecedenceClass& higherpclass, 
     PrecedenceClass& lowerpclass)
 {
-    *rule = new CFGRule;
+    CFGRule* rule = new CFGRule;
 
-    (*rule)->HasHigherPrecedenceClassOverride = false;
-    (*rule)->HasLowerPrecedenceClassOverride = false;
+    rule->HasHigherPrecedenceClassOverride = false;
+    rule->HasLowerPrecedenceClassOverride = false;
 
-    (*rule)->Name = name;
-    (*rule)->Symbol = symbol; 
-    (*rule)->ParseMethod = parseMethod; 
+    rule->Name = name;
+    rule->Symbol = symbol; 
+    rule->ParseMethod = parseMethod; 
 
-    (*rule)->OpType = StringNameToOperationType((*rule)->Name);
-    (*rule)->FromProduction = tokens.at(0)->Content;
-    AddProductionVariable((*rule)->FromProduction);
+    rule->OpType = StringNameToOperationType(rule->Name);
+    rule->FromProduction = tokens.at(0)->Content;
+    AddProductionVariable(rule->FromProduction);
 
     if(!higherpclass.Members.empty())
     {
-        (*rule)->HasHigherPrecedenceClassOverride = true;
-        (*rule)->HigherPrecedenceClass = higherpclass;
+        rule->HasHigherPrecedenceClassOverride = true;
+        rule->HigherPrecedenceClass = higherpclass;
     }
 
     if(!lowerpclass.Members.empty())
     {
-        (*rule)->HasLowerPrecedenceClassOverride = true;
-        (*rule)->LowerPrecedenceClass = lowerpclass;
+        rule->HasLowerPrecedenceClassOverride = true;
+        rule->LowerPrecedenceClass = lowerpclass;
     }
 
     for(size_t i=3; i<tokens.size(); i++)
     {
-        (*rule)->IntoPattern.push_back(tokens.at(i)->Content);
+        rule->IntoPattern.push_back(tokens.at(i)->Content);
     }
 
-    Grammar.push_back((*rule));
+    Grammar.push_back(rule);
 }
 
 PrecedenceClass GetOverridePrecedenceClass(TokenList& tokens)
@@ -208,7 +207,7 @@ PrecedenceClass GetOverridePrecedenceClass(TokenList& tokens)
     return pclass;
 }
 
-void AddGrammarRule(TokenList& tokens, CFGRule** rule)
+void AddGrammarRule(TokenList& tokens)
 {
     static String name;
     static String symbol;
@@ -235,7 +234,7 @@ void AddGrammarRule(TokenList& tokens, CFGRule** rule)
     }
     else if(tokens.at(0)->Type == TokenType::Reference)
     {
-        AddGrammarRuleInternal(tokens, rule, name, symbol, parseMethod, higherpclass, lowerpclass);
+        AddGrammarRuleInternal(tokens, name, symbol, parseMethod, higherpclass, lowerpclass);
     }
 }
 
@@ -244,8 +243,6 @@ void CompileGrammar()
     std::fstream file;
     file.open("./assets/grammar.txt", std::ios::in);
 
-
-    CFGRule* rule = nullptr;
 
     // state: +1 upon every occurance of '###'
     //  0: skip all lines
@@ -275,7 +272,7 @@ void CompileGrammar()
         switch(state)
         {
             case 1:
-            AddGrammarRule(tokens, &rule);
+            AddGrammarRule(tokens);
             DeleteTokenList(tokens);
             continue;
             case 2:
