@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include "utils.h"
+#include <iostream>
 
 namespace utils
 {
@@ -28,6 +29,12 @@ namespace utils
     }
     template <typename T>
     Stack<T>::Stack() : Stack::Stack(StackDefaultSize) {}
+
+    template <typename T>
+    Stack<T>::~Stack() 
+    {
+        delete stack;
+    }
 
     template <typename T>
     T& Stack<T>::Peek()

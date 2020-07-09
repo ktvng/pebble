@@ -30,12 +30,37 @@ Object* ObjectConstructor()
     return obj;
 }
 
+void ObjectValueDestructor(Object* obj)
+{
+    auto klass = obj->Class;
+    if(klass == IntegerClass)
+    {
+        delete static_cast<int*>(obj->Value);
+    }
+    else if(klass == DecimalClass)
+    {
+        delete static_cast<double*>(obj->Value);
+    }
+    else if(klass == BooleanClass)
+    {
+        delete static_cast<bool*>(obj->Value);
+    }
+    else if(klass == StringClass)
+    {
+        delete static_cast<std::string*>(obj->Value);
+    }
+}
+
 void ObjectDestructor(Object* obj)
 {
     ScopeDestructor(obj->Attributes);
     if(IsCallable(obj))
     {
         MethodDestructor(obj->Action);
+    }
+    if(obj->Value != nullptr)
+    {
+        ObjectValueDestructor(obj);
     }
     delete obj;
 }
@@ -169,43 +194,62 @@ Reference* CreateReferenceToArrayObject(String name, ObjectClass objClass, int v
     return ref;
 }
 
+int* ObjectValueConstructor(int value)
+{
+    int* s = new int;
+    *s = value;
+    return s;
+}
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    int* i = new int;
-    *i = value;
-    ObjectOf(ref)->Value = i;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
 
     return ref;
+}
+
+double* ObjectValueConstructor(double value)
+{
+    double* s = new double;
+    *s = value;
+    return s;
 }
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    double* d = new double;
-    *d = value;
-    ObjectOf(ref)->Value = d;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
 
     return ref;
+}
+
+bool* ObjectValueConstructor(bool value)
+{
+    bool* s = new bool;
+    *s = value;
+    return s;
 }
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    bool* b = new bool;
-    *b = value;
-    ObjectOf(ref)->Value = b;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
 
     return ref;
+}
+
+String* ObjectValueConstructor(String value)
+{
+    std::string* s = new std::string;
+    *s = value;
+    return s;
 }
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    std::string* s = new std::string;
-    *s = value;
-    ObjectOf(ref)->Value = s;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
     
     return ref;
 }

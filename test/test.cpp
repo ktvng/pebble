@@ -90,7 +90,8 @@ void IncludeStandardAssertSuite()
         "Block",
         "Operation",
         "Program",
-        "ParseToken"
+        "ParseToken",
+        "ObjectValue"
     };
 
     for(auto str: objectsToTest)
