@@ -357,7 +357,7 @@ Operation* RefOperation(Token* refToken)
     return op;
 }
 
-CFGRule* MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail)
+bool MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail, CFGRule& match)
 {
     for(CFGRule* rule: Grammar)
     {
@@ -379,9 +379,12 @@ CFGRule* MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail)
             }
         }
         if(isMatchForRule)
-            return rule;
+        {
+            match = *rule;
+            return true;
+        }
     }
-    return nullptr;
+    return false;
 }
 
 void DestroyList(ParseToken* listHead)
@@ -408,9 +411,9 @@ bool ParseTokenTypeMatches(String TokenType, std::vector<String> matchTypes)
 
 
 /// pushes listTail back to before the [rule] pattern and sets listSnipHead to be the head (start) of [rule] in the ParseStack
-void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, ParseToken** listSnipHead, CFGRule* rule)
+void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, ParseToken** listSnipHead, CFGRule& rule)
 {
-    int backtrackAmount = rule->IntoPattern.size()-1;
+    int backtrackAmount = rule.IntoPattern.size()-1;
 
     for(int i=0; i<backtrackAmount; i++, *listSnipHead = (*listSnipHead)->Prev);
 
@@ -428,7 +431,7 @@ void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, Pars
 }
 
 /// assumes that the list matches [rule] and removes the rule
-OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** listTail, CFGRule* rule)
+OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** listTail, CFGRule& rule)
 {
     OperationsList operands;
     operands.reserve(5);
@@ -453,13 +456,13 @@ OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** list
 
 
 /// collapse a rule by adding each component as the operand of a new operation
-Operation* CollapseByReduce(CFGRule* rule, OperationsList& components)
+Operation* CollapseByReduce(CFGRule& rule, OperationsList& components)
 {
-    return OperationConstructor(rule->OpType, components);
+    return OperationConstructor(rule.OpType, components);
 }
 
 /// collapse a rule by merging all components into the first component's operand list
-Operation* CollapseByMerge(CFGRule* rule, OperationsList& components)
+Operation* CollapseByMerge(CFGRule& rule, OperationsList& components)
 {
     OperationsList& oplist = components.at(0)->Operands;
     
@@ -476,15 +479,15 @@ Operation* HackOperation()
     return OperationConstructor(OperationType::Ref, { ReferenceStub("Hack") }); 
 }
 
-Operation* CollapseByScopedEval(CFGRule* rule, OperationsList& components)
+Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)
 {
     if(components.size() < 3)
         components.push_back(HackOperation());
 
-    return OperationConstructor(rule->OpType, components);
+    return OperationConstructor(rule.OpType, components);
 }
 
-Operation* CollapseByUnscopedEval(CFGRule* rule, OperationsList& components)
+Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
 {
     if(components.size() == 1)
     {
@@ -505,7 +508,7 @@ Operation* CollapseByUnscopedEval(CFGRule* rule, OperationsList& components)
         components.push_back(op2);
     }
 
-    return OperationConstructor(rule->OpType, components);
+    return OperationConstructor(rule.OpType, components);
 }
 
 Reference* ScopeChainTerminal(Operation* op)
@@ -520,7 +523,7 @@ Reference* ScopeChainTerminal(Operation* op)
 }
 
 /// collapse a rule corresponding to defining a method
-Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
+Operation* CollapseAsDefineMethod(CFGRule& rule, OperationsList& components)
 {
     LogItDebug("Custom type", "CollapseAsDefineMethod");
 
@@ -551,34 +554,34 @@ Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
     return OperationConstructor(OperationType::DefineMethod, { OperationConstructor(OperationType::Ref, refToMethodObj) } );
 }
 
-Operation* CollapseByChain(CFGRule* rule, OperationsList& components)
+Operation* CollapseByChain(CFGRule& rule, OperationsList& components)
 {
-    return OperationConstructor(rule->OpType, { components.at(0), components.at(1) } );
+    return OperationConstructor(rule.OpType, { components.at(0), components.at(1) } );
 }
 
-Operation* CollapseRuleInternal(CFGRule* rule, OperationsList& components)
+Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
 {
-    if(rule->ParseMethod == "Reduce")
+    if(rule.ParseMethod == "Reduce")
     {
         return CollapseByReduce(rule, components);
     }
-    else if(rule->ParseMethod == "Retain")
+    else if(rule.ParseMethod == "Retain")
     {
         return components.at(0);
     }
-    else if(rule->ParseMethod == "Merge")
+    else if(rule.ParseMethod == "Merge")
     {
         return CollapseByMerge(rule, components);
     }
-    else if(rule->ParseMethod == "Custom")
+    else if(rule.ParseMethod == "Custom")
     {
         return CollapseAsDefineMethod(rule, components);
     }
-    else if(rule->ParseMethod == "ScopedEval")
+    else if(rule.ParseMethod == "ScopedEval")
     {
         return CollapseByScopedEval(rule, components);
     }
-    else if(rule->ParseMethod == "UnscopedEval")
+    else if(rule.ParseMethod == "UnscopedEval")
     {
         return CollapseByUnscopedEval(rule, components);
     }
@@ -590,12 +593,12 @@ Operation* CollapseRuleInternal(CFGRule* rule, OperationsList& components)
 }
 
 /// reverses a rule in the ParseStack
-void CollapseListByRule(ParseToken** listHead, ParseToken** listTail, CFGRule* rule)
+void CollapseListByRule(ParseToken** listHead, ParseToken** listTail, CFGRule& rule)
 {
     OperationsList operands = GetOperandsAndRemoveRule(listHead, listTail, rule);
     Operation* op = CollapseRuleInternal(rule, operands);
 
-    ParseToken* t = ParseTokenConstructor(rule->FromProduction);
+    ParseToken* t = ParseTokenConstructor(rule.FromProduction);
     t->Value = op;
 
     AddToList(listHead, listTail, t);
@@ -647,20 +650,20 @@ void AddNextTokenToList(ParseToken** listHead, ParseToken** listTail, Token* cur
     }
 }
 
-bool CurrentRuleHasHigherPrecedence(CFGRule* rule, Token* lookaheadToken)
+bool CurrentRuleHasHigherPrecedence(CFGRule& rule, Token* lookaheadToken)
 {
     if(lookaheadToken != nullptr)
     {
         auto symb = lookaheadToken->Content;
-        if(rule->HasHigherPrecedenceClassOverride && rule->HigherPrecedenceClass.Contains(symb))
+        if(rule.HasHigherPrecedenceClassOverride && rule.HigherPrecedenceClass.Contains(symb))
             return false;
 
-        if(rule->HasLowerPrecedenceClassOverride && rule->LowerPrecedenceClass.Contains(symb))
+        if(rule.HasLowerPrecedenceClassOverride && rule.LowerPrecedenceClass.Contains(symb))
             return true;
     }
 
 
-    int currentRulePrecedence = rule->Precedence;
+    int currentRulePrecedence = rule.Precedence;
     int lookaheadPrecedence = PrecedenceOf(lookaheadToken);
     return (currentRulePrecedence >= lookaheadPrecedence);
 }
@@ -669,20 +672,17 @@ bool CurrentRuleHasHigherPrecedence(CFGRule* rule, Token* lookaheadToken)
 /// the list. continue doing so until no rules match
 void TryReversingGrammarRules(ParseToken** listHead, ParseToken** listTail, Token* lookaheadToken)
 {
-    CFGRule* match = MatchGrammarPatterns(*listHead, *listTail);
+    CFGRule match;
 
-    while(match != nullptr)
+    while(MatchGrammarPatterns(*listHead, *listTail, match))
     {
-        if(match != nullptr){
-            if(CurrentRuleHasHigherPrecedence(match, lookaheadToken))
-            {
-                CollapseListByRule(listHead, listTail, match);
-                match = MatchGrammarPatterns(*listHead, *listTail);
-            }
-            else
-            {
-                break;
-            }
+        if(CurrentRuleHasHigherPrecedence(match, lookaheadToken))
+        {
+            CollapseListByRule(listHead, listTail, match);
+        }
+        else
+        {
+            break;
         }
         LogParseStack(*listHead);
     }
