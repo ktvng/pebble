@@ -171,11 +171,6 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
     
     EnterScope(scope);
     {
-        for(auto aref: CurrentScope()->ReferencesIndex)
-        {
-            LogDiagnostics(aref, "scope before block");
-        }
-
         for(size_t i=0; i<codeBlock->Executables.size(); i++)
         {
             auto exec = codeBlock->Executables.at(i);
@@ -184,7 +179,7 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
             {
                 Operation* op = AsOperation(exec); 
 
-                LogDiagnosticsForRuntimeLine(CurrentScope(), op);
+                // LogDiagnosticsForRuntimeLine(CurrentScope(), op);
 
                 LogItDebug(Msg("starting execute line [%i] which is %s", op->LineNumber, ToString(op->Type)), "DoBlock");
 

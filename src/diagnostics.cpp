@@ -343,6 +343,10 @@ String ToString(const Method* method)
         methodString += IndentLevel(1) + 
             StringForAttrbute("param", ref);
     }
+    
+    methodString += IndentLevel(1) +
+        StringForAttrbute("block", IndentStringToLevel(ToString(method->CodeBlock), 1));
+
     return methodString;
 }
 
@@ -499,13 +503,22 @@ String ToString(const Operation& op, int level)
     if(op.Type == OperationType::Ref)
     {
         if(ObjectOf(op.Value) != nullptr)
-            opString += IndentLevel(1) + 
-                StringForAttrbute(
-                    "OperationType", 
-                    Msg("Ref <Reference> %s to %s %s", 
-                        op.Value->Name, 
-                        ObjectOf(op.Value)->Class,
-                        GetStringValue(*ObjectOf(op.Value))));
+            if(ObjectOf(op.Value)->Action != nullptr)
+            {
+                opString += IndentLevel(1) + 
+                    StringForAttrbute("<Reference>", IndentStringToLevel(ToString(ObjectOf(op.Value)), 1));
+            }
+            else
+            {
+                opString += IndentLevel(1) + 
+                    StringForAttrbute(
+                        "OperationType", 
+                        Msg("Ref <Reference> %s to %s %s", 
+                            op.Value->Name, 
+                            ObjectOf(op.Value)->Class,
+                            GetStringValue(*ObjectOf(op.Value))));
+            }
+
         else
         {
             opString += IndentLevel(1) +
