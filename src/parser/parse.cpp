@@ -474,15 +474,15 @@ Operation* CollapseByMerge(CFGRule& rule, OperationsList& components)
     return components.at(0);
 }
 
-Operation* HackOperation()
+Operation* NothingStubOperation()
 {
-    return OperationConstructor(OperationType::Ref, { ReferenceStub("Hack") }); 
+    return OperationConstructor(OperationType::Ref, { ReferenceStub(c_nullStubName) }); 
 }
 
 Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)
 {
     if(components.size() < 3)
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
 
     return OperationConstructor(rule.OpType, components);
 }
@@ -493,9 +493,9 @@ Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
     {
         auto op = components[0];
         components.clear();
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
         components.push_back(op);
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
     }
     else
     {
@@ -503,7 +503,7 @@ Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
         auto op2 = components[1];
         
         components.clear();
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
         components.push_back(op1);
         components.push_back(op2);
     }

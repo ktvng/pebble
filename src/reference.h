@@ -33,9 +33,13 @@ inline const std::string c_returnReferenceName = "!ReturnedReference";
 /// used for primitive objects resolved during compile time and incorporated as constants in an operation tree
 inline const std::string c_operationReferenceName = "!ConstPrimitive";
 
+inline const std::string c_nullStubName = "!Nothing";
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Dereferencing 
+
+void RemoveReferenceFromObjectIndex(Reference* ref);
 
 /// removes all mentions of [ref] in the current scope and in the ObjectIndex and destroys [ref]
 void Dereference(Reference* ref);

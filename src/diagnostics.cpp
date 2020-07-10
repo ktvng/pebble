@@ -483,6 +483,9 @@ String ToString(const OperationType& type)
         case OperationType::Class:
         return "Class";
 
+        case OperationType::Tuple:
+        return "Tuple";
+        
         default:
         return "unimplemented";
     }

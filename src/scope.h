@@ -31,6 +31,8 @@ Scope* ScopeConstructor(Scope* inheritedScope);
 /// destroys the [scope]
 void ScopeDestructor(Scope* scope);
 
+void WipeScope(Scope* scope);
+
 /// add [newscope] to the top of the scope stack so all reference matching is done inside [newscope] 
 void EnterScope(Scope* newScope);
 
@@ -39,9 +41,6 @@ Scope* CurrentScope();
 
 /// pops the top of the scope stack to return to the previous scope
 void ExitScope(bool andDestroy = false); 
-
-/// removes all references in the current scope
-void ClearScope();
 
 /// adds [ref] to the ReferencesIndex of the current scope
 void AddReferenceToCurrentScope(Reference* ref);

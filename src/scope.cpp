@@ -18,6 +18,18 @@ Scope* ScopeConstructor(Scope* inheritedScope)
     return s;
 }
 
+void WipeScope(Scope* scope)
+{
+    for(auto ref: scope->ReferencesIndex)
+    {
+        if(ref->Name == c_returnReferenceName)
+            continue;
+        RemoveReferenceFromObjectIndex(ref);
+        ReferenceDestructor(ref);
+    }
+    ScopeDestructor(scope);
+}
+
 void ScopeDestructor(Scope* scope)
 {
     delete scope;
@@ -41,12 +53,6 @@ Scope* CurrentScope()
 void EnterScope(Scope* newScope)
 {
     ScopeStack.Push(newScope);
-}
-
-/// removes all references from a scope
-void ClearScope()
-{
-    CurrentScope()->ReferencesIndex.clear();
 }
 
 /// exit the current scope and return to the previous scope (i.e. the scope before entering this one)
