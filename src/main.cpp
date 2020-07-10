@@ -8,16 +8,50 @@
 #include "reference.h"
 #include "parse.h"
 #include "execute.h"
+#include "commandargs.h"
 
+
+void ChangeLogType(std::vector<SettingOption> options)
+{
+    if(options.size() < 1)
+        return;
+
+    SettingOption option = options[0];
+    if(option == "sev0")
+    {
+        LogAtLevel = LogSeverityType::Sev0_Debug;
+    }
+    else if(option == "sev1")
+    {
+        LogAtLevel = LogSeverityType::Sev1_Notify;
+    }
+    else if(option == "sev2")
+    {
+        LogAtLevel = LogSeverityType::Sev2_Important;
+    }
+    else if(option == "sev3")
+    {
+        LogAtLevel = LogSeverityType::Sev3_Critical;
+    }
+}
+
+ProgramConfiguration Config
+{
+    { 
+        "Log Setting", "--log", ChangeLogType
+    }
+};
 
 
 
 // Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
+LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 bool g_outputOn = true;
 
-int main()
+int main(int argc, char* argv[])
 {
+    ParseCommandArgs(argc, argv, Config);
+
     bool ShouldPrintInitialCompileResult = true; 
     bool ShouldPrintProgramExecutionFinalResult = true;
 
