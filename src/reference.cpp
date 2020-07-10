@@ -326,13 +326,18 @@ void ReassignReference(Reference* ref, Object* to)
 
 /// create a reference stub used in parsing. This is a stand-in unscoped Reference object
 /// that must be resolved into a proper reference 
-Reference* ReferenceStub(String refName)
+Reference* ReferenceStubConstructor(String refName)
 {
     Reference* ref = new Reference;
     ref->Name = refName;
     ref->To = nullptr;
 
     return ref;
+}
+
+void ReferenceStubDestructor(Reference* ref)
+{
+    delete ref;
 }
 
 /// true if [ref] is a stub

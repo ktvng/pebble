@@ -28,6 +28,8 @@ struct Scope
 /// create a new scope with [inheritedScope]
 Scope* ScopeConstructor(Scope* inheritedScope);
 
+bool ScopeStackIsEmpty();
+
 /// destroys the [scope]
 void ScopeDestructor(Scope* scope);
 

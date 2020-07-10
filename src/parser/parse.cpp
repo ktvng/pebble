@@ -349,7 +349,7 @@ Operation* RefOperation(Token* refToken)
     Reference* ref = ReferenceForPrimitive(refToken, c_operationReferenceName);
     if(ref == nullptr)
     {
-        ref = ReferenceStub(refToken->Content);
+        ref = ReferenceStubConstructor(refToken->Content);
     }
 
     Operation* op = OperationConstructor(OperationType::Ref, ref);
@@ -476,7 +476,7 @@ Operation* CollapseByMerge(CFGRule& rule, OperationsList& components)
 
 Operation* NothingStubOperation()
 {
-    return OperationConstructor(OperationType::Ref, { ReferenceStub(c_nullStubName) }); 
+    return OperationConstructor(OperationType::Ref, { ReferenceStubConstructor(c_nullStubName) }); 
 }
 
 Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)

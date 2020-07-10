@@ -85,7 +85,9 @@ Reference* ReferenceFor(Token* token, String refName = c_temporaryReferenceName)
 // ReferenceStubs
 
 /// creates a stub reference (one that has ref->To = nullptr) with [refName]
-Reference* ReferenceStub(String refName);
+Reference* ReferenceStubConstructor(String refName);
+
+void ReferenceStubDestructor(Reference* ref);
 
 /// true if [ref] is a reference stub
 bool IsReferenceStub(Reference* ref);

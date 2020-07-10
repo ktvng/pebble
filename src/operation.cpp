@@ -108,6 +108,10 @@ void DeleteOperationRecursive(Operation* op)
     for(auto operand: op->Operands)
         DeleteOperationRecursive(operand);
     
+    if(op->Type == OperationType::Ref && IsReferenceStub(op->Value))
+    {
+        ReferenceStubDestructor(op->Value);
+    }
     OperationDestructor(op);
 }
 
@@ -503,7 +507,7 @@ Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& oper
 
     if(IsNullReference(methodRef))
     {
-        auto refToNewObj = ReferenceFor(methodRef->Name, BaseClass, nullptr);
+        auto refToNewObj = ReferenceFor(c_temporaryReferenceName, BaseClass, nullptr);
         refToNewObj->To->DefinitionScope = CurrentScope();
         refToNewObj->To->Action = MethodConstructor();
         ReassignReference(methodRef, refToNewObj->To);
@@ -604,7 +608,6 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
 
     if(callerName == c_nullStubName)
     {
-        caller = NullReference("caller");
         methodResolutionScope = CurrentScope();
         methodCallerScope = nullptr;
     }
@@ -652,7 +655,7 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
     auto methodParamNames = ObjectOf(method)->Action->ParameterNames;
     
     /// if no caller, then method scope should be the one it was defined in
-    if(IsNullReference(caller))
+    if(caller == nullptr)
     {
         methodCallerScope = method->To->DefinitionScope;
     }
@@ -668,14 +671,16 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
         {
             ReferenceFor(methodParamNames[i], givenParamsList[i]->To);
         }
-        ReferenceFor("caller", caller->To);
+        if(caller == nullptr)
+            NullReference("caller");
+        else
+            ReferenceFor("caller", caller->To);
     }
     ExitScope();
 
     Reference* result;
     auto methodBlock = ObjectOf(method)->Action->CodeBlock;
     result = DoBlock(methodBlock, methodBodyScope);
-    AddReferenceToCurrentScope(result);
 
     WipeScope(methodBodyScope);
 

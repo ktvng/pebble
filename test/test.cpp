@@ -90,7 +90,8 @@ void Valgrind()
         "Operation",
         "Program",
         "ParseToken",
-        "ObjectValue"
+        "ObjectValue",
+        "ReferenceStub"
     };
 
     for(auto str: objectsToTest)

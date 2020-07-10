@@ -22,8 +22,6 @@ void WipeScope(Scope* scope)
 {
     for(auto ref: scope->ReferencesIndex)
     {
-        if(ref->Name == c_returnReferenceName)
-            continue;
         RemoveReferenceFromObjectIndex(ref);
         ReferenceDestructor(ref);
     }
@@ -70,4 +68,9 @@ void AddReferenceToCurrentScope(Reference* ref)
         LogItDebug("current scope is not set", "AddReferenceToCurrentScope");
     LogItDebug("added reference to current scope", "AddReferenceToCurrentScope");
     CurrentScope()->ReferencesIndex.push_back(ref);
+}
+
+bool ScopeStackIsEmpty()
+{
+    return ScopeStack.Size() == 0;
 }

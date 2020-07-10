@@ -99,7 +99,6 @@ Reference* HandleControlFlowWhile(Operation* op, size_t& execLine, Block* codeBl
         if(codeBlock->Executables.size() > execLine + 1 && codeBlock->Executables.at(execLine+1)->ExecType == ExecutableType::Block)
         {
             auto ref = DoBlock(static_cast<Block *> (codeBlock->Executables.at(execLine+1)));
-            AddReferenceToCurrentScope(ref);
             Dereference(ref);
             execLine -= 1;
         }
@@ -172,6 +171,13 @@ void HandleRuntimeMessages(int lineNumber)
         RuntimeMsgFlag = false;
     }
 }
+
+bool ProgramFinished()
+{
+    return ScopeStackIsEmpty();
+}
+
+
 bool shouldReturn = false;
 
 /// executes the commands contained in a [codeBlock]
@@ -219,21 +225,31 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
                 LogItDebug("discovered child block: starting", "DoBlock");
 
                 result = DoBlock(AsBlock(exec));
-                AddReferenceToCurrentScope(result);
                 UpdatePreviousResult(&result, &previousResult);
 
                 LogItDebug("exiting child block", "DoBlock");
                 if(shouldReturn) break;
             }
         }
-
-        // CurrentScope()->ReferencesIndex.clear();
     }
-    ExitScope(scopeIsLocal);
+    ExitScope();
+
+    if(ProgramFinished())
+        return nullptr;
+
+    Reference * returnRef;
     if(result != nullptr)
-        return result;
+    {
+        returnRef = ReferenceFor(c_returnReferenceName, result->To);
+    }
     else
-        return CreateNullReference();
+    {
+        returnRef = NullReference();
+    }
+
+    if(scopeIsLocal)
+        WipeScope(scope);
+    return returnRef;
 }
 
 /// executes all blocks of [program]
