@@ -125,6 +125,22 @@ Reference* HandleControlFlowClass(Operation* op, size_t& execLine, Block* block)
     return newClass;
 }
 
+Reference* HandleControlFlowDefineMethod(Operation* op, size_t& execline, Block* block)
+{
+    /// TODO: currently assumes a block
+    if(!(execline + 1 < block->Executables.size() && block->Executables[execline+1]->ExecType == ExecutableType::Block))
+    {
+        ReportRuntimeMsg(SystemMessageType::Exception, "no block after method definition");
+        return NullReference();
+    }
+
+    Reference* method = DoOperation(op);
+
+    auto methodBlock = AsBlock(block->Executables[++execline]);
+    method->To->Action->CodeBlock = methodBlock;
+
+    return method;
+}
 /// executes [op] in [scope] and updates [execLine] based on the control flow properties
 /// of [op]
 Reference* HandleControlFlow(Operation* op, size_t& execLine, Block* block)
@@ -139,6 +155,9 @@ Reference* HandleControlFlow(Operation* op, size_t& execLine, Block* block)
 
         case OperationType::While:
         return HandleControlFlowWhile(op, execLine, block);
+
+        case OperationType::DefineMethod:
+        return HandleControlFlowDefineMethod(op, execLine, block);
         // for any non-control flow operation;
         default:
         return DoOperation(op);

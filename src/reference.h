@@ -66,6 +66,7 @@ Reference* ReferenceFor(String refName, String value);
 // for existing object
 Reference* ReferenceFor(String refName, Object* refable);
 Reference* ReferenceFor(String refName);
+Reference* ReferenceForInImmediateScope(String refName, Scope* scope);
 
 // for null
 Reference* NullReference(String refName = c_temporaryReferenceName);

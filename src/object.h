@@ -20,6 +20,7 @@ class Object
     Scope* Attributes;
     void* Value;
     Method* Action;
+    Scope* DefinitionScope;
 };
 
 /// emulated method in Pebble
@@ -54,7 +55,7 @@ bool FoundEntryInIndexOf(const Object* obj, ObjectReferenceMap** foundMap);
 void IndexObject(Object* obj, Reference* ref);
 
 void MethodDestructor(Method* m);
-
+Method* MethodConstructor();
 // ---------------------------------------------------------------------------------------------------------------------
 // Access referenced objects/methods
 
@@ -69,7 +70,6 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int val
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value);
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value, Scope* methodInheritedScope);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Create references to existing Object

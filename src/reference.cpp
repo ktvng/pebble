@@ -239,6 +239,16 @@ Reference* ReferenceFor(String refName)
     return GetReference(refName);
 }
 
+Reference* ReferenceForInImmediateScope(String refName, Scope* scope)
+{
+    for(auto ref: scope->ReferencesIndex)
+    {
+        if(NameMatchesReference(refName, ref))
+            return ref;
+    }
+    return nullptr;
+}
+
 /// gets a reference for a Integer primitive
 Reference* ReferenceFor(String refName, int value)
 {

@@ -26,6 +26,7 @@ Object* ObjectConstructor()
     obj->Class = NullClass;
     obj->Value = nullptr;
     obj->Action = nullptr;
+    obj->DefinitionScope = nullptr;
 
     return obj;
 }
@@ -70,7 +71,7 @@ void ObjectDestructor(Object* obj)
 // Methods
 
 /// constructor for a Method* object with [inheritedScope]
-Method* MethodConstructor(Scope* inheritedScope)
+Method* MethodConstructor()
 {
     Method* m = new Method;
     m->CodeBlock = nullptr;
@@ -81,7 +82,6 @@ Method* MethodConstructor(Scope* inheritedScope)
 
 void MethodDestructor(Method* m)
 {
-    DeleteBlockRecursive(m->CodeBlock);
     delete m;
 }
 
@@ -251,17 +251,6 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const S
     Reference* ref = CreateReferenceInternal(name, objClass);
     ObjectOf(ref)->Value = ObjectValueConstructor(value);
     
-    return ref;
-}
-
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value, Scope* methodInheritedScope)
-{
-    Reference* ref = CreateReferenceInternal(name, objClass);
-    ObjectOf(ref)->Value = value;
-    
-    auto method = MethodConstructor(methodInheritedScope);
-    ObjectOf(ref)->Action = method;
-
     return ref;
 }
 

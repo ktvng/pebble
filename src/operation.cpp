@@ -121,7 +121,7 @@ Reference* ResolveStub(Reference* ref)
         if(PROGRAM->That == nullptr)
         {
             ReportRuntimeMsg(SystemMessageType::Exception, "no previous result to use with 'that'/'it' keyword");
-            return NullReference(ref->Name);
+            return NullReference(c_temporaryReferenceName);
         }
         return ReferenceFor(c_temporaryReferenceName, PROGRAM->That->To);
     }
@@ -270,9 +270,6 @@ Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands)
 {
     Reference* lRef = FirstOf(operands);
     Reference* rRef = SecondOf(operands);
-
-    for(auto map: PROGRAM->ObjectsIndex)
-        LogDiagnostics(map);
 
     if(IsNullReference(rRef))
     {
@@ -518,22 +515,42 @@ Reference* OperationReturn(Reference* value, std::vector<Reference*>& operands)
 /// handle the operation which adds a Method [ref] to the scope
 Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* ref = FirstOf(operands);
-    if(operands.size() == 2)
+    Reference* methodRef = FirstOf(operands);
+
+    if(IsNullReference(methodRef))
     {
-        Reference* containingRef = SecondOf(operands);
-        EnterScope(ObjectOf(containingRef)->Attributes);
-        {
-            AddReferenceToCurrentScope(ref);
-        }
-        ExitScope();
+        auto refToNewObj = ReferenceFor(methodRef->Name, BaseClass, nullptr);
+        refToNewObj->To->DefinitionScope = CurrentScope();
+        refToNewObj->To->Action = MethodConstructor();
+        ReassignReference(methodRef, refToNewObj->To);
+        Dereference(refToNewObj);
     }
     else
     {
-        AddReferenceToCurrentScope(ref);
+        if(methodRef->To->Action == nullptr)
+            methodRef->To->Action = MethodConstructor();
     }
-    
-    return NullReference();
+
+    ParameterList params;
+    if(operands.size() > 1)
+    {
+        auto argsRef = SecondOf(operands);
+        if(IsNullReference(argsRef) || argsRef->To->Class != TupleClass)
+        {
+            params.push_back(argsRef->Name);
+        }
+        else
+        {
+            for(auto paramRef: argsRef->To->Attributes->ReferencesIndex)
+            {
+                params.push_back(paramRef->Name);
+            }
+        }
+    }
+
+    methodRef->To->Action->ParameterNames = params;
+
+    return methodRef;
 }
 
 
@@ -657,10 +674,17 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
     }
 
     auto methodParamNames = ObjectOf(method)->Action->ParameterNames;
+    auto methodSelfScope = method->To->Attributes;
+    
+    /// if no caller, then method scope should be the one it was defined in
+    if(!IsNullReference(caller))
+        methodSelfScope->InheritedScope = callerScope;
+    else
+        methodSelfScope->InheritedScope = method->To->DefinitionScope;
 
     // add parameters to method scope
-    auto methodScope = ScopeConstructor(callerScope);
-    EnterScope(methodScope);
+    auto methodBodyScope = ScopeConstructor(methodSelfScope);
+    EnterScope(methodBodyScope);
     {
         for(size_t i=0; i<methodParamNames.size(); i++)
         {
@@ -672,10 +696,10 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
 
     Reference* result;
     auto methodBlock = ObjectOf(method)->Action->CodeBlock;
-    result = DoBlock(methodBlock, methodScope);
+    result = DoBlock(methodBlock, methodBodyScope);
     AddReferenceToCurrentScope(result);
 
-    ScopeDestructor(methodScope);
+    ScopeDestructor(methodBodyScope);
     LogDiagnostics(result, "evaluate result");
 
     LogItDebug("finished evaluate", "OperationEvaluate");
@@ -692,10 +716,6 @@ Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
 {
     Reference* ref = FirstOf(operands);
     
-    for(auto ref: PROGRAM->GlobalScope->ReferencesIndex)
-        LogDiagnostics(ref, "dubaduba");
-
-    LogDiagnostics(ref);
     if(IsNullReference(ref))
     {
         ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is Nothing, it must be defined before use", ref->Name));
@@ -703,6 +723,7 @@ Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
     }
 
     Reference* returnRef = ReferenceFor(c_temporaryReferenceName, ObjectOf(ref)->Class, ObjectOf(ref)->Value);
+    returnRef->To->DefinitionScope = CurrentScope();
     for(auto attributeRef: ObjectOf(ref)->Attributes->ReferencesIndex)
     {
         EnterScope(ObjectOf(returnRef)->Attributes);
@@ -737,15 +758,15 @@ Reference* OperationScopeResolution(Reference* value, std::vector<Reference*>& o
         return NullReference(lookFor->Name);
     }
     
-    EnterScope(ObjectOf(inContext)->Attributes);
+    returnRef = ReferenceForInImmediateScope(lookFor->Name, inContext->To->Attributes);
+    if(returnRef == nullptr)
     {
-        returnRef = ReferenceFor(lookFor->Name);
-        if(returnRef == nullptr)
+        EnterScope(inContext->To->Attributes);
         {
             returnRef = NullReference(lookFor->Name);
         }
+        ExitScope();
     }
-    ExitScope();
 
     return returnRef;
 }

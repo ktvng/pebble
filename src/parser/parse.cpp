@@ -527,31 +527,7 @@ Operation* CollapseAsDefineMethod(CFGRule& rule, OperationsList& components)
 {
     LogItDebug("Custom type", "CollapseAsDefineMethod");
 
-    auto methodName = components.at(0)->Value->Name;
-    
-    ParameterList params;
-    if(components.size() > 1)
-    {
-        if(components.at(1)->Type == OperationType::Tuple)
-        {
-            for(auto op: components.at(1)->Operands)
-            {
-                params.push_back(ScopeChainTerminal(op)->Name);
-            }
-        }
-        else
-        {
-            auto chain = components.at(1);
-            params.push_back(ScopeChainTerminal(chain)->Name);
-        }
-        DeleteOperationRecursive(components.at(1));
-    }
-
-    DeleteOperationRecursive(components.at(0));
-
-    Reference* refToMethodObj = CreateReferenceToNewObject(methodName, BaseClass, nullptr, CurrentScope());
-    ObjectOf(refToMethodObj)->Action->ParameterNames = params;
-    return OperationConstructor(OperationType::DefineMethod, { OperationConstructor(OperationType::Ref, refToMethodObj) } );
+    return OperationConstructor(OperationType::DefineMethod, components );
 }
 
 Operation* CollapseByChain(CFGRule& rule, OperationsList& components)

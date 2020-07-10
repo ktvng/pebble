@@ -403,28 +403,28 @@ void HandleDefineMethod(
     Scope* blockInheritedScope,
     Operation* op)
 {
-    if(op->Type != OperationType::DefineMethod)
-        return;
+    // if(op->Type != OperationType::DefineMethod)
+    //     return;
 
-    auto method = ObjectOf(op->Operands[0]->Value)->Action;
+    // auto method = ObjectOf(op->Operands[0]->Value)->Action;
 
-    // assumes there is a block
-    int blockSize = SizeOfBlock((*it)+1, *end);
-    Block* b;
-    Scope* scope = ScopeConstructor(CurrentScope());
-    EnterScope(scope);
-    {
-        for(auto param: method->ParameterNames)
-        {
-            NullReference(param);
-        }
-        b = ParseBlock((*it)+1, (*it)+blockSize+1);
-    }
-    ExitScope(true);
+    // // assumes there is a block
+    // int blockSize = SizeOfBlock((*it)+1, *end);
+    // Block* b;
+    // Scope* scope = ScopeConstructor(CurrentScope());
+    // EnterScope(scope);
+    // {
+    //     for(auto param: method->ParameterNames)
+    //     {
+    //         NullReference(param);
+    //     }
+    //     b = ParseBlock((*it)+1, (*it)+blockSize+1);
+    // }
+    // ExitScope(true);
 
-    *it += blockSize;
-    ObjectOf(op->Operands.at(0)->Value)->Action->CodeBlock = b;
-    LogItDebug("exit method", "HandleDefineMethod");
+    // *it += blockSize;
+    // ObjectOf(op->Operands.at(0)->Value)->Action->CodeBlock = b;
+    // LogItDebug("exit method", "HandleDefineMethod");
 }
 
 Block* ParseBlock(

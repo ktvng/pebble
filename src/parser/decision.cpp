@@ -443,7 +443,8 @@ void DecideOperandsDefineMethod(TokenList& tokens, OperationsList& operands)
         paramNames.push_back(t->Content);
     }
 
-    Reference* refToMethodObj = CreateReferenceToNewObject(methodName, BaseClass, nullptr, PROGRAM->GlobalScope);
+    Reference* refToMethodObj = CreateReferenceToNewObject(methodName, BaseClass, nullptr);
+    refToMethodObj->To->Action = MethodConstructor();
     ObjectOf(refToMethodObj)->Action->ParameterNames = paramNames;
     
     AddRefOperationTo(operands, refToMethodObj);
