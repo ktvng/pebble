@@ -496,7 +496,6 @@ Reference* OperationReturn(Reference* value, std::vector<Reference*>& operands)
 Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& operands)
 {
     Reference* methodRef = ResolveFirst(operands);
-
     if(IsNullReference(methodRef))
     {
         auto refToNewObj = ReferenceFor(c_temporaryReferenceName, BaseClass, nullptr);
@@ -631,6 +630,11 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
         ReportRuntimeMsg(SystemMessageType::Exception, Msg("cannot resolve %s into a method", method->Name));
         return method;
     }
+    if(method->To->Action == nullptr)
+    {
+        ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is not callable", method->Name));
+        return NullReference();
+    }
 
     Reference* params = ResolveNthOf(operands, 3);
     
@@ -667,6 +671,8 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
             NullReference("caller");
         else
             ReferenceFor("caller", caller->To);
+
+        ReferenceFor("self", method->To);
     }
     ExitScope();
 
@@ -707,6 +713,7 @@ Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
         ExitScope();
     }
     ObjectOf(returnRef)->Attributes->InheritedScope = ObjectOf(ref)->Attributes->InheritedScope;
+    returnRef->To->Action = ref->To->Action;
 
     return returnRef;
 }
@@ -767,7 +774,14 @@ Reference* OperationClass(Reference* value, std::vector<Reference*>& operands)
     }
 
     String className = operands.at(0)->Name;
-    Reference* klass = ReferenceFor(c_temporaryReferenceName, className, nullptr);
+    Reference* klass = ReferenceFor(className, className, nullptr);
+
+    EnterScope(klass->To->Attributes);
+    {
+        ReferenceFor("self", klass->To);
+    }
+    ExitScope();
+
     klass->To->Attributes->InheritedScope = PROGRAM->GlobalScope;
 
     return klass;

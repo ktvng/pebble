@@ -335,7 +335,7 @@ String ToString(const String& str)
 // Diagnostic printing
 
 String ToString(const Method* method)
-{
+{ 
     String methodString = Msg("<Method>\n");
 
     for(auto ref: method->ParameterNames)
@@ -344,8 +344,9 @@ String ToString(const Method* method)
             StringForAttrbute("param", ref);
     }
     
-    methodString += IndentLevel(1) +
-        StringForAttrbute("block", IndentStringToLevel(ToString(method->CodeBlock), 1));
+    if(method->CodeBlock != nullptr)
+        methodString += IndentLevel(1) +
+            StringForAttrbute("block", IndentStringToLevel(ToString(method->CodeBlock), 1));
 
     return methodString;
 }
@@ -359,7 +360,7 @@ String ToString(const Object& obj)
 
     objString += IndentLevel(1) +
         StringForAttrbute("Value", GetStringValue(obj));
-    
+
     objString += IndentLevel(1) +
         StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes->ReferencesIndex, "Reference"), 1));
 
@@ -379,6 +380,11 @@ String ToString(const Object* obj)
 
 String ToString(const Reference* ref)
 {
+    if(ref->Name == "caller")
+        return "caller ";
+    if(ref->Name == "self")
+        return "self";
+
     String refString = Msg("<Reference> @ %p\n", ref);
 
     refString += IndentLevel(1) +
@@ -566,6 +572,7 @@ String ToString(const Block* block, int level)
 {
     String blockString = "<Block>\n";
     blockString.reserve(512);
+
     for(size_t i=0; i<block->Executables.size(); i++)
     {
         Executable* exec = block->Executables.at(i);

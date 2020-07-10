@@ -608,7 +608,7 @@ void AddSimpleToken(ParseToken** listHead, ParseToken** listTail, Token* token)
 }
 
 const std::vector<String> SkippedKeyWords = { "the", "an", "a" };
-const std::vector<String> ReferenceKeyWords = { "caller", "that", "it" };
+const std::vector<String> ReferenceKeyWords = { "caller", "self", "that", "it" };
 
 void AddNextTokenToList(ParseToken** listHead, ParseToken** listTail, Token* currentToken)
 {
