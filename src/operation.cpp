@@ -357,14 +357,6 @@ Reference* OperationAnd(Reference* value, std::vector<Reference*>& operands)
     return ReferenceFor(c_temporaryReferenceName, b);
 }
 
-/// handles OperationType::Define which adds a new reference to the current scope
-/// returns the newly added [ref]
-Reference* OperationDefine(Reference* value, std::vector<Reference*>& operands)
-{
-    ReportRuntimeMsg(SystemMessageType::Exception, "deprecated");
-    return NullReference();
-}
-
 /// handles OperationType::Subtract which is only defined for numeric typed objects
 /// returns a temporary reference to the resultant, null if failed
 Reference* OperationSubtract(Reference* value, std::vector<Reference*>& operands)
