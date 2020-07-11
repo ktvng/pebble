@@ -295,8 +295,12 @@ Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands)
     if(g_outputOn)
         std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
     ProgramOutput.append(GetStringValue(*ObjectOf(ref)) + "\n");
+
+    auto returnRef = ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
+    if(IsNullReference(ref))
+        Dereference(ref);
     
-    return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
+    return returnRef;
 }
 
 /// handles OperationType::Add which adds the objects of [lRef] and [rRef]

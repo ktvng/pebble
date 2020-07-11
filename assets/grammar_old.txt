@@ -1,0 +1,192 @@
+Documentation: 
+    Everything before the first line with leading character '#' is ignored
+
+    The first section defines grammars rules. A rule will span two lines, with
+    the first line starting with the symbol '@'. Individual tokens are separated
+    by spaces, and all whitespace is ignored.
+
+    The first line should be formatted
+        @ [RuleName] [PrecedenceOperation] [CollapseMethod]
+
+    where:
+        [RuleName] is the name of the rule and should correspond to the atomic 
+            operation (OperationTypes) expressed by the rule. 
+
+        [PrecedenceOperation] is the operation which defines the precedence 
+            class of the rule
+
+        [CollapseMethod] defines how to merge the output of the rule back into 
+            the parent operation
+
+    The second line should be formatted
+        [ProductionRule] -> ...
+
+    Note: All production rules should begin with an uppercase
+
+
+Precedence:
+    The second section defines precedence classes listed from high to low.
+    
+
+
+# Grammar
+@ Class class Reduce
+Class -> class Ref
+
+@ Class class Merge
+Class -> Class < Ref
+
+@ Class class Retain
+Line -> Class :
+
+@ Promote ! Retain
+> =
+Expr -> SRef
+
+@ New new Reduce
+Ref -> new Ref
+
+@ ScopeResolution . Reduce
+> (
+< to
+SRef -> SRef . Ref
+SRef -> SRef 's Ref
+
+SRef -> Ref
+
+@ Return = Reduce
+Line -> return Expr
+
+
+
+
+@ IsEqual == Reduce
+Expr -> Expr == Expr
+Expr -> Expr is Expr
+
+@ IsNotEqual != Reduce
+Expr -> Expr != Expr
+Expr -> Expr is not Expr
+
+
+@ Add + Reduce
+Expr -> Expr + Expr
+
+@ Subtract - Reduce
+Expr -> Expr - Expr
+
+@ Multiply * Reduce
+Expr -> Expr * Expr
+
+@ Divide / Reduce
+Expr -> Expr / Expr
+
+
+
+@ And && Reduce
+Expr -> Expr && Expr
+Expr -> Expr and Expr
+
+@ Or || Reduce
+Expr -> Expr || Expr
+Expr -> Expr or Expr
+
+@ Not ! Retain
+Expr -> ! Expr
+Expr -> not Expr
+
+
+
+
+@ IsGreaterThan > Reduce
+Expr -> Expr > Expr
+
+@ IsLessThan > Reduce
+Expr -> Expr < Expr
+
+@ IsGreaterThanOrEqualTo >= Reduce
+Expr -> Expr >= Expr
+
+@ IsLessThanOrEqualTo <= Reduce
+Expr -> Expr <= Expr
+
+
+
+@ Print lowest Reduce
+Line -> print Expr
+
+
+@ Evaluate ( ScopedEval
+> :
+Expr -> SRef . Ref ( )
+Expr -> SRef . Ref ( Expr )
+Expr -> SRef . Ref ( Tuple )
+
+Expr -> Ref . Ref ( )
+Expr -> Ref . Ref ( Expr )
+Expr -> Ref . Ref ( Tuple )
+
+@ Evaluate ( UnscopedEval
+> :
+Expr -> Ref ( )
+Expr -> Ref ( Expr )
+Expr -> Ref ( Tuple )
+
+
+
+@ If : Reduce
+Line -> if Expr :
+
+@ While : Reduce
+Line -> while Expr :
+
+@ For : Reduce
+Line -> for ( Ref in Expr ) :
+Line -> for Ref in Expr :
+
+@ DefineMethod : Custom
+Line -> Ref ( Tuple ) :
+Line -> Ref ( Expr ) :
+Line -> Ref ( ) :
+
+@ Assign = Reduce
+Line -> set SRef to Expr
+Line -> SRef = Expr
+Line -> SRef = ( Tuple )
+
+
+@ Parens ( Retain
+Expr -> ( Expr )
+
+@ Tuple , Merge
+Tuple -> Tuple , Expr
+
+@ Tuple , Reduce
+Tuple -> Expr , Expr
+
+
+@ LineRef lowest Retain
+Line -> consider Expr
+Line -> take Expr
+Line -> Expr
+
+
+
+
+# Operator Precedence
+in new class to
+(
+[ . 's
+!
+* /
++ -
+< > <= >=
+== != is
+&& and
+|| or
+=
+,
+) :
+lowest 
+
+### End 
