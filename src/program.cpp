@@ -103,6 +103,7 @@ Program* ProgramConstructor()
 {
     Program* p = new Program;
     p->GlobalScope = ScopeConstructor(nullptr);
+    p->GlobalScope->IsDurable = true;
 
     EnterProgram(p);
     EnterScope(p->GlobalScope);

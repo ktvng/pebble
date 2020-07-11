@@ -23,6 +23,7 @@ Object* ObjectConstructor()
     // LogItDebug("space allocated for new object", "ObjectConstructor");
     Object* obj = new Object;
     obj->Attributes = ScopeConstructor(CurrentScope());
+    obj->Attributes->IsDurable = true;
     obj->Class = NullClass;
     obj->Value = nullptr;
     obj->Action = nullptr;

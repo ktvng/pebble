@@ -62,8 +62,6 @@ Reference* DoOperation(Operation* op)
 
     Reference* returnRef = DoOperationOnReferences(op, operandReferences);
     LogItDebug(Msg("line[%i] operation %s returned a reference", op->LineNumber, ToString(op->Type)), "DoOperation");
-
-    DereferenceAll(operandReferences);
     return returnRef;
 }
 

@@ -23,7 +23,8 @@ void RemoveReferenceFromCurrentScope(Reference* ref)
 {
     size_t refLoc;
     for(refLoc = 0; refLoc<CurrentScope()->ReferencesIndex.size() && CurrentScope()->ReferencesIndex.at(refLoc) != ref; refLoc++);
-    CurrentScope()->ReferencesIndex.erase(CurrentScope()->ReferencesIndex.begin()+refLoc);
+    if(refLoc != CurrentScope()->ReferencesIndex.size())
+        CurrentScope()->ReferencesIndex.erase(CurrentScope()->ReferencesIndex.begin()+refLoc);
 }
 
 /// Remove a reference from ObjectIndex of the global PROGRAM

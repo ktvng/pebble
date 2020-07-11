@@ -499,7 +499,11 @@ Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& oper
     if(IsNullReference(methodRef))
     {
         auto refToNewObj = ReferenceFor(c_temporaryReferenceName, BaseClass, nullptr);
-        refToNewObj->To->DefinitionScope = CurrentScope();
+        
+        /// needed because method scope is destroyed after each call
+        if(CurrentScope()->IsDurable)
+            refToNewObj->To->DefinitionScope = CurrentScope();
+        
         refToNewObj->To->Action = MethodConstructor();
         ReassignReference(methodRef, refToNewObj->To);
         Dereference(refToNewObj);
@@ -653,7 +657,12 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
     /// if no caller, then method scope should be the one it was defined in
     if(caller == nullptr)
     {
+        // prefer DefinitionScope if it is durable and has been set. otherwise default to current scope
         methodCallerScope = method->To->DefinitionScope;
+        if(methodCallerScope == nullptr)
+        {
+            methodCallerScope = CurrentScope();
+        }
     }
 
     // add parameters to method scope
@@ -695,7 +704,7 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
 Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
 {
     Reference* ref = ResolveFirst(operands);
-    
+
     if(IsNullReference(ref))
     {
         ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is Nothing, it must be defined before use", ref->Name));
@@ -703,7 +712,10 @@ Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
     }
 
     Reference* returnRef = ReferenceFor(c_temporaryReferenceName, ObjectOf(ref)->Class, ObjectOf(ref)->Value);
-    returnRef->To->DefinitionScope = CurrentScope();
+    
+    // needed because method scope is destroyed after each call
+    if(CurrentScope()->IsDurable)
+        returnRef->To->DefinitionScope = CurrentScope();
     for(auto attributeRef: ObjectOf(ref)->Attributes->ReferencesIndex)
     {
         EnterScope(ObjectOf(returnRef)->Attributes);
@@ -731,7 +743,11 @@ Reference* OperationScopeResolution(Reference* value, std::vector<Reference*>& o
 {
     if(HasNoCaller(operands))
     {
-        return ResolveFirst(operands);
+        Reference* ref = ResolveFirst(operands);
+        if(IsTemporaryReference(ref))
+            return ReferenceFor(c_temporaryReferenceName, ref->To);
+        else
+            return ref;
     }
     else
     {
@@ -770,7 +786,7 @@ Reference* OperationClass(Reference* value, std::vector<Reference*>& operands)
     if(operands.size() == 0)
     {
         ReportRuntimeMsg(SystemMessageType::Exception, "no class name specified");
-        return NullReference(c_temporaryReferenceName);
+        return NullReference();
     }
 
     String className = operands.at(0)->Name;

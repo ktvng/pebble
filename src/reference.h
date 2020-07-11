@@ -92,6 +92,7 @@ void ReferenceStubDestructor(Reference* ref);
 /// true if [ref] is a reference stub
 bool IsReferenceStub(Reference* ref);
 
+bool IsTemporaryReference(Reference* ref);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Reference info

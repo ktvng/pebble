@@ -14,6 +14,7 @@ Scope* ScopeConstructor(Scope* inheritedScope)
     Scope* s = new Scope;
     s->InheritedScope = inheritedScope;
     s->ReferencesIndex = {};
+    s->IsDurable = false;
 
     return s;
 }

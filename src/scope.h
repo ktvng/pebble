@@ -19,6 +19,7 @@ struct Scope
 {
     std::vector<Reference*> ReferencesIndex;
     Scope* InheritedScope;
+    bool IsDurable;
 };
 
 
