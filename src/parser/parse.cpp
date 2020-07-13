@@ -347,9 +347,14 @@ void ParseTokenDestructor(ParseToken* token)
 Operation* RefOperation(Token* refToken)
 {
     Reference* ref = ReferenceForPrimitive(refToken, c_operationReferenceName);
+
     if(ref == nullptr)
     {
         ref = ReferenceStubConstructor(refToken->Content);
+    }
+    else
+    {
+        ref->Name += ref->To->Class + GetStringValue(*ref->To);
     }
 
     Operation* op = OperationConstructor(OperationType::Ref, ref);

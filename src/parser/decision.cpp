@@ -263,6 +263,7 @@ void DecideProbabilityNot(PossibleOperationsList& typeProbabilities, const Token
 /// handles OperationType::Ref by assigning the operation.Value to the approriate reference
 void DecideValueRef(TokenList& tokens, Reference** refValue)
 {
+    /// TODO: this is deprecated
     Reference* arg1 = ReferenceFor(NextTokenMatching(tokens, ObjectTokenTypes), c_operationReferenceName);
     *refValue = arg1;
 }

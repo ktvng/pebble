@@ -9,7 +9,8 @@
 #include "parse.h"
 #include "execute.h"
 #include "commandargs.h"
-
+#include "instruction.h"
+#include "scope.h"
 
 void ChangeLogType(std::vector<SettingOption> options)
 {
@@ -78,29 +79,37 @@ int main(int argc, char* argv[])
         }
     }
 
+    EnterProgram(prog);
+    EnterScope(prog->GlobalScope);
+    FlattenProgram(PROGRAM);
+    // PrintProgramInstructions();
+    std::cout << "#######################start\n";
+    DoAllInstructions();
+    std::cout << "#######################end\n";
+
     // run program
-    SetConsoleColor(ConsoleColor::LightBlue);
-    std::cout << "################################################################################\n";
-    SetConsoleColor(ConsoleColor::White);
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
+    // SetConsoleColor(ConsoleColor::LightBlue);
+    // std::cout << "################################################################################\n";
+    // SetConsoleColor(ConsoleColor::White);
+    // LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
 
-    DoProgram(prog);
+    // DoProgram(prog);
     
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
-    SetConsoleColor(ConsoleColor::LightBlue);
-    std::cout << "################################################################################\n";
-    SetConsoleColor(ConsoleColor::White);
+    // LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
+    // SetConsoleColor(ConsoleColor::LightBlue);
+    // std::cout << "################################################################################\n";
+    // SetConsoleColor(ConsoleColor::White);
 
-    if(ShouldPrintProgramExecutionFinalResult)
-    {
-        EnterProgram(prog);
-        for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-        {
-            LogDiagnostics(map, "final object reference state", "main");
-        }
-    }
+    // if(ShouldPrintProgramExecutionFinalResult)
+    // {
+    //     EnterProgram(prog);
+    //     for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
+    //     {
+    //         LogDiagnostics(map, "final object reference state", "main");
+    //     }
+    // }
 
-    ProgramDestructor(PROGRAM);
+    // ProgramDestructor(PROGRAM);
     LogItDebug("end reached.", "main");
     return 0;
 }

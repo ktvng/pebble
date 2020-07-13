@@ -31,7 +31,7 @@ inline const std::string c_temporaryReferenceName = "!TemporaryReference";
 inline const std::string c_returnReferenceName = "!ReturnedReference";
 
 /// used for primitive objects resolved during compile time and incorporated as constants in an operation tree
-inline const std::string c_operationReferenceName = "!ConstPrimitive";
+inline const std::string c_operationReferenceName = "!primitive:";
 
 inline const std::string c_nullStubName = "!Nothing";
 
@@ -79,7 +79,7 @@ Reference* NullReference(String refName = c_temporaryReferenceName);
 Reference* ReferenceForPrimitive(Token* token, String name);
 Reference* ReferenceFor(Token* token, String refName = c_temporaryReferenceName);
 
-
+Reference* GetReference(String refName);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ReferenceStubs
