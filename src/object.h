@@ -33,6 +33,9 @@ class Method
     ParameterList ParameterNames;
 };
 
+Object* ObjectConstructor();
+Object* NullObject();
+
 void ObjectDestructor(Object* obj);
 
 // ---------------------------------------------------------------------------------------------------------------------
