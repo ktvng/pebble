@@ -3,9 +3,9 @@
 // ---------------------------------------------------------------------------------------------------------------------
 // Tests
 
-void testFuncInject(Params& p)
+void testFuncInject(Params &p)
 {
-    const Reference* ref = *static_cast<const Reference* const*>(p.at(0));
+    const Reference *ref = *static_cast<const Reference *const *>(p.at(0));
     std::cout << "first object is of type: " << ObjectOf(ref)->Class << std::endl;
 }
 
@@ -25,7 +25,7 @@ void TestCustomProgram()
 void TestIf()
 {
     It("evaluates an if statement");
-    
+
     SetProgramToRun("TestIf");
     ConfigureLogging(LogSeverityType::Sev3_Critical, true);
     Compile();
@@ -48,12 +48,12 @@ void TestOrderOfOperations()
     Execute();
 
     IncludeStandardAssertSuite();
-    
+
     String correctOutput = "28\n6\n7\n-5\n-10\n8\n";
 
     Should("execute operations in PEMDAS order");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    Assert(ProgramOutput == correctOutput);
 }
 
 void TestMethodWithNoParams()
@@ -68,7 +68,7 @@ void TestMethodWithNoParams()
 
     Should("define and execute method with no params");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    Assert(ProgramOutput == correctOutput);
 }
 
 void TestMethodWithSingleParam()
@@ -83,7 +83,7 @@ void TestMethodWithSingleParam()
 
     Should("define and execute method with single param");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    Assert(ProgramOutput == correctOutput);
 }
 
 void TestMethodWithMultipleParams()
@@ -98,7 +98,7 @@ void TestMethodWithMultipleParams()
 
     Should("define and execute method with multiple params");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    Assert(ProgramOutput == correctOutput);
 }
 
 void TestScopeAccess()
@@ -114,7 +114,7 @@ void TestScopeAccess()
 
     Should("not allow accessing variables outside declared scope");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    Assert(ProgramOutput == correctOutput);
 }
 
 void TestMethodRecursion()
@@ -125,33 +125,49 @@ void TestMethodRecursion()
 
     IncludeStandardAssertSuite();
 
-
     String correctOutput = "5\n4\n3\n2\n1\n0\n120\n64\n";
 
     Should("allow method to call itself");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    Assert(ProgramOutput == correctOutput);
+}
+
+void TestComments()
+{
+    It("tests the hashtag for comment functionality");
+
+    CompileAndExecuteProgram("TestComments");
+
+    IncludeStandardAssertSuite();
+
+    String correctOutput = "7";
+
+    Should("prevent anything to the right of a # from being parsed");
+    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
+    Assert(ProgramOutput == correctOutput);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test index
 
-std::vector<TestFunction> Tests = 
-{
-    TestCustomProgram,
+std::vector<TestFunction> Tests =
+    {
+        TestCustomProgram,
 
-    // Tests for scoping
-    TestScopeAccess,
+        // Tests for scoping
+        TestScopeAccess,
 
-    // Test for control flow
-    TestIf,
+        // Test for control flow
+        TestIf,
 
-    // Tests for operations
-    TestOrderOfOperations,
+        // Tests for operations
+        TestOrderOfOperations,
 
-    // Tests for methods
-    TestMethodWithNoParams,
-    TestMethodWithSingleParam,
-    TestMethodWithMultipleParams,
-    TestMethodRecursion
-};
+        // Tests for methods
+        TestMethodWithNoParams,
+        TestMethodWithSingleParam,
+        TestMethodWithMultipleParams,
+        TestMethodRecursion,
+
+        // Test for comments
+        TestComments};
