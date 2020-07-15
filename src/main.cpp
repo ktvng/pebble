@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
 
     auto prog = ParseProgram(programName);
-    if(FatalCompileError)
+    if(FatalCompileError || prog == nullptr)
         return 1;
 
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");

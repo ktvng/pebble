@@ -141,7 +141,7 @@ String RemoveCommas(String line)
             continue;
         returnString += line.at(i);
     }
-    
+
     return returnString;
 }
 
@@ -174,7 +174,7 @@ String DecideTabString(String line)
 
     for(size_t i =0; i < line.size() && IsTabCharacter(line.at(i)); i++)
         tabString += line.at(i);
-    
+
     return tabString;
 }
 
@@ -340,7 +340,7 @@ void NumberOperation(Operation* op, int lineNumber)
     }
 }
 
-// can use this if every plays 
+// can use this if every plays
 typedef Operation*(*LineTypeFunctions)(PossibleOperationsList&, TokenList&);
 LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
 
@@ -352,7 +352,7 @@ Operation* ParseLine(TokenList& tokens)
 
     LineType lineType;
     DecideLineType(typeProbabilities, tokens, lineType);
-    
+
     // fPtr
     switch(lineType)
     {
@@ -378,7 +378,7 @@ int SizeOfBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::itera
 {
     int blockLevel = it->Level;
     int blockSize = 0;
-    for(; it != end && it->Level >= blockLevel; it++) 
+    for(; it != end && it->Level >= blockLevel; it++)
         blockSize++;
 
     return blockSize;
@@ -429,12 +429,12 @@ void HandleDefineMethod(
 }
 
 Block* ParseBlock(
-    std::vector<CodeLine>::iterator it, 
+    std::vector<CodeLine>::iterator it,
     std::vector<CodeLine>::iterator end,
     Scope* scope)
 {
     Block* thisBlock = BlockConstructor();
-    
+
     LogItDebug("entered new block", "ParseBlock");
     bool scopeIsLocal = false;
 
@@ -498,6 +498,7 @@ Program* ParseProgram(const std::string filepath)
     if(!file.is_open())
     {
         std::cout << "\ncould not open file: " << filepath << std::endl;
+        return nullptr;
     }
 
     int lineLevel = 0;
