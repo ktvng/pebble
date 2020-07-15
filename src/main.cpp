@@ -10,6 +10,13 @@
 #include "execute.h"
 #include "commandargs.h"
 
+void Usage(std::vector<SettingOption> options)
+{
+	// If this was derived at build time, that would be fantastic
+    std::cerr << "Usage: pebble [--help] [--log sev0|sev1|sev2|sev3] [program.pebl]" << std::endl;
+
+    exit(2);
+}
 
 void ChangeLogType(std::vector<SettingOption> options)
 {
@@ -37,9 +44,12 @@ void ChangeLogType(std::vector<SettingOption> options)
 
 ProgramConfiguration Config
 {
-    { 
+    {
         "Log Setting", "--log", ChangeLogType
-    }
+    },
+    {
+   		"Usage", "--help", Usage
+    },
 };
 
 
@@ -52,7 +62,7 @@ int main(int argc, char* argv[])
 {
     ParseCommandArgs(argc, argv, Config);
 
-    bool ShouldPrintInitialCompileResult = true; 
+    bool ShouldPrintInitialCompileResult = true;
     bool ShouldPrintProgramExecutionFinalResult = true;
 
     PurgeLog();                         // cleans log between each run
@@ -62,7 +72,7 @@ int main(int argc, char* argv[])
     // compile program
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
 
-    auto prog = ParseProgram("./program.pebl");
+    auto prog = ParseProgram(programName);
     if(FatalCompileError)
         return 1;
 
@@ -85,7 +95,7 @@ int main(int argc, char* argv[])
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
 
     DoProgram(prog);
-    
+
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
     SetConsoleColor(ConsoleColor::LightBlue);
     std::cout << "################################################################################\n";

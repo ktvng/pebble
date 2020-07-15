@@ -19,4 +19,8 @@ typedef std::vector<Setting> ProgramConfiguration;
 
 void ParseCommandArgs(int argc, char* argv[], ProgramConfiguration config);
 
+void Usage(std::vector<SettingOption> options);
+
+extern String programName;
+
 #endif
