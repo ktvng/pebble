@@ -3,10 +3,8 @@ MEMORY_STACK (holds byte references to anything really)
 CALL_STACK (holds cached instruction pointer, BLOCK start in memory)
 
 a BLOCK consists of
-    0: Reference to PROGRAM global scope
-    1: Reference to caller OBJECT
-    2: Reference to self OBJECT
-    3: Reference to BLOCK local scope
+    0: Reference to caller OBJECT
+    1: Reference to self OBJECT
 
 the first 4 are referenced by pointers in 4 registers
     PROGRAM_REG

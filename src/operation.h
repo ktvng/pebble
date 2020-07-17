@@ -22,6 +22,9 @@ class Operation : public Executable
     std::vector<Operation*> Operands;
     Reference* Value;
     int LineNumber;
+
+    /// used for bytecode
+    int EntityIndex;
 };
 
 typedef std::vector<Operation*> OperationsList;

@@ -44,7 +44,7 @@ Line -> Class :
 Expr -> SRef
 
 @ New new Reduce
-Ref -> new Ref
+Expr -> new Ref
 
 @ ScopeResolution . Reduce
 > (

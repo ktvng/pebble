@@ -18,6 +18,16 @@ Reference* ReferenceConstructor()
     return ref;
 }
 
+Reference* ReferenceConstructor(String refName, Object* obj)
+{
+    // LogItDebug("space allocated for new reference", "ReferenceConstructor");
+    Reference* ref = new Reference; 
+    ref->Name = refName;
+    ref->To = obj;
+
+    return ref;
+}
+
 Object* ObjectConstructor()
 {
     // LogItDebug("space allocated for new object", "ObjectConstructor");
@@ -372,6 +382,10 @@ String GetStringValue(const Object& obj)
     else if(obj.Class == BaseClass)
     {
         return "Object";
+    }
+    else if(obj.Class == SomethingClass)
+    {
+        return "Something";
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";

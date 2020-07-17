@@ -46,7 +46,7 @@ ProgramConfiguration Config
 
 
 // Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
+LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
 bool g_outputOn = true;
 
 int main(int argc, char* argv[])
@@ -79,12 +79,10 @@ int main(int argc, char* argv[])
         }
     }
 
-    EnterProgram(prog);
-    EnterScope(prog->GlobalScope);
     FlattenProgram(PROGRAM);
-    // PrintProgramInstructions();
+    PrintProgramInstructions();
     std::cout << "#######################start\n";
-    DoAllInstructions();
+    DoByteCodeProgram();
     std::cout << "#######################end\n";
 
     // run program

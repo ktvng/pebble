@@ -21,6 +21,7 @@ class Object
     void* Value;
     Method* Action;
     Scope* DefinitionScope;
+    int BlockStartInstructionId;
 };
 
 /// emulated method in Pebble
@@ -32,6 +33,8 @@ class Method
     Block* CodeBlock;
     ParameterList ParameterNames;
 };
+
+Reference* ReferenceConstructor(String refName, Object* obj);
 
 Object* ObjectConstructor();
 Object* NullObject();
@@ -49,7 +52,7 @@ inline const ObjectClass BooleanClass = "Boolean";
 inline const ObjectClass NullClass = "Nothing";
 inline const ObjectClass ArrayClass = "Array";
 inline const ObjectClass TupleClass = "Tuple";
-
+inline const ObjectClass SomethingClass = "Something";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Global Object Index
