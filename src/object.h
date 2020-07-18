@@ -21,7 +21,9 @@ class Object
     void* Value;
     Method* Action;
     Scope* DefinitionScope;
-    int BlockStartInstructionId;
+
+    extArg_t BlockStartInstructionId;
+    ParameterList ByteCodeParamsAsMethod;
 };
 
 /// emulated method in Pebble
@@ -53,6 +55,7 @@ inline const ObjectClass NullClass = "Nothing";
 inline const ObjectClass ArrayClass = "Array";
 inline const ObjectClass TupleClass = "Tuple";
 inline const ObjectClass SomethingClass = "Something";
+inline const ObjectClass MethodClass = "Method";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Global Object Index

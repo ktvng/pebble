@@ -348,11 +348,79 @@ inline void FlattendOperationAssign(Operation* op)
 
 inline void FlattenOperationNew(Operation* op)
 {
+    
     bool isRef;
     FlattenOperationRefDirect(op->Operands[0], isRef);
-    IfNecessaryAddDereference(isRef);
-    uint8_t opId = IndexOfInstruction(BCI_Copy);
+
+    uint8_t opId;
+    if(isRef)
+    {
+        opId = IndexOfInstruction(BCI_ResolveDirect);
+        AddByteCodeInstruction(opId, noArg);
+        IfNecessaryAddDereference(isRef);
+    }
+    
+    opId = IndexOfInstruction(BCI_Copy);
     AddByteCodeInstruction(opId, noArg);
+}
+
+/// TODO: add checking to make sure that tuple only contains refs
+/// add instructions for params and sets arg to the number of params
+inline void AddInstructionsForParameters(Operation* op, extArg_t& arg)
+{
+    arg = 0;
+    /// assumes the tuple contains one argumented scope resolutions
+    if(op->Type == OperationType::Tuple)
+    {
+        for(auto operand: op->Operands)
+        {
+            uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
+            extArg_t refNameId = operand->Operands[0]->EntityIndex;
+            AddByteCodeInstruction(opId, refNameId);
+            arg++;
+        }
+    }
+    else
+    {
+        /// assumes operand is a scope resolution
+        uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
+        extArg_t refNameId = op->Operands[0]->EntityIndex;
+        AddByteCodeInstruction(opId, refNameId);
+        arg = 1;
+    }
+}
+
+inline void FlattenOperationDefineMethod(Operation* op)
+{
+    uint8_t opId;
+    extArg_t arg;
+    
+    /// name comes first because of assign order
+    Operation* methodNameRefOp = op->Operands[0];
+
+    bool isRef;
+    FlattenOperationRefDirect(methodNameRefOp, isRef);
+
+    opId = IndexOfInstruction(BCI_ResolveDirect);
+    AddByteCodeInstruction(opId, noArg);
+    
+    /// case for operands
+    arg = noArg;
+    if(op->Operands.size() > 1)
+    {
+        AddInstructionsForParameters(op->Operands[1], arg);
+    }
+
+    opId = IndexOfInstruction(BCI_DefMethod);
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_Assign);
+    AddByteCodeInstruction(opId, noArg);
+}
+
+inline void FlattenOperationEvaluate(Operation* op)
+{
+    
 }
 
 void FlattenOperation(Operation* op)
@@ -368,6 +436,14 @@ void FlattenOperation(Operation* op)
     else if(op->Type == OperationType::New)
     {
         FlattenOperationNew(op);
+    }
+    else if(op->Type == OperationType::DefineMethod)
+    {
+        FlattenOperationDefineMethod(op);
+    }
+    else if(op->Type == OperationType::Evaluate)
+    {
+        FlattenOperationEvaluate(op);
     }
     else if(IsOperationComparision(op))
     {
@@ -415,7 +491,15 @@ void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned l
     }
     else if(blockOwner->Type == OperationType::DefineMethod)
     {
-        
+        extArg_t JumpInstructionStart = NextInstructionId();
+        int ipMagnitude = CurrentInstructionMagnitude();
+        AddNOPS(ipMagnitude + 2);
+
+        FlattenBlock(block);
+
+        opId = IndexOfInstruction(BCI_Jump);
+        arg = NextInstructionId();
+        RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
     }
     else
     {
