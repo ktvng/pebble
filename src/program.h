@@ -46,13 +46,6 @@ void ExitProgram();
 // ---------------------------------------------------------------------------------------------------------------------
 // Pebble system messages
 
-enum class SystemMessageType
-{
-    Exception,
-    Warning,
-    Advice
-};
-
 struct SystemMessage
 {
     String Content;

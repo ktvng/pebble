@@ -68,8 +68,8 @@ extern std::vector<SystemMessage> CompileMsgBuffer;
 void RuntimeMsgPrint(int lineNumber);
 void CompileMsgPrint(int lineNumber);
 
-
-
+String SystemMessageTypeString(SystemMessageType type);
+void SetConsoleColorForMessage(SystemMessageType type);
 // ---------------------------------------------------------------------------------------------------------------------
 // General logging
 

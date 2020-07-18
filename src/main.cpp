@@ -9,7 +9,8 @@
 #include "parse.h"
 #include "execute.h"
 #include "commandargs.h"
-#include "instruction.h"
+#include "vm.h"
+#include "flattener.h"
 #include "scope.h"
 
 void ChangeLogType(std::vector<SettingOption> options)
@@ -80,7 +81,7 @@ int main(int argc, char* argv[])
     }
 
     FlattenProgram(PROGRAM);
-    PrintProgramInstructions();
+    LogProgramInstructions();
     std::cout << "#######################start\n";
     DoByteCodeProgram();
     std::cout << "#######################end\n";
