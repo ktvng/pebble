@@ -331,9 +331,12 @@ inline void FlattenOperationGeneric(Operation* op)
         opId = IndexOfInstruction(BCI_SysCall);
         arg = 0;
         break;
+
+        case OperationType::While:
+        return;
         
         default:
-        LogIt(LogSeverityType::Sev3_Critical, "FlattenOperationGeneric", "unknown or unimplemented");
+        LogIt(LogSeverityType::Sev3_Critical, "FlattenOperationGeneric", Msg("unknown or unimplemented, %s", ToString(op->Type)));
         return;
     }
     AddByteCodeInstruction(opId, arg);
@@ -428,8 +431,11 @@ inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
 {
     if(op->Type == OperationType::Tuple)
     {
-        /// TODO: implement
-        arg++;
+        for(auto operand: op->Operands)
+        {
+            FlattenOperation(operand);
+            arg++;
+        }
     }
     else
     {
@@ -503,6 +509,25 @@ inline void FlattenOperationEvaluate(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
+inline void FlattenOperationReturn(Operation* op)
+{
+    uint8_t opId;
+    extArg_t arg;
+    
+    if(op->Operands.size() == 0)
+    {
+        arg = noArg;
+    }
+    else
+    {
+        FlattenOperation(op->Operands[0]);
+        arg = 1;
+    }
+
+    opId = IndexOfInstruction(BCI_Return);
+    AddByteCodeInstruction(opId, arg);    
+}
+
 void FlattenOperation(Operation* op)
 {
     if(op->Type == OperationType::ScopeResolution)
@@ -524,6 +549,10 @@ void FlattenOperation(Operation* op)
     else if(op->Type == OperationType::Evaluate)
     {
         FlattenOperationEvaluate(op);
+    }
+    else if(op->Type == OperationType::Return)
+    {
+        FlattenOperationReturn(op);
     }
     else if(IsOperationComparision(op))
     {

@@ -205,28 +205,30 @@ inline void AddRefToScope(Reference* ref, Scope* scp)
     scp->ReferencesIndex.push_back(ref);
 }
 
-inline void AddParamsToMethodScope(Object* methodObj, Object* paramsObj)
+inline void AddParamsToMethodScope(Object* methodObj, std::vector<Object*> paramsList)
 {
-    if(paramsObj == &NothingObject)
+    if(paramsList.size() == 0)
     {
         return;
     }
 
-    auto scope = methodObj->Attributes;
+    for(size_t i =0; i<paramsList.size() && i<methodObj->ByteCodeParamsAsMethod.size(); i++)
+    {
+        auto ref = ReferenceConstructor(methodObj->ByteCodeParamsAsMethod[i], paramsList[paramsList.size()-1-i]);
+        AddRefToScope(ref, ScopeOf(methodObj));
+    }
+}
+
+inline std::vector<Object*> GetParameters(extArg_t numParams)
+{
+    std::vector<Object*> params;
+    params.reserve(numParams);
+    for(extArg_t i=0; i<numParams; i++)
+    {
+        params.push_back(TOS_Obj());
+    }
     
-    /// TODO: unimplemented for tuples
-    if(paramsObj->Class == TupleClass)
-    {
-        for(auto ref: paramsObj->Attributes->ReferencesIndex)
-        {
-            AddRefToScope(ref, scope);
-        }
-    }
-    else
-    {
-        auto ref = ReferenceConstructor(methodObj->ByteCodeParamsAsMethod[0], paramsObj);
-        AddRefToScope(ref, scope);
-    }
+    return params;
 }
 
 inline bool NthBit(uint8_t data, int n)
@@ -673,20 +675,19 @@ void BCI_ResolveScoped(extArg_t arg)
 /// leaves a new method object as TOS
 void BCI_DefMethod(extArg_t arg)
 {
-    ParameterList list;
-    list.reserve(arg+1);
-
+    String* argList = new String[arg];
     for(int i = arg; i > 0; i--)
     {
-        list[i-1] = *TOS_String(); 
+        auto str = *TOS_String();
+        argList[i-1] = str;
     }
-
     auto obj = INTERNAL_ObjectConstructor(MethodClass, nullptr);
 
     for(int i=0; i<arg; i++)
     {
-        obj->ByteCodeParamsAsMethod.push_back(list[i]);
+        obj->ByteCodeParamsAsMethod.push_back(argList[i]);
     }
+    delete argList;
 
     /// expects a block
     /// TODO: verify block
@@ -696,20 +697,20 @@ void BCI_DefMethod(extArg_t arg)
     PushToStack<Object>(obj);
 }
 
+/// arg is number of parameters
 /// assumes TOS an obj (params), TOS1 is an object (method), TOS2 an objBlockStartInstructionId (caller)
 /// adds caller and self to TOS (in that order)
 void BCI_Eval(extArg_t arg)
 {
-    auto paramsObj = TOS_Obj();
+    auto paramsList = GetParameters(arg);
     auto methodObj = TOS_Obj();
     auto callerObj = TOS_Obj();
 
-    LogDiagnostics(paramsObj);
     LogDiagnostics(methodObj);
     LogDiagnostics(callerObj);
 
     int jumpTo = methodObj->BlockStartInstructionId;
-    AddParamsToMethodScope(methodObj, paramsObj);
+    AddParamsToMethodScope(methodObj, paramsList);
 
     /// TODO: figure out caller id
     EnterNewCallFrame(0, callerObj, methodObj);
@@ -718,14 +719,26 @@ void BCI_Eval(extArg_t arg)
     JumpStatusReg = 1;
 }
 
+/// arg is bool flag on whether or not to return a specific object
 void BCI_Return(extArg_t arg)
 {
     int jumpBackTo = CallStack.back().ReturnToInstructionId;
     int stackStart = CallStack.back().MemoryStackStart;
 
+    Object* returnObj = nullptr;
+    if(arg == 1)
+    {
+        returnObj = TOS_Obj();
+    }
+
     while(MemoryStack.size() > static_cast<size_t>(stackStart))
     {
         TOS_discard();
+    }
+
+    if(arg == 1)
+    {
+        PushToStack(returnObj);
     }
 
     InstructionReg = jumpBackTo;
