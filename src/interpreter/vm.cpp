@@ -29,7 +29,6 @@ Scope* LocalScopeReg = nullptr;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Special Registers
-String* ReferenceNameReg;
 
 extArg_t ExtendedArg;
 
@@ -270,6 +269,10 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_ResolveScoped";
     }
+    else if(ins.Op == IndexOfInstruction(BCI_DefMethod))
+    {
+        str += "#BCI_DefMethod";
+    }
     else if(ins.Op == IndexOfInstruction(BCI_Eval))
     {
         str += "#BCI_Eval";
@@ -296,7 +299,7 @@ String ToString(ByteCodeInstruction& ins)
     }
     else
     {
-        str += "#????????????";
+        str += "#?????????" + std::to_string(ins.Op);
     }
     str += "\t " + std::to_string(ins.Arg) + "\n";
     return str;

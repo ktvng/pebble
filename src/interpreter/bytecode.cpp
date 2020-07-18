@@ -81,6 +81,7 @@ BCI_Method BCI_Instructions[] = {
     BCI_ResolveDirect,
     BCI_ResolveScoped,
 
+    BCI_DefMethod,
     BCI_Eval,
     BCI_Return,
 
@@ -125,12 +126,19 @@ inline Scope* TOS_Scope()
     return scope;
 }
 
+inline String* TOS_String()
+{
+    auto str = static_cast<String*>(MemoryStack.back());
+    MemoryStack.pop_back();
+    return str;
+}
+
 inline void TOS_discard()
 {
     MemoryStack.pop_back();
 }
 
-inline Reference* FindInScopeOnlyImmediate(Scope* scope, String refName)
+inline Reference* FindInScopeOnlyImmediate(Scope* scope, String& refName)
 {
     for(auto ref: scope->ReferencesIndex)
     {
@@ -140,7 +148,7 @@ inline Reference* FindInScopeOnlyImmediate(Scope* scope, String refName)
     return nullptr;
 }
 
-inline Reference* FindInScopeChain(Scope* scope, String refName)
+inline Reference* FindInScopeChain(Scope* scope, String& refName)
 {
     for(auto s = scope; s != nullptr; s = s->InheritedScope)
     {
@@ -273,10 +281,10 @@ inline void CompareDecimals(Object* lhs, Object* rhs)
 // Instruction Defintions
 
 /// no assumptions
-/// leaves ReferenceNameReg containing the name 
+/// leaves the String refName as TOS
 void BCI_LoadRefName(extArg_t arg)
 {
-    ReferenceNameReg = &ReferenceNames[arg];
+    PushToStack<String>(&ReferenceNames[arg]);
 }
 
 /// no asumptions
@@ -559,29 +567,30 @@ void BCI_Copy(extArg_t arg)
     PushToStack<Object>(objCopy);
 }
 
-/// assumes ReferenceNameRef is valued
+/// assumes TOS is a String
 /// leaves resolved reference as TOS
 void BCI_ResolveDirect(extArg_t arg)
 {
-    auto resolvedRef = FindInScopeOnlyImmediate(LocalScopeReg, *ReferenceNameReg);
+    auto refName = TOS_String();
+    auto resolvedRef = FindInScopeOnlyImmediate(LocalScopeReg, *refName);
     if(resolvedRef == nullptr)
     {
-        resolvedRef = FindInScopeChain(SelfReg->Attributes, *ReferenceNameReg);
+        resolvedRef = FindInScopeChain(SelfReg->Attributes, *refName);
     }
 
     if(resolvedRef == nullptr)
     {
-        resolvedRef = FindInScopeOnlyImmediate(CallerReg->Attributes, *ReferenceNameReg);
+        resolvedRef = FindInScopeOnlyImmediate(CallerReg->Attributes, *refName);
     }
 
     if(resolvedRef == nullptr)
     {
-        resolvedRef = FindInScopeOnlyImmediate(ProgramReg, *ReferenceNameReg);
+        resolvedRef = FindInScopeOnlyImmediate(ProgramReg, *refName);
     }
 
     if(resolvedRef == nullptr)
     {
-        auto newRef = ReferenceConstructor(*ReferenceNameReg, &SomethingObject);
+        auto newRef = ReferenceConstructor(*refName, &SomethingObject);
         AddRefToScope(newRef, LocalScopeReg);
         PushToStack<Reference>(newRef);
     }
@@ -592,22 +601,23 @@ void BCI_ResolveDirect(extArg_t arg)
 
 }
 
-/// assumes TOS is a ref and ReferenceNameReg is valued
+/// assumes TOS is a string and TOS1 is a ref
 /// leaves resolved reference as TOS
 void BCI_ResolveScoped(extArg_t arg)
 {
-    /// TODO: Catch errors for accessing Nothing and Something
+    auto refName = TOS_String();
+
     if(TOSpeek_Ref() == &NothingReference || TOSpeek_Ref()->To == &SomethingObject)
     {
         ReportError(SystemMessageType::Warning, 1, Msg(" %s refers to the object <%s> which cannot have attributes", TOSpeek_Ref()->Name, TOSpeek_Ref()->To->Class));
         return;
     }
     auto callerRef = TOS_Ref();
-    auto resolvedRef = FindInScopeOnlyImmediate(ScopeOf(callerRef), *ReferenceNameReg);
+    auto resolvedRef = FindInScopeOnlyImmediate(ScopeOf(callerRef), *refName);
 
     if(resolvedRef == nullptr)
     {
-        auto newRef = ReferenceConstructor(*ReferenceNameReg, &SomethingObject);
+        auto newRef = ReferenceConstructor(*refName, &SomethingObject);
         AddRefToScope(newRef, callerRef->To->Attributes);
         PushToStack<Reference>(newRef);
     }
@@ -615,6 +625,27 @@ void BCI_ResolveScoped(extArg_t arg)
     {
         PushToStack<Reference>(resolvedRef);
     }
+}
+
+/// assumes the top [arg] entities on the stack are parameter names (strings)
+/// leaves a new method object as TOS
+void BCI_DefMethod(extArg_t arg)
+{
+    ParameterList list;
+    list.reserve(arg+1);
+
+    for(int i = arg; i > 0; i--)
+    {
+        list[i-1] = *TOS_String(); 
+    }
+
+    auto obj = INTERNAL_ObjectConstructor(MethodClass, nullptr);
+    obj->ByteCodeParamsAsMethod = list;
+    /// expects a block
+    /// TODO: verify block
+    obj->BlockStartInstructionId = InstructionReg + 1;
+
+    PushToStack<Object>(obj);
 }
 
 /// assumes TOS an obj (params), TOS1 is an object (method), TOS2 an object (caller)

@@ -24,7 +24,6 @@ extern Scope* LocalScopeReg;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Special Registers
-extern String* ReferenceNameReg;
 
 extern extArg_t ExtendedArg;
 
