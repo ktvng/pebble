@@ -1,4 +1,7 @@
 #include <iostream>
+#include <ctime>
+#include <chrono>
+#include <ratio>
 
 #include "main.h"
 #include "program.h"
@@ -45,7 +48,6 @@ ProgramConfiguration Config
 };
 
 
-
 // Logging
 LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
 bool g_outputOn = true;
@@ -83,8 +85,17 @@ int main(int argc, char* argv[])
     FlattenProgram(PROGRAM);
     LogProgramInstructions();
     std::cout << "#######################start\n";
+    
+    auto start = std::chrono::high_resolution_clock::now();
+
     DoByteCodeProgram();
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    std::cout << time_span.count();
+
     std::cout << "#######################end\n";
+
 
     // run program
     // SetConsoleColor(ConsoleColor::LightBlue);
