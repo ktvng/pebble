@@ -492,6 +492,7 @@ Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)
     return OperationConstructor(rule.OpType, components);
 }
 
+/// order is caller, method, params
 Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
 {
     if(components.size() == 1)

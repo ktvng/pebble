@@ -33,7 +33,7 @@ inline const std::string c_returnReferenceName = "!ReturnedReference";
 /// used for primitive objects resolved during compile time and incorporated as constants in an operation tree
 inline const std::string c_operationReferenceName = "!primitive:";
 
-inline const std::string c_nullStubName = "!Nothing";
+inline const std::string c_nullStubName = "Nothing";
 
 
 // ---------------------------------------------------------------------------------------------------------------------

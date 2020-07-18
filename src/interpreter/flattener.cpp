@@ -114,7 +114,7 @@ bool OperationRefIsPrimitive(Operation* op)
     auto ref = op->Value;
     if(IsReferenceStub(ref))
     {
-        return ref->Name == "Object" || ref->Name == "Something";
+        return ref->Name == "Object" || ref->Name == "Something" || ref->Name == "Nothing";
     }
 
     return true;
@@ -175,11 +175,12 @@ void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference
 }
 
 void FlattenOperationScopeResolution(Operation* op);
+void FlattenOperationScopeResolutionWithDereference(Operation* op);
 
 void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference)
 {
     auto firstOperand = op->Operands[0];
-    FlattenOperationScopeResolution(firstOperand);
+    FlattenOperationScopeResolutionWithDereference(firstOperand);
 
     auto secondOperand = op->Operands[1];
     bool isRef = false;
@@ -418,9 +419,88 @@ inline void FlattenOperationDefineMethod(Operation* op)
     AddByteCodeInstruction(opId, noArg);
 }
 
+inline bool OperationIsExpression(Operation* op)
+{
+    return op->Type != OperationType::Ref;
+}
+
+inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
+{
+    if(op->Type == OperationType::Tuple)
+    {
+        /// TODO: implement
+        arg++;
+    }
+    else
+    {
+        if(OperationIsExpression(op))
+        {
+            FlattenOperation(op);
+        }
+        else
+        {
+            bool isRef = false;
+            FlattenOperationRefDirect(op, isRef);
+            IfNecessaryAddDereference(isRef);
+        }
+        arg = 1;
+    }
+}
+
 inline void FlattenOperationEvaluate(Operation* op)
 {
+    /// order of operands is caller, method, params
+    auto callerOp = op->Operands[0];
+    auto methodOp = op->Operands[1];
+    auto paramsOp = op->Operands[2];
+
+
+    uint8_t opId;
+    extArg_t arg;
+
+
+    /// TODO: make this nicer
+    /// case with no caller
+    if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
+    {
+        opId = IndexOfInstruction(BCI_LoadPrimitive);
+        arg = 2;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_LoadRefName);
+        arg = methodOp->EntityIndex;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveDirect);
+        AddByteCodeInstruction(opId, noArg);
+
+        opId = IndexOfInstruction(BCI_Dereference);
+        AddByteCodeInstruction(opId, noArg);
+    }
+    else
+    {
+        FlattenOperationScopeResolution(callerOp);
+
+        opId = IndexOfInstruction(BCI_LoadRefName);
+        arg = methodOp->EntityIndex;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveScoped);
+        AddByteCodeInstruction(opId, noArg);
+
+        opId = IndexOfInstruction(BCI_Dereference);
+        AddByteCodeInstruction(opId, noArg);
+    }
+
+    /// methods are done on cloned objects
+    opId = IndexOfInstruction(BCI_Copy);
+    AddByteCodeInstruction(opId, noArg);
     
+    arg = 0;
+    AddInstructionsForEvaluateParameters(paramsOp, arg);
+
+    opId = IndexOfInstruction(BCI_Eval);
+    AddByteCodeInstruction(opId, arg);
 }
 
 void FlattenOperation(Operation* op)
@@ -455,6 +535,11 @@ void FlattenOperation(Operation* op)
     }
 }
 
+int NOPSafetyDomainSize()
+{
+    return 2 + CurrentInstructionMagnitude();
+}
+
 void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned long blockOwnerInstructionStart)
 {
     uint8_t opId;
@@ -472,8 +557,7 @@ void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned l
     else if(blockOwner->Type == OperationType::While)
     {
         extArg_t JumpInstructionStart = NextInstructionId();
-        int ipMagnitude = CurrentInstructionMagnitude();
-        AddNOPS(ipMagnitude + 2);
+        AddNOPS(NOPSafetyDomainSize());
 
         FlattenBlock(block);
         
@@ -492,10 +576,12 @@ void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned l
     else if(blockOwner->Type == OperationType::DefineMethod)
     {
         extArg_t JumpInstructionStart = NextInstructionId();
-        int ipMagnitude = CurrentInstructionMagnitude();
-        AddNOPS(ipMagnitude + 2);
+        AddNOPS(NOPSafetyDomainSize());
 
         FlattenBlock(block);
+
+        opId = IndexOfInstruction(BCI_Return);
+        AddByteCodeInstruction(opId, noArg);
 
         opId = IndexOfInstruction(BCI_Jump);
         arg = NextInstructionId();
@@ -612,6 +698,11 @@ void IfNeededAddConstPrimitive(Operation* op)
         op->EntityIndex = 1;
         return;
     }
+    else if(op->Value->Name == "Nothing")
+    {
+        op->EntityIndex = 2;
+        return;
+    }
 
     size_t atPosition;
     if(ConstPrimitivesContains(obj, atPosition))
@@ -666,7 +757,7 @@ void FirstPassBlock(Block* b)
 void InitEntityLists()
 {
     ConstPrimitives.clear();
-    ConstPrimitives = { &GodObject, &SomethingObject };
+    ConstPrimitives = { &GodObject, &SomethingObject, &NothingObject };
 
     ReferenceNames.clear();
     

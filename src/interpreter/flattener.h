@@ -8,4 +8,6 @@ void FlattenProgram(Program* p);
 void FlattenBlock(Block* block);
 void FlattenOperation(Operation* op);
 
+int NOPSafetyDomainSize();
+
 #endif
