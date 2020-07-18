@@ -27,6 +27,9 @@ typedef std::vector<Token*> TokenList;
 typedef std::vector<Operation*> OperationsList;
 typedef std::vector<std::string> ParameterList;
 
+typedef unsigned long long extArg_t;
+
+
 /// log events are used for internal Pebble developer debugging
 /// defines how severe a log event is. due to enum -> int casting, definition order is important
 enum LogSeverityType
@@ -70,6 +73,13 @@ enum OperationType
     New,
     ScopeResolution,
     Class,
+};
+
+enum class SystemMessageType
+{
+    Exception,
+    Warning,
+    Advice
 };
 
 #endif
