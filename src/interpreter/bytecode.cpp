@@ -2,6 +2,7 @@
 
 #include "vm.h"
 #include "errormsg.h"
+#include "flattener.h"
 
 #include "object.h"
 #include "main.h"
@@ -166,6 +167,11 @@ inline Scope* ScopeOf(Reference* ref)
     return ref->To->Attributes;
 }
 
+inline Scope* ScopeOf(Object* obj)
+{
+    return obj->Attributes;
+}
+
 template <typename T>
 inline void PushToStack(T* entity)
 {
@@ -207,7 +213,8 @@ inline void AddParamsToMethodScope(Object* methodObj, Object* paramsObj)
     }
 
     auto scope = methodObj->Attributes;
-    /// TODO: tuples are unimplemented
+    
+    /// TODO: unimplemented for tuples
     if(paramsObj->Class == TupleClass)
     {
         for(auto ref: paramsObj->Attributes->ReferencesIndex)
@@ -217,7 +224,7 @@ inline void AddParamsToMethodScope(Object* methodObj, Object* paramsObj)
     }
     else
     {
-        auto ref = ReferenceConstructor(methodObj->Action->ParameterNames[0], paramsObj);
+        auto ref = ReferenceConstructor(methodObj->ByteCodeParamsAsMethod[0], paramsObj);
         AddRefToScope(ref, scope);
     }
 }
@@ -276,6 +283,28 @@ inline void CompareDecimals(Object* lhs, Object* rhs)
 
     FillInRestOfComparisons();
 }
+
+void AdjustLocalScopeReg()
+{
+    if(LocalScopeStack().size() == 0)
+    {
+        if(SelfReg != &NothingObject)
+        {
+            LocalScopeReg = SelfReg->Attributes;
+        }
+        else
+        {
+            LocalScopeReg = ProgramReg;
+        }
+    }
+    else
+    {
+        LocalScopeReg = &LocalScopeStack().back();
+    }
+}
+
+
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Instruction Defintions
@@ -564,6 +593,19 @@ void BCI_Copy(extArg_t arg)
     auto obj = TOS_Obj();
     auto objCopy = INTERNAL_ObjectConstructor(obj->Class, obj->Value);
     objCopy->BlockStartInstructionId = obj->BlockStartInstructionId;
+    
+    /// TODO: maybe take this out?
+    for(auto ref: obj->Attributes->ReferencesIndex)
+    {
+        auto refcopy = ReferenceConstructor(ref->Name, ref->To);
+        AddRefToScope(refcopy, objCopy->Attributes);
+    }
+
+    for(auto str: obj->ByteCodeParamsAsMethod)
+    {
+        objCopy->ByteCodeParamsAsMethod.push_back(str);
+    }
+
     PushToStack<Object>(objCopy);
 }
 
@@ -601,24 +643,24 @@ void BCI_ResolveDirect(extArg_t arg)
 
 }
 
-/// assumes TOS is a string and TOS1 is a ref
+/// assumes TOS is a string and TOS1 is an obj
 /// leaves resolved reference as TOS
 void BCI_ResolveScoped(extArg_t arg)
 {
     auto refName = TOS_String();
 
-    if(TOSpeek_Ref() == &NothingReference || TOSpeek_Ref()->To == &SomethingObject)
+    if(TOSpeek_Obj() == &NothingObject || TOSpeek_Obj() == &SomethingObject)
     {
         ReportError(SystemMessageType::Warning, 1, Msg(" %s refers to the object <%s> which cannot have attributes", TOSpeek_Ref()->Name, TOSpeek_Ref()->To->Class));
         return;
     }
-    auto callerRef = TOS_Ref();
+    auto callerRef = TOS_Obj();
     auto resolvedRef = FindInScopeOnlyImmediate(ScopeOf(callerRef), *refName);
 
     if(resolvedRef == nullptr)
     {
         auto newRef = ReferenceConstructor(*refName, &SomethingObject);
-        AddRefToScope(newRef, callerRef->To->Attributes);
+        AddRefToScope(newRef, ScopeOf(callerRef));
         PushToStack<Reference>(newRef);
     }
     else
@@ -640,15 +682,21 @@ void BCI_DefMethod(extArg_t arg)
     }
 
     auto obj = INTERNAL_ObjectConstructor(MethodClass, nullptr);
-    obj->ByteCodeParamsAsMethod = list;
+
+    for(int i=0; i<arg; i++)
+    {
+        obj->ByteCodeParamsAsMethod.push_back(list[i]);
+    }
+
     /// expects a block
     /// TODO: verify block
-    obj->BlockStartInstructionId = InstructionReg + 1;
+    /// TODO: currently assumes NOPS (AND) and Assign after
+    obj->BlockStartInstructionId = InstructionReg + NOPSafetyDomainSize() + 2;
 
     PushToStack<Object>(obj);
 }
 
-/// assumes TOS an obj (params), TOS1 is an object (method), TOS2 an object (caller)
+/// assumes TOS an obj (params), TOS1 is an object (method), TOS2 an objBlockStartInstructionId (caller)
 /// adds caller and self to TOS (in that order)
 void BCI_Eval(extArg_t arg)
 {
@@ -656,27 +704,42 @@ void BCI_Eval(extArg_t arg)
     auto methodObj = TOS_Obj();
     auto callerObj = TOS_Obj();
 
+    LogDiagnostics(paramsObj);
+    LogDiagnostics(methodObj);
+    LogDiagnostics(callerObj);
+
     int jumpTo = methodObj->BlockStartInstructionId;
     AddParamsToMethodScope(methodObj, paramsObj);
+
     /// TODO: figure out caller id
     EnterNewCallFrame(0, callerObj, methodObj);
-    InstructionReg = jumpTo;
     
+    InstructionReg = jumpTo;
+    JumpStatusReg = 1;
 }
 
 void BCI_Return(extArg_t arg)
 {
     int jumpBackTo = CallStack.back().ReturnToInstructionId;
     int stackStart = CallStack.back().MemoryStackStart;
-    while(MemoryStack.size() >= static_cast<size_t>(stackStart))
+
+    while(MemoryStack.size() > static_cast<size_t>(stackStart))
     {
         TOS_discard();
     }
+
     InstructionReg = jumpBackTo;
     CallStack.pop_back();
 
+    int returnMemStart = CallStack.back().MemoryStackStart;
+
+    CallerReg = static_cast<Object*>(MemoryStack[returnMemStart]);
+    SelfReg = static_cast<Object*>(MemoryStack[returnMemStart+1]);
+
     LocalScopeStack() = CallStack.back().LocalScopeStack;
-    LocalScopeReg = &LocalScopeStack().back();
+    AdjustLocalScopeReg();
+
+    JumpStatusReg = 1;
 }
 
 /// no assumptions
@@ -691,21 +754,7 @@ void BCI_LeaveLocal(extArg_t arg)
 {
     /// TODO: destroy andy local references
     LocalScopeStack().pop_back();
-    if(LocalScopeStack().size() == 0)
-    {
-        if(SelfReg != &NothingObject)
-        {
-            LocalScopeReg = SelfReg->Attributes;
-        }
-        else
-        {
-            LocalScopeReg = ProgramReg;
-        }
-    }
-    else
-    {
-        LocalScopeReg = &LocalScopeStack().back();
-    }
+    AdjustLocalScopeReg();
 }
 
 void BCI_Extend(extArg_t arg)

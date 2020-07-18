@@ -131,6 +131,9 @@ void InitRuntime()
     CallerReg = &NothingObject;
     SelfReg = &NothingObject;
 
+    MemoryStack.push_back(CallerReg);
+    MemoryStack.push_back(SelfReg);
+
     ProgramReg = ScopeConstructor(nullptr);
     LocalScopeReg = ProgramReg;
 }
@@ -193,13 +196,17 @@ void DoByteCodeProgram()
 String ToString(ByteCodeInstruction& ins)
 {
     String str;
+    String decodedArg;
+
     if(ins.Op == IndexOfInstruction(BCI_LoadRefName))
     {
         str += "#BCI_LoadRefName";
+        decodedArg = ReferenceNames[ins.Arg];
     }
     else if(ins.Op == IndexOfInstruction(BCI_LoadPrimitive))
     {
         str += "#BCI_LoadPrimitive";
+        decodedArg = GetStringValue(*ConstPrimitives[ins.Arg]);
     }
     else if(ins.Op == IndexOfInstruction(BCI_Dereference))
     {
@@ -301,7 +308,13 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#?????????" + std::to_string(ins.Op);
     }
-    str += "\t " + std::to_string(ins.Arg) + "\n";
+    
+    while(str.size() < 22)
+    {
+        str += " ";
+    }
+
+    str += "\t" + std::to_string(ins.Arg) + "\t" + decodedArg + "\n";
     return str;
 }
 
@@ -311,7 +324,7 @@ String ToString(std::vector<ByteCodeInstruction>& bciProgram)
     int i=0;
     for(auto& ins: bciProgram)
     {
-        str += std::to_string(i++) + ToString(ins);
+        str += std::to_string(i++) + "\t" + ToString(ins);
     }
 
     return str;
@@ -319,10 +332,11 @@ String ToString(std::vector<ByteCodeInstruction>& bciProgram)
 
 void LogProgramInstructions()
 {
-    LogIt(LogSeverityType::Sev2_Important, "", "References");
+    String refNames = "References list\n";
     for(size_t i=0; i<ReferenceNames.size(); i++)
     {
-        LogIt(LogSeverityType::Sev2_Important, "", Msg("%i: %s", i, ReferenceNames[i]));
+        refNames +=  Msg("%i:\t %s\n", i, ReferenceNames[i]);
     }
+    LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", refNames);
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", Msg("\n%s", ToString(ByteCodeProgram)));
 }

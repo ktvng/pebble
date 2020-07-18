@@ -122,9 +122,7 @@ Expr -> SRef . Ref ( )
 Expr -> SRef . Ref ( Expr )
 Expr -> SRef . Ref ( Tuple )
 
-Expr -> Ref . Ref ( )
-Expr -> Ref . Ref ( Expr )
-Expr -> Ref . Ref ( Tuple )
+
 
 @ Evaluate ( UnscopedEval
 > :
