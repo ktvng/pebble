@@ -14,75 +14,94 @@
 #include "bytecode.h"
 #include "errormsg.h"
 
+// ---------------------------------------------------------------------------------------------------------------------
+// TODO
+// 1. Add checking for reference assignment (should throw error) ie. 4 =5
+// 2. Allow scoped references to exist even for primitives, ie. A.5 ??? maybe
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Helpers
 
-uint8_t noArg = 0;
+/// constant used in instructions which do not use the argument
+constexpr extArg_t noArg = 0;
 
-inline const extArg_t ByteFlag = 0xff;
+/// constant used to mask a single byte
+constexpr extArg_t ByteMask = 0xff;
 
-inline uint8_t ReduceLongArgByExp(extArg_t& arg, int extendExp)
+/// zeros the byte with [byteNumber] in arg, modifying it, and returns the byte
+inline uint8_t RemoveByteFromLongArg(extArg_t& arg, int byteNumber)
 {
-    extArg_t extendArg = arg & (ByteFlag << (extendExp * 8));
-    uint8_t scaledExtendArg = extendArg >> (extendExp * 8);
-    arg = (~(ByteFlag << (extendExp * 8))) & arg; 
+    extArg_t extendArg = arg & (ByteMask << (byteNumber * 8));
+    uint8_t scaledExtendArg = extendArg >> (byteNumber * 8);
+    arg = (~(ByteMask << (byteNumber * 8))) & arg; 
     return scaledExtendArg;
 }
 
-inline uint8_t IfNecessaryAddExtendInstructionAndReduce(extArg_t& arg)
+/// adds the necessary extend operation to represent the long form of [arg] by bytes and 
+/// returns the least significant byte
+inline uint8_t IfNecessaryAddExtendInstructionAndReduce(extArg_t arg)
 {
     int extendExp = 1;
     while(arg > 255 && extendExp < 8)
     {
         uint8_t opId = IndexOfInstruction(BCI_Extend);
-        uint8_t scaledExtendArg = ReduceLongArgByExp(arg, extendExp);
+        uint8_t scaledExtendArg = RemoveByteFromLongArg(arg, extendExp);
         ByteCodeProgram.push_back( {opId, scaledExtendArg} );
         extendExp++;
     }
-    arg = arg & ByteFlag;
+    arg = arg & ByteMask;
 
     return arg;
 }
 
+/// add the instruction for [opId] with [arg], breaking [arg] into individual bytes
+/// if it is too long
 inline void AddByteCodeInstruction(uint8_t opId, extArg_t arg)
 {
     uint8_t reducedArg = IfNecessaryAddExtendInstructionAndReduce(arg);
     ByteCodeProgram.push_back( {opId, reducedArg} );
 }
 
-inline uint8_t IfNecessaryRewriteExtendInstructionAndReduce(extArg_t& arg, extArg_t& atPos)
+/// rewrites extend instructions starting [atPos] to represent the long for mof [arg]
+/// and returns the least significant byte
+inline uint8_t IfNecessaryRewriteExtendInstructionAndReduce(extArg_t arg, extArg_t& atPos)
 {
     int extendExp = 1;
     while(arg > 255 && extendExp < 8)
     {
         uint8_t opId = IndexOfInstruction(BCI_Extend);
-        uint8_t scaledExtendArg = ReduceLongArgByExp(arg, extendExp);
+        uint8_t scaledExtendArg = RemoveByteFromLongArg(arg, extendExp);
         ByteCodeProgram[atPos++] = {opId, scaledExtendArg};
         extendExp++;
     }
-    arg = arg & ByteFlag;
+    arg = arg & ByteMask;
 
     return arg;
 }
 
+/// rewrite a byte code instuction [opId] starting [atPOs], ensuring that the long form of [arg] is broken into
+/// individual bits
 inline void RewriteByteCodeInstruction(uint8_t opId, extArg_t arg, extArg_t atPos)
 {
     uint8_t reducedArg = IfNecessaryRewriteExtendInstructionAndReduce(arg, atPos);
     ByteCodeProgram[atPos] = {opId, reducedArg};
 }
 
+/// returns the current instruction id
 inline extArg_t CurrentInstructionId()
 {
     return ByteCodeProgram.size()-1;
 }
 
+/// returns the next instruction id
 inline extArg_t NextInstructionId()
 {
     return ByteCodeProgram.size();
 }
 
-int CurrentInstructionMagnitude()
+/// returns the number of bytes needed to represent the current instruction id
+inline int CurrentInstructionMagnitude()
 {
     extArg_t ip = CurrentInstructionId();
     int magnitude = 0;
@@ -94,7 +113,8 @@ int CurrentInstructionMagnitude()
     return magnitude;
 }
 
-void AddNOPS(int i)
+/// adds [i] NOP instructions
+inline void AddNOPS(int i)
 {
     for(;i; i-=1)
     {
@@ -103,36 +123,135 @@ void AddNOPS(int i)
     }
 }
 
+/// adds a dereference operation if [shouldDereference] is true
+inline void IfNecessaryAddDereference(bool shouldDereference)
+{
+    if(shouldDereference)
+    {
+        uint8_t opId = IndexOfInstruction(BCI_Dereference);
+        AddByteCodeInstruction(opId, noArg);
+    }
+}
+
+/// add an instruction marking the end of a line of code
+inline void AddEndLineInstruction()
+{
+    AddByteCodeInstruction(IndexOfInstruction(BCI_EndLine), noArg);
+}
+
+/// TODO: add checking to make sure that tuple only contains refs
+/// add instructions for listing params when defining a method and sets 
+/// arg to the number of params the method takes
+inline void AddInstructionsForDefMethodParameters(Operation* op, extArg_t& arg)
+{
+    arg = 0;
+    /// assumes the tuple contains one argumented scope resolutions
+    if(op->Type == OperationType::Tuple)
+    {
+        for(auto operand: op->Operands)
+        {
+            uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
+            extArg_t refNameId = operand->Operands[0]->EntityIndex;
+            AddByteCodeInstruction(opId, refNameId);
+            arg++;
+        }
+    }
+    else
+    {
+        /// assumes operand is a scope resolution
+        uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
+        extArg_t refNameId = op->Operands[0]->EntityIndex;
+        AddByteCodeInstruction(opId, refNameId);
+        arg = 1;
+    }
+}
+
+/// true if [op] is an expression (not of type OperationType::Ref)
+inline bool OperationIsExpression(Operation* op)
+{
+    return op->Type != OperationType::Ref;
+}
+
+/// add instructions for listing params when evaluating a method and sets
+/// arg to the number of params the method takes
+inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
+{
+    if(op->Type == OperationType::Tuple)
+    {
+        for(auto operand: op->Operands)
+        {
+            FlattenOperation(operand);
+            arg++;
+        }
+    }
+    else
+    {
+        if(OperationIsExpression(op))
+        {
+            FlattenOperation(op);
+        }
+        else
+        {
+            if(op->Value->Name == "Nothing")
+            {
+                return;
+            }
+
+            bool isRef = false;
+            FlattenOperationRefDirect(op, isRef);
+            IfNecessaryAddDereference(isRef);
+        }
+        arg = 1;
+    }
+}
+
+/// returns the number of NOPs to used in unresolved jumps to be reasonably sure that no bytecode
+/// will be overwritten when adding extends
+int NOPSafetyDomainSize()
+{
+    return 2 + CurrentInstructionMagnitude();
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Jump Context
+// A jump context is used to flatten if-else-blocks into bytecode. Unresolved jumps
+// are used to store the jumps that occur at the end of an if/else-if block which
+// must unconditionally jump to the end of the if-complex (the complete if/else-if/else
+// statement). Unresolved jump falses are the if/else-if conditions which will jump to
+// the next if-header (if/else-if/else) if evaluated as false.
 
+/// adds a segment of bytecode which will later be resolved as a unconditional jump
 inline void AddInstructionsForUnresolvedJump(JumpContext& ctx)
 {
     ctx.UnresolvedJumps.push_back(NextInstructionId());
     AddNOPS(NOPSafetyDomainSize());
 }
 
+/// adds a segment of bytecode which will later be resolved as a conditional jump
 inline void AddInstructionsForUnresolvedJumpFalse(JumpContext& ctx)
 {
-    ctx.UnresolvedJumpFalses.push_back(NextInstructionId());
+    ctx.UnresolvedJumpFalse = NextInstructionId();
+    ctx.HasUnresolvedJumpFalse = true;
     AddNOPS(NOPSafetyDomainSize());
 }
 
+/// initialize a new JumpContext
 inline void InitJumpContext(JumpContext& ctx)
 {
     ctx.UnresolvedJumps.reserve(16);
-    ctx.UnresolvedJumpFalses.reserve(16);
-
+    ctx.HasUnresolvedJumpFalse = false;
 }
 
+/// reset an existing JumpContext
 inline void ClearJumpContext(JumpContext& ctx)
 {
-    ctx.UnresolvedJumpFalses.clear();
+    ctx.HasUnresolvedJumpFalse = false;
     ctx.UnresolvedJumps.clear();
 }
 
+/// resolves all unresolved jumps (conditional/unconditional) remaining in a JumpContext
+/// to jump to the NextInstructionId
 inline void ResolveJumpContext(JumpContext& ctx)
 {
     uint8_t opId = IndexOfInstruction(BCI_Jump);
@@ -143,44 +262,72 @@ inline void ResolveJumpContext(JumpContext& ctx)
     }
 
     opId = IndexOfInstruction(BCI_JumpFalse);
-    for(extArg_t pos: ctx.UnresolvedJumpFalses)
+    if(ctx.HasUnresolvedJumpFalse)
     {
-        RewriteByteCodeInstruction(opId, jumpTo, pos);
+        RewriteByteCodeInstruction(opId, jumpTo, ctx.UnresolvedJumpFalse);
     }
 
     ClearJumpContext(ctx);
 }
 
+/// resolves the latest conditional jump to the NextInstructionId
 inline void ResolveJumpContextClause(JumpContext& ctx)
 {
     uint8_t opId = IndexOfInstruction(BCI_JumpFalse);
     extArg_t jumpTo = NextInstructionId();
 
-    RewriteByteCodeInstruction(opId, jumpTo, ctx.UnresolvedJumpFalses.back());
-    ctx.UnresolvedJumpFalses.pop_back();
+    RewriteByteCodeInstruction(opId, jumpTo, ctx.UnresolvedJumpFalse);
+    ctx.HasUnresolvedJumpFalse = false;
 }
 
+/// true if JumpContext has an unresolved conditional jump clause
 inline bool JumpContextHasUnresolvedClause(const JumpContext& ctx)
 {
-    return ctx.UnresolvedJumpFalses.size() > 0;
+    return ctx.HasUnresolvedJumpFalse;
 }
 
+/// true if JumpContext has any unresolved jump, either conditional or unconditional
 inline bool JumpContextNeedsResolution(const JumpContext& ctx)
 {
-    return (ctx.UnresolvedJumpFalses.size() + ctx.UnresolvedJumps.size()) > 0;
+    return ctx.UnresolvedJumps.size() > 0 || ctx.HasUnresolvedJumpFalse;
 }
+
+/// true if [op] includes a conditional jump in its bytecode
+inline bool IsConditionalJump(Operation* op)
+{
+    return op->Type == OperationType::While || op->Type == OperationType::If || op->Type == OperationType::ElseIf;
+}
+
+/// true if [op] is part of an if-complex (if/else-if/else)
+inline bool IsPartOfIfComplex(Operation* op)
+{
+    if(op == nullptr)
+    {
+        return false;
+    }
+
+    return op->Type == OperationType::If || op->Type == OperationType::Else || op->Type == OperationType::ElseIf;
+}
+
+/// true if [op] is part of an if-conditional (if/else-if)
+inline bool IsPartOfIfConditional(Operation *op)
+{
+    if(op == nullptr)
+    {
+        return false;
+    }
+
+    return op->Type == OperationType::If || op->Type == OperationType::ElseIf;
+}
+
 
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Flattening the AST
 
-inline void AddEndLineInstruction()
-{
-    AddByteCodeInstruction(IndexOfInstruction(BCI_EndLine), noArg);
-}
-
-/// true if the reference operation points to a primitive or instance of Object/Something
+/// true if [op] (assumed to be OperationType::Ref) points to a primitive 
+/// or instance of Object/Something/Nothing
 inline bool OperationRefIsPrimitive(Operation* op)
 {
     auto ref = op->Value;
@@ -192,6 +339,7 @@ inline bool OperationRefIsPrimitive(Operation* op)
     return true;
 }
 
+/// flatten a OperationType::Ref [op] which may point to a primitive object
 void FlattenOperationRefDirect(Operation* op, bool& isRef)
 {
     uint8_t opId;
@@ -210,7 +358,7 @@ void FlattenOperationRefDirect(Operation* op, bool& isRef)
     AddByteCodeInstruction(opId, arg);
 }
 
-/// flattens operation assuming it is not a primitive
+/// flattens an OperationType::Ref [op] which cannot be a primitive (it is scoped)
 void FlattenOperationRefScoped(Operation* op, bool& isRef)
 {
     uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
@@ -221,15 +369,8 @@ void FlattenOperationRefScoped(Operation* op, bool& isRef)
     AddByteCodeInstruction(opId, arg);
 }
 
-inline void IfNecessaryAddDereference(bool shouldDereference)
-{
-    if(shouldDereference)
-    {
-        uint8_t opId = IndexOfInstruction(BCI_Dereference);
-        AddByteCodeInstruction(opId, noArg);
-    }
-}
-
+/// flattens a OperationType::ScopeResolution [op] assuming it is direct and has
+/// only 1 operand
 void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference)
 {
     auto firstOperand = op->Operands[0];
@@ -246,6 +387,8 @@ void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference
     }
 }
 
+/// flattens a OperationType::ScopeResolution [op] assuming it is scoped and has
+/// exactly 2 operands
 void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference)
 {
     auto firstOperand = op->Operands[0];
@@ -264,6 +407,8 @@ void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference
 }
 
 /// TODO: might (won't) work with scoped pritmitives (ie X.4)
+/// flattens an OperationType::ScopeResolution [op] without dereferencing the 
+/// result which is used only with the OperationType::Assign operations
 void FlattenOperationScopeResolution(Operation* op)
 {
     if(op->Operands.size() == 1)
@@ -277,6 +422,7 @@ void FlattenOperationScopeResolution(Operation* op)
     }
 }
 
+/// flattens an OperationType::ScopeResolution [op] with a final dereference if needed
 void FlattenOperationScopeResolutionWithDereference(Operation* op)
 {
     if(op->Operands.size() == 1)
@@ -290,7 +436,7 @@ void FlattenOperationScopeResolutionWithDereference(Operation* op)
     }
 }
 
-
+/// true if [op] is a comparison operation
 bool IsOperationComparision(Operation* op)
 {
     auto opType = op->Type;
@@ -301,7 +447,9 @@ bool IsOperationComparision(Operation* op)
         || opType == OperationType::IsLessThanOrEqualTo;
 }
 
-/// bit at position [i] indicates:
+/// flattens a comparison operation [op] based on the following argument encoding
+/// bit at position [i] of arg indicates:
+/// i: indicates
 /// 0: hardcoded false
 /// 1: hardcoded true
 /// 2: ==
@@ -353,11 +501,13 @@ inline void FlattenOperationComparison(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
+/// flattens generic operations [op] which all follow the the same format and are generally
+/// fixed in their operands 
 /// compatible with:
 /// add/subtract/multiply/divide
 /// and/or/not
-/// syscall
-/// while/if
+/// syscall (print)
+/// while/if/elseif/else
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -403,6 +553,8 @@ inline void FlattenOperationGeneric(Operation* op)
         break;
 
         case OperationType::If:
+        case OperationType::ElseIf:
+        case OperationType::Else:
         case OperationType::While:
         return;
         
@@ -413,6 +565,7 @@ inline void FlattenOperationGeneric(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
+/// adds bytecode instructions for [op] with OperationType::Assign
 inline void FlattendOperationAssign(Operation* op)
 {
     FlattenOperationScopeResolution(op->Operands[0]);
@@ -421,6 +574,7 @@ inline void FlattendOperationAssign(Operation* op)
     AddByteCodeInstruction(opId, noArg);
 }
 
+/// adds bytecode instructions for [op] with OperationType::New
 inline void FlattenOperationNew(Operation* op)
 {
     bool isRef;
@@ -438,32 +592,7 @@ inline void FlattenOperationNew(Operation* op)
     AddByteCodeInstruction(opId, noArg);
 }
 
-/// TODO: add checking to make sure that tuple only contains refs
-/// add instructions for params and sets arg to the number of params
-inline void AddInstructionsForDefMethodParameters(Operation* op, extArg_t& arg)
-{
-    arg = 0;
-    /// assumes the tuple contains one argumented scope resolutions
-    if(op->Type == OperationType::Tuple)
-    {
-        for(auto operand: op->Operands)
-        {
-            uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
-            extArg_t refNameId = operand->Operands[0]->EntityIndex;
-            AddByteCodeInstruction(opId, refNameId);
-            arg++;
-        }
-    }
-    else
-    {
-        /// assumes operand is a scope resolution
-        uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
-        extArg_t refNameId = op->Operands[0]->EntityIndex;
-        AddByteCodeInstruction(opId, refNameId);
-        arg = 1;
-    }
-}
-
+/// adds bytecode instructions for [op] with OperationType::DefineMethod
 inline void FlattenOperationDefineMethod(Operation* op)
 {
     uint8_t opId;
@@ -492,42 +621,7 @@ inline void FlattenOperationDefineMethod(Operation* op)
     AddByteCodeInstruction(opId, noArg);
 }
 
-inline bool OperationIsExpression(Operation* op)
-{
-    return op->Type != OperationType::Ref;
-}
-
-inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
-{
-    if(op->Type == OperationType::Tuple)
-    {
-        for(auto operand: op->Operands)
-        {
-            FlattenOperation(operand);
-            arg++;
-        }
-    }
-    else
-    {
-        if(OperationIsExpression(op))
-        {
-            FlattenOperation(op);
-        }
-        else
-        {
-            if(op->Value->Name == "Nothing")
-            {
-                return;
-            }
-
-            bool isRef = false;
-            FlattenOperationRefDirect(op, isRef);
-            IfNecessaryAddDereference(isRef);
-        }
-        arg = 1;
-    }
-}
-
+/// adds bytecode instructions for [op] with OperationType::Evaluate
 inline void FlattenOperationEvaluate(Operation* op)
 {
     /// order of operands is caller, method, params
@@ -585,6 +679,7 @@ inline void FlattenOperationEvaluate(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
+/// adds bytecode instructions for [op] with OperationType::Return
 inline void FlattenOperationReturn(Operation* op)
 {
     uint8_t opId;
@@ -604,6 +699,7 @@ inline void FlattenOperationReturn(Operation* op)
     AddByteCodeInstruction(opId, arg);    
 }
 
+/// adds bytecode instructions for [op] with OperationType::Ask
 inline void FlattenOperationAsk(Operation* op)
 {
     uint8_t opId = IndexOfInstruction(BCI_SysCall);
@@ -622,6 +718,7 @@ inline void FlattenOperationAsk(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
+/// adds bytecode instructions for an [op] based on its OperationType
 void FlattenOperation(Operation* op)
 {
     if(op->Type == OperationType::ScopeResolution)
@@ -662,15 +759,13 @@ void FlattenOperation(Operation* op)
     }
 }
 
-int NOPSafetyDomainSize()
-{
-    return 2 + CurrentInstructionMagnitude();
-}
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Control flow
 
+/// adds instructions to enter an anonymous scope and do [block]
 inline void HandleAnonymousScope(Block* block)
 {
     uint8_t opId;
@@ -685,7 +780,9 @@ inline void HandleAnonymousScope(Block* block)
     AddByteCodeInstruction(opId, arg);
 }
 
-inline void HandleWhile(Block* block, extArg_t blockOwnerInstructionStart)
+/// adds instructions to enter a while loop's [block] with the while loop gate
+/// clause starting at [whileInstructionStart]
+inline void HandleWhile(Block* block, extArg_t whileInstructionStart)
 {
     uint8_t opId;
     extArg_t arg = noArg;
@@ -695,7 +792,7 @@ inline void HandleWhile(Block* block, extArg_t blockOwnerInstructionStart)
     FlattenBlock(block);
     
     opId = IndexOfInstruction(BCI_Jump);
-    arg = blockOwnerInstructionStart;
+    arg = whileInstructionStart;
     AddByteCodeInstruction(opId, arg);
 
 
@@ -704,6 +801,8 @@ inline void HandleWhile(Block* block, extArg_t blockOwnerInstructionStart)
     RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
 }
 
+/// add instructions to skip over executing [block] when defining it and returning out
+/// of [block] after execution
 inline void HandleDefineMethod(Block* block)
 {
     uint8_t opId;
@@ -722,14 +821,22 @@ inline void HandleDefineMethod(Block* block)
     RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
 }
 
+/// add instructions enteri if and else-if clauses
 inline void HandleIf(Block* block, JumpContext& ctx)
 {
     HandleAnonymousScope(block);
     AddInstructionsForUnresolvedJump(ctx);
 }
 
-void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, extArg_t blockOwnerInstructionStart, JumpContext& ctx)
+/// add instructions when presented with a [block] that may have a [blockOwner] (any gating instruction)
+/// that starts at [blockOwnerInstructionStart] and where [ctx] is the JumpContext of any
+/// if-complex that the block may be a part of
+inline void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, extArg_t blockOwnerInstructionStart, JumpContext& ctx)
 {
+    if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(blockOwner))
+    {
+        ResolveJumpContext(ctx);
+    }
 
     if(blockOwner == nullptr)
     {
@@ -757,36 +864,40 @@ void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, extArg_t b
     }
 }
 
-inline bool IsConditionalJump(Operation* op)
+/// add instructions when presented with an [op] and sets [blockOwner] and [blockOwnerInstructionStart]
+/// to the values corresponding to the flatten bytecode of [op]. will resolve [ctx] if necessary
+inline void HandleFlatteningOperation(Operation* op, extArg_t& blockOwnerInstructionStart, Operation** blockOwner, JumpContext& ctx)
 {
-    return op->Type == OperationType::While || op->Type == OperationType::If || op->Type == OperationType::ElseIf || op->Type == OperationType::Else;
-}
-
-inline bool IsPartOfIfComplex(Operation* op)
-{
-    if(op == nullptr)
+    if(JumpContextHasUnresolvedClause(ctx))
     {
-        return false;
+        ResolveJumpContextClause(ctx);
+    }
+    else if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(op))
+    {
+        ResolveJumpContext(ctx);
     }
 
-    return op->Type == OperationType::If || op->Type == OperationType::Else || op->Type == OperationType::ElseIf;
-}
-
-inline bool IsPartOfIfConditional(Operation *op)
-{
-    if(op == nullptr)
+    blockOwnerInstructionStart = NextInstructionId();
+    FlattenOperation(op);
+    *blockOwner = op;
+    ByteCodeLineAssociation.push_back(NextInstructionId());
+    
+    if(!IsConditionalJump(op) && op->Type != OperationType::Else)
     {
-        return false;
+        AddEndLineInstruction();
     }
 
-    return op->Type == OperationType::If || op->Type == OperationType::ElseIf;
+    if(IsPartOfIfConditional(op))
+    {
+        AddInstructionsForUnresolvedJumpFalse(ctx);
+    }
 }
 
 /// assumes that all ifs/whiles/methods have blocks
 void FlattenBlock(Block* block)
 {
     Operation* blockOwner = nullptr;
-    unsigned long blockOwnerInstructionStart = 0;
+    extArg_t blockOwnerInstructionStart = 0;
     
     JumpContext ctx;
     InitJumpContext(ctx);
@@ -796,39 +907,12 @@ void FlattenBlock(Block* block)
         switch(exec->ExecType)
         {
             case ExecutableType::Block:
-            if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(blockOwner))
-            {
-                ResolveJumpContext(ctx);
-            }
-
             HandleFlatteningControlFlow(static_cast<Block*>(exec), blockOwner, blockOwnerInstructionStart, ctx);
             blockOwner = nullptr;
             break;
 
             case ExecutableType::Operation:
-            if(JumpContextHasUnresolvedClause(ctx))
-            {
-                ResolveJumpContextClause(ctx);
-            }
-            else if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(static_cast<Operation*>(exec)))
-            {
-                ResolveJumpContext(ctx);
-            }
-
-            blockOwnerInstructionStart = NextInstructionId();
-            FlattenOperation(static_cast<Operation*>(exec));
-            blockOwner = static_cast<Operation*>(exec);
-            ByteCodeLineAssociation.push_back(NextInstructionId());
-            
-            if(!IsConditionalJump(static_cast<Operation*>(exec)))
-            {
-                AddEndLineInstruction();
-            }
-
-            if(IsPartOfIfConditional(static_cast<Operation*>(exec)))
-            {
-                AddInstructionsForUnresolvedJumpFalse(ctx);
-            }
+            HandleFlatteningOperation(static_cast<Operation*>(exec), blockOwnerInstructionStart, &blockOwner, ctx);
 
             break;
         }
@@ -838,7 +922,11 @@ void FlattenBlock(Block* block)
 
 // ---------------------------------------------------------------------------------------------------------------------
 // First Pass
+// The first pass fills in the ReferenceNames and ConstPrimitives arrrays and maps 
+// from the string representation to the integer encoding (position in list) for references
+// and constant primitives
 
+/// true if ReferenceNames array contains [refName], sets [atPosition] to this position
 bool ReferenceNamesContains(String refName, size_t& atPosition)
 {
     for(size_t i=0; i<ReferenceNames.size(); i++)
@@ -853,7 +941,8 @@ bool ReferenceNamesContains(String refName, size_t& atPosition)
     return false;
 }
 
-/// assumes op is a ref operation
+/// add a new entry to ReferenceNames if needed
+/// assumes [op] is OperationType::Ref
 void IfNeededAddReferenceName(Operation* op)
 {
     auto refName = op->Value->Name;
@@ -869,6 +958,7 @@ void IfNeededAddReferenceName(Operation* op)
     ReferenceNames.push_back(refName);
 }
 
+/// true if ConstPrimitives array contains [obj], sets [atPosition] to this position
 bool ConstPrimitivesContains(Object* obj, size_t& atPosition)
 {
     // GodObject and Something object always 0 and 1
@@ -896,6 +986,8 @@ bool ConstPrimitivesContains(Object* obj, size_t& atPosition)
     return false;
 }
 
+/// add a new entry to ConstPrimitives if needed
+/// assumes [op] is OperationType::Ref
 void IfNeededAddConstPrimitive(Operation* op)
 {
     auto obj = op->Value->To;
@@ -928,6 +1020,7 @@ void IfNeededAddConstPrimitive(Operation* op)
     ConstPrimitives.push_back(obj);
 }
 
+/// recurses over the ast with [op] as head 
 void FirstPassOperation(Operation* op)
 {
     if(op->Type == OperationType::Ref)
@@ -950,6 +1043,7 @@ void FirstPassOperation(Operation* op)
     }
 }
 
+/// iterates through the ast list [b]
 void FirstPassBlock(Block* b)
 {
     for(auto exec: b->Executables)
@@ -967,6 +1061,7 @@ void FirstPassBlock(Block* b)
     }
 }
 
+/// resets the ReferenceNames and ConstPrimtiives lists
 void InitEntityLists()
 {
     ConstPrimitives.clear();
@@ -979,11 +1074,13 @@ void InitEntityLists()
     ByteCodeLineAssociation.push_back(0);
 }
 
+/// iterates through the main block of [p]
 void FirstPassProgram(Program* p)
 {
     FirstPassBlock(p->Main);
 }
 
+/// performs first pass and the flattens [p] to generate a BytecodeProgram
 void FlattenProgram(Program* p)
 {
     InitEntityLists();
