@@ -14,6 +14,7 @@ bool ErrorFlag = false;
 int ErrorCode = 0;
 String ErrorMsg;
 SystemMessageType ErrorType;
+bool FatalErrorOccured = false;
 
 std::vector<extArg_t> ByteCodeLineAssociation;
 
@@ -41,7 +42,6 @@ void IfNeededDisplayError()
 }
 
 
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Error Classes
 
@@ -54,5 +54,9 @@ ByteCodeError ErrorClasses[] =
     {
         1,
         "unattributable object"
+    },
+    {
+        2,
+        "method call argument mismatch"
     }
 };
