@@ -37,6 +37,7 @@ extern int JumpStatusReg;
 extern uint8_t CmpReg;
 const uint8_t CmpRegDefaultValue = 0x3;
 
+extern Object* LastResultReg;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -61,6 +62,7 @@ struct CallFrame
     extArg_t MemoryStackStart;
     int Owner;
     std::vector<Scope> LocalScopeStack;
+    Object* LastResult;
 };
 
 extern std::vector<CallFrame> CallStack;

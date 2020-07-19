@@ -38,6 +38,7 @@ inline uint8_t IfNecessaryAddExtendInstructionAndReduce(extArg_t& arg)
         uint8_t opId = IndexOfInstruction(BCI_Extend);
         uint8_t scaledExtendArg = ReduceLongArgByExp(arg, extendExp);
         ByteCodeProgram.push_back( {opId, scaledExtendArg} );
+        extendExp++;
     }
     arg = arg & ByteFlag;
 
@@ -58,6 +59,7 @@ inline uint8_t IfNecessaryRewriteExtendInstructionAndReduce(extArg_t& arg, extAr
         uint8_t opId = IndexOfInstruction(BCI_Extend);
         uint8_t scaledExtendArg = ReduceLongArgByExp(arg, extendExp);
         ByteCodeProgram[atPos++] = {opId, scaledExtendArg};
+        extendExp++;
     }
     arg = arg & ByteFlag;
 
@@ -109,7 +111,7 @@ void AddNOPS(int i)
 
 
 /// true if the reference operation points to a primitive or instance of Object/Something
-bool OperationRefIsPrimitive(Operation* op)
+inline bool OperationRefIsPrimitive(Operation* op)
 {
     auto ref = op->Value;
     if(IsReferenceStub(ref))
@@ -170,7 +172,7 @@ void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference
     {
         uint8_t opId = IndexOfInstruction(BCI_ResolveDirect);
         AddByteCodeInstruction(opId, noArg);
-        IfNecessaryAddDereference(shouldDereference);
+        IfNecessaryAddDereference(shouldDereference && !RefNameIsKeyword(firstOperand->Value->Name));
     }
 }
 
@@ -485,7 +487,10 @@ inline void FlattenOperationEvaluate(Operation* op)
     }
     else
     {
-        FlattenOperationScopeResolution(callerOp);
+        FlattenOperationScopeResolutionWithDereference(callerOp);
+
+        opId = IndexOfInstruction(BCI_Dup);
+        AddByteCodeInstruction(opId, noArg);
 
         opId = IndexOfInstruction(BCI_LoadRefName);
         arg = methodOp->EntityIndex;
@@ -569,6 +574,11 @@ int NOPSafetyDomainSize()
     return 2 + CurrentInstructionMagnitude();
 }
 
+inline void AddEndLineInstruction()
+{
+    AddByteCodeInstruction(IndexOfInstruction(BCI_EndLine), noArg);
+}
+
 void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned long blockOwnerInstructionStart)
 {
     uint8_t opId;
@@ -593,7 +603,8 @@ void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned l
         opId = IndexOfInstruction(BCI_Jump);
         arg = blockOwnerInstructionStart;
         AddByteCodeInstruction(opId, arg);
-        
+
+
         opId = IndexOfInstruction(BCI_JumpFalse);
         arg = NextInstructionId();
         RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
@@ -628,6 +639,11 @@ void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned l
     }
 }
 
+inline bool IsConditionalJump(Operation* op)
+{
+    return op->Type == OperationType::While || op->Type == OperationType::If;
+}
+
 /// assumes that all ifs/whiles/methods have blocks
 void FlattenBlock(Block* block)
 {
@@ -646,6 +662,11 @@ void FlattenBlock(Block* block)
             FlattenOperation(static_cast<Operation*>(exec));
             blockOwner = static_cast<Operation*>(exec);
             ByteCodeLineAssociation.push_back(NextInstructionId());
+            
+            if(!IsConditionalJump(static_cast<Operation*>(exec)))
+            {
+                AddEndLineInstruction();
+            }
             break;
         }
     }
