@@ -7,7 +7,8 @@
 struct JumpContext
 {
     std::vector<extArg_t> UnresolvedJumps;
-    std::vector<extArg_t> UnresolvedJumpFalses;
+    extArg_t UnresolvedJumpFalse;
+    bool HasUnresolvedJumpFalse;
 };
 
 void FlattenProgram(Program* p);
@@ -18,6 +19,6 @@ int NOPSafetyDomainSize();
 
 void FlattenOperationScopeResolution(Operation* op);
 void FlattenOperationScopeResolutionWithDereference(Operation* op);
-
+void FlattenOperationRefDirect(Operation* op, bool& isRef);
 
 #endif
