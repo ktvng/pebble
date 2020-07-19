@@ -51,7 +51,7 @@ int IndexOfInstruction(BCI_Method bci)
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Instructions
+// Instructions Array
 
 BCI_Method BCI_Instructions[] = {
     BCI_LoadRefName,
@@ -95,9 +95,13 @@ BCI_Method BCI_Instructions[] = {
     BCI_EndLine
 };
 
+
+
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Instruction Helpers
 
+/// returns TOS as a Reference*
 inline Reference* TOS_Ref()
 {
     auto ref = static_cast<Reference*>(MemoryStack.back());
@@ -105,11 +109,13 @@ inline Reference* TOS_Ref()
     return ref;
 }
 
+/// returns a pointer to TOS as a Reference*
 inline Reference* TOSpeek_Ref()
 {
     return static_cast<Reference*>(MemoryStack.back());
 }
 
+/// returns TOS as an Object*
 inline Object* TOS_Obj()
 {
     auto obj = static_cast<Object*>(MemoryStack.back());
@@ -117,23 +123,19 @@ inline Object* TOS_Obj()
     return obj;
 }
 
+/// returns a pointer to TOS as an Object*
 inline Object* TOSpeek_Obj()
 {
     return static_cast<Object*>(MemoryStack.back());
 }
 
-inline Scope* TOS_Scope()
-{
-    auto scope = static_cast<Scope*>(MemoryStack.back());
-    MemoryStack.pop_back();
-    return scope;
-}
-
+/// returns a pointer to TOS as a void*
 inline void* TOSpeek()
 {
     return MemoryStack.back();
 }
 
+/// returns TOS as a String*
 inline String* TOS_String()
 {
     auto str = static_cast<String*>(MemoryStack.back());
@@ -141,11 +143,14 @@ inline String* TOS_String()
     return str;
 }
 
+/// discards (pops) TOS
 inline void TOS_discard()
 {
     MemoryStack.pop_back();
 }
 
+/// finds and returns a Reference with [refName] in [scope] without checking 
+/// the inherited scope
 inline Reference* FindInScopeOnlyImmediate(Scope* scope, String& refName)
 {
     for(auto ref: scope->ReferencesIndex)
@@ -156,6 +161,8 @@ inline Reference* FindInScopeOnlyImmediate(Scope* scope, String& refName)
     return nullptr;
 }
 
+/// finds and returns a Reference with [refName] in [scope] and checks
+/// the entire chain of inherited scope
 inline Reference* FindInScopeChain(Scope* scope, String& refName)
 {
     for(auto s = scope; s != nullptr; s = s->InheritedScope)
@@ -169,27 +176,33 @@ inline Reference* FindInScopeChain(Scope* scope, String& refName)
     return nullptr;
 }
 
+/// returns the Scope of [ref]
 inline Scope* ScopeOf(Reference* ref)
 {
     return ref->To->Attributes;
 }
 
+/// returns the Scope of [obj]
 inline Scope* ScopeOf(Object* obj)
 {
     return obj->Attributes;
 }
 
+/// push a pointer T* [entity] of tyoe <T> to TOS
 template <typename T>
 inline void PushToStack(T* entity)
 {
     MemoryStack.push_back(static_cast<void*>(entity));
 }
 
-inline unsigned int MemoryStackSize()
+/// return the size of the MemoryStack
+inline size_t MemoryStackSize()
 {
     return MemoryStack.size();
 }
 
+/// add a new CallFrame to the CallStack with [caller] and [self] the new caller and self
+/// objects. changes registers appropriately but does not change the instruction pointer
 inline void EnterNewCallFrame(int callerRefId, Object* caller, Object* self)
 {
     std::vector<Scope> localScopeStack;
@@ -203,16 +216,20 @@ inline void EnterNewCallFrame(int callerRefId, Object* caller, Object* self)
     LastResultReg = nullptr;
 }
 
+/// true if both [obj1] and [obj2] are of [cls]
 inline bool BothAre(Object* obj1, Object* obj2, ObjectClass cls)
 {
     return obj1->Class == cls && obj2->Class == cls;
 }
 
+/// adds [ref] to [scp]
 inline void AddRefToScope(Reference* ref, Scope* scp)
 {
     scp->ReferencesIndex.push_back(ref);
 }
 
+/// add a list of Objects [paramsList] to the scope of [methodObj] in reverse order
+/// used when evaluating a method
 inline void AddParamsToMethodScope(Object* methodObj, std::vector<Object*> paramsList)
 {
     if(paramsList.size() != methodObj->ByteCodeParamsAsMethod.size())
@@ -233,6 +250,8 @@ inline void AddParamsToMethodScope(Object* methodObj, std::vector<Object*> param
     }
 }
 
+/// pops [numParams] objects from the MemoryStack and returns a list of these elements
+/// (which is the reverse order due to the push/pop algorithm)
 inline std::vector<Object*> GetParameters(extArg_t numParams)
 {
     std::vector<Object*> params;
@@ -245,11 +264,13 @@ inline std::vector<Object*> GetParameters(extArg_t numParams)
     return params;
 }
 
+/// returns the [n]th bit of [data]
 inline bool NthBit(uint8_t data, int n)
 {
     return (data & (BitFlag << n)) >> n;
 }
 
+/// fills in <= >= using the comparisions already made
 inline void FillInRestOfComparisons()
 {
     uint8_t geq = NthBit(CmpReg, 2) | NthBit(CmpReg, 4);
@@ -258,6 +279,7 @@ inline void FillInRestOfComparisons()
     CmpReg = CmpReg | (geq << 6) | (leq << 5);
 }
 
+/// sets CmpReg to the result of comparing [lhs] and [rhs] as integers
 inline void CompareIntegers(Object* lhs, Object* rhs)
 {
     int lVal = GetIntValue(*lhs);
@@ -279,6 +301,7 @@ inline void CompareIntegers(Object* lhs, Object* rhs)
     FillInRestOfComparisons();
 }
 
+/// sets CmpReg to the result of comparing [lhs] and [rhs] as decimals
 inline void CompareDecimals(Object* lhs, Object* rhs)
 {
     double lVal = GetDecimalValue(*lhs);
@@ -300,6 +323,8 @@ inline void CompareDecimals(Object* lhs, Object* rhs)
     FillInRestOfComparisons();
 }
 
+/// changes the LocalScopeReg whenever a LocalScope change occurs. the base scope
+/// is either the program scope or the self object scope
 void AdjustLocalScopeReg()
 {
     if(LocalScopeStack().size() == 0)
@@ -319,6 +344,8 @@ void AdjustLocalScopeReg()
     }
 }
 
+/// resolves [refName] which is a keyword to the appropriate object which is 
+/// pushed to TOS
 inline void ResolveReferenceKeyword(const String& refName)
 {
     Object* obj = &NothingObject;
@@ -836,6 +863,8 @@ void BCI_EnterLocal(extArg_t arg)
     LastResultReg = nullptr;
 }
 
+/// no assumptions
+/// does not change TOS. will update LocalScopeReg and LastResultReg
 void BCI_LeaveLocal(extArg_t arg)
 {
     /// TODO: destroy andy local references
@@ -844,6 +873,8 @@ void BCI_LeaveLocal(extArg_t arg)
     LastResultReg = nullptr;
 }
 
+/// no assumptions
+/// adds [arg] as the (ExtensionExp + 1)th bit of ExtendedArg and increments ExtensionExp
 void BCI_Extend(extArg_t arg)
 {
     switch (ExtensionExp)
@@ -868,17 +899,23 @@ void BCI_Extend(extArg_t arg)
     }
 }
 
+/// no assumptions
+/// no actions, used for optimizations
 void BCI_NOP(extArg_t arg)
 {
     // does nothing, used for optimizations
 }
 
+/// no assumptions
+/// pushes a pointer to the old TOS to the TOS
 void BCI_Dup(extArg_t arg)
 {
     auto entity = TOSpeek();
     PushToStack<void>(entity);
 }
 
+/// assumes TOS is an object
+/// changes LastResultReg to this object
 void BCI_EndLine(extArg_t arg)
 {
     LastResultReg = TOS_Obj();
