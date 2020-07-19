@@ -10,10 +10,22 @@ extern bool ErrorFlag;
 extern int ErrorCode;
 extern String ErrorMsg;
 extern SystemMessageType ErrorType;
+extern bool FatalErrorOccured;
 
 inline void ReportError(SystemMessageType errorType, int errorCode, String errorMsg)
 {
     ErrorFlag = true;
+
+    ErrorMsg = errorMsg;
+    ErrorCode = errorCode;
+    ErrorType = errorType;
+}
+
+inline void ReportFatalError(SystemMessageType errorType, int errorCode, String errorMsg)
+{
+    ErrorFlag = true;
+    FatalErrorOccured = true;
+
     ErrorMsg = errorMsg;
     ErrorCode = errorCode;
     ErrorType = errorType;

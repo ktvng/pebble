@@ -215,6 +215,12 @@ inline void AddRefToScope(Reference* ref, Scope* scp)
 
 inline void AddParamsToMethodScope(Object* methodObj, std::vector<Object*> paramsList)
 {
+    if(paramsList.size() != methodObj->ByteCodeParamsAsMethod.size())
+    {
+        ReportFatalError(SystemMessageType::Exception, 2, 
+            Msg("expected %i arguments but got %i", methodObj->ByteCodeParamsAsMethod.size(), paramsList.size()));
+    }
+
     if(paramsList.size() == 0)
     {
         return;
@@ -709,19 +715,30 @@ void BCI_ResolveScoped(extArg_t arg)
 /// leaves a new method object as TOS
 void BCI_DefMethod(extArg_t arg)
 {
-    String* argList = new String[arg];
-    for(int i = arg; i > 0; i--)
+    String* argList;
+
+    if(arg != 0)
     {
-        auto str = *TOS_String();
-        argList[i-1] = str;
+        argList = new String[arg];
+        for(int i = arg; i > 0; i--)
+        {
+            auto str = *TOS_String();
+            argList[i-1] = str;
+        }
     }
+
     auto obj = INTERNAL_ObjectConstructor(MethodClass, nullptr);
 
-    for(int i=0; i<arg; i++)
+    if(arg != 0)
     {
-        obj->ByteCodeParamsAsMethod.push_back(argList[i]);
+        for(int i=0; i<arg; i++)
+        {
+            obj->ByteCodeParamsAsMethod.push_back(argList[i]);
+        }
+        
+        delete argList;
     }
-    delete argList;
+
 
     /// expects a block
     /// TODO: verify block

@@ -151,6 +151,12 @@ inline bool IsNOP(const ByteCodeInstruction& ins)
     return ins.Op == IndexOfInstruction(BCI_NOP);
 }
 
+/// TODO: implement
+void GracefullyExit()
+{
+
+}
+
 void DoByteCodeProgram()
 {
     InitRuntime();
@@ -177,6 +183,11 @@ void DoByteCodeProgram()
         }
 
         IfNeededDisplayError();
+        if(FatalErrorOccured)
+        {
+            GracefullyExit();
+            return;
+        }
 
         if(!JumpStatusReg)
         {
