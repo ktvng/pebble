@@ -16,29 +16,34 @@
 /// stores the program global scope
 Scope* ProgramReg = nullptr;
 
-/// stores the caller scope
+/// stores the caller object
 Object* CallerReg = nullptr;
 
-/// stores the topmost callframe scope
+/// stores the self object;
 Object* SelfReg = nullptr;
 
 /// stores the local (possibly anonymous) scope
-/// in general this is equivalent to SelfReg
+/// in general this is equivalent to the scope of SelfReg, when in the base level of the program
+/// this will be the same as ProgramReg
 Scope* LocalScopeReg = nullptr;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Special Registers
 
+/// stores the extended argument needed when an argument does not fit inside a single byte
 extArg_t ExtendedArg;
 
+/// stores the current number of bytes (exponent) which the ExtendedArg contains
 int ExtensionExp;
 
+/// stores the index of the current instruction
 extArg_t InstructionReg;
 
 /// 1 if jump occured, 0 otherwise
 int JumpStatusReg;
 
+/// stores the result of perfoming a BCI_Cmp operation
 /// bit at position [i] indicates:
 /// 0: hardcoded false
 /// 1: hardcoded true
@@ -49,35 +54,46 @@ int JumpStatusReg;
 /// 6: >=
 uint8_t CmpReg = CmpRegDefaultValue;
 
+/// stores the result of the last line of code and is updated by the BCI_Endline 
+/// instruction
 Object* LastResultReg = nullptr;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
 
+/// stores objects, references, string pointers, etc. which are used by instructions
 std::vector<void*> MemoryStack;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Entity Arrays
+
+/// list of all reference names appearing in a program
 std::vector<String> ReferenceNames;
+
+/// list of all constant primitives appearing in a program
 std::vector<Object*> ConstPrimitives;
 
 
-std::vector<BCISystemCall> SystemFunctions;
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
+
+/// the call stack, stores information about different function calls and 
+/// how to return after a given function returns
 std::vector<CallFrame> CallStack;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode program
 
+/// a list of instructions to be executed sequentially
 std::vector<ByteCodeInstruction> ByteCodeProgram;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Statics
+
+/// the "Object" of Pebble programs
 Object GodObject
 {
     BaseClass,
@@ -87,7 +103,7 @@ Object GodObject
     nullptr
 };
 
-
+/// the "Nothing" object
 Object NothingObject
 {
     NullClass,
@@ -97,14 +113,7 @@ Object NothingObject
     nullptr
 };
 
-Scope NothingScope = *NothingObject.Attributes;
-
-Reference NothingReference
-{
-    "Nothing",
-    &NothingObject,
-};
-
+/// the "Something" object
 Object SomethingObject
 {
     SomethingClass,
@@ -114,18 +123,15 @@ Object SomethingObject
     nullptr
 };
 
-Scope SomethingScope = *SomethingObject.Attributes;
-
-
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Program Execution
 
-
+/// initializes all registers and pushes the program CallFrame onto the CallStack
 void InitRuntime()
 {
     std::vector<Scope> localScopeStack;
-    unsigned long programEnd = ByteCodeProgram.size();
+    extArg_t programEnd = ByteCodeProgram.size();
     
     /// TODO: update arg 3 (caller ID);
     CallStack.push_back( {programEnd, 0, 0, localScopeStack });
@@ -140,12 +146,14 @@ void InitRuntime()
     LocalScopeReg = ProgramReg;
 }
 
-/// true if ins is not Extend and 
+/// true if [ins] is not an Extend instruction and the exponent of the ExtendedArg
+/// stored at ExtensionExp is not 0;
 inline bool ShouldUseExtendedArg(const ByteCodeInstruction& ins)
 {
     return ins.Op != IndexOfInstruction(BCI_Extend) && ExtensionExp;
 }
 
+/// true if [ins] is a NOP
 inline bool IsNOP(const ByteCodeInstruction& ins)
 {
     return ins.Op == IndexOfInstruction(BCI_NOP);
@@ -157,6 +165,7 @@ void GracefullyExit()
 
 }
 
+/// iterates and executes the instructions stored in BytecodeProgram
 void DoByteCodeProgram()
 {
     InitRuntime();
@@ -206,6 +215,7 @@ void DoByteCodeProgram()
 // ---------------------------------------------------------------------------------------------------------------------
 // Diagnostics
 
+/// returns a string represntation of an instruction [ins]
 String ToString(ByteCodeInstruction& ins)
 {
     String str;
@@ -339,6 +349,7 @@ String ToString(ByteCodeInstruction& ins)
     return str;
 }
 
+/// returns a string representation of a [bciProgram] which is a list of ByteCodeInstructions
 String ToString(std::vector<ByteCodeInstruction>& bciProgram)
 {
     String str = "";
@@ -351,6 +362,7 @@ String ToString(std::vector<ByteCodeInstruction>& bciProgram)
     return str;
 }
 
+/// logs the references and instructions of ByteCodeProgram
 void LogProgramInstructions()
 {
     String refNames = "References list\n";

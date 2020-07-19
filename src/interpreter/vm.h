@@ -51,9 +51,6 @@ extern std::vector<String> ReferenceNames;
 extern std::vector<Object*> ConstPrimitives;
 
 
-typedef void (*BCISystemCall)();
-extern std::vector<BCISystemCall> SystemFunctions;
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
 struct CallFrame
@@ -91,10 +88,7 @@ extern std::vector<ByteCodeInstruction> ByteCodeProgram;
 // Statics
 extern Object GodObject;
 extern Object NothingObject;
-extern Scope NothingScope;
-extern Reference NothingReference;
 extern Object SomethingObject;
-extern Scope SomethingScope;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
