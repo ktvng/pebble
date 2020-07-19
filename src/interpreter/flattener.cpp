@@ -106,9 +106,79 @@ void AddNOPS(int i)
 
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Jump Context
+
+inline void AddInstructionsForUnresolvedJump(JumpContext& ctx)
+{
+    ctx.UnresolvedJumps.push_back(NextInstructionId());
+    AddNOPS(NOPSafetyDomainSize());
+}
+
+inline void AddInstructionsForUnresolvedJumpFalse(JumpContext& ctx)
+{
+    ctx.UnresolvedJumpFalses.push_back(NextInstructionId());
+    AddNOPS(NOPSafetyDomainSize());
+}
+
+inline void InitJumpContext(JumpContext& ctx)
+{
+    ctx.UnresolvedJumps.reserve(16);
+    ctx.UnresolvedJumpFalses.reserve(16);
+
+}
+
+inline void ClearJumpContext(JumpContext& ctx)
+{
+    ctx.UnresolvedJumpFalses.clear();
+    ctx.UnresolvedJumps.clear();
+}
+
+inline void ResolveJumpContext(JumpContext& ctx)
+{
+    uint8_t opId = IndexOfInstruction(BCI_Jump);
+    extArg_t jumpTo = NextInstructionId();
+    for(extArg_t pos: ctx.UnresolvedJumps)
+    {
+        RewriteByteCodeInstruction(opId, jumpTo, pos);  
+    }
+
+    opId = IndexOfInstruction(BCI_JumpFalse);
+    for(extArg_t pos: ctx.UnresolvedJumpFalses)
+    {
+        RewriteByteCodeInstruction(opId, jumpTo, pos);
+    }
+
+    ClearJumpContext(ctx);
+}
+
+inline void ResolveJumpContextClause(JumpContext& ctx)
+{
+    uint8_t opId = IndexOfInstruction(BCI_JumpFalse);
+    extArg_t jumpTo = NextInstructionId();
+
+    RewriteByteCodeInstruction(opId, jumpTo, ctx.UnresolvedJumpFalses.back());
+    ctx.UnresolvedJumpFalses.pop_back();
+}
+
+inline bool JumpContextHasUnresolvedClause(const JumpContext& ctx)
+{
+    return ctx.UnresolvedJumpFalses.size() > 0;
+}
+
+inline bool JumpContextNeedsResolution(const JumpContext& ctx)
+{
+    return (ctx.UnresolvedJumpFalses.size() + ctx.UnresolvedJumps.size()) > 0;
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Flattening the AST
 
-
+inline void AddEndLineInstruction()
+{
+    AddByteCodeInstruction(IndexOfInstruction(BCI_EndLine), noArg);
+}
 
 /// true if the reference operation points to a primitive or instance of Object/Something
 inline bool OperationRefIsPrimitive(Operation* op)
@@ -175,9 +245,6 @@ void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference
         IfNecessaryAddDereference(shouldDereference && !RefNameIsKeyword(firstOperand->Value->Name));
     }
 }
-
-void FlattenOperationScopeResolution(Operation* op);
-void FlattenOperationScopeResolutionWithDereference(Operation* op);
 
 void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference)
 {
@@ -290,6 +357,7 @@ inline void FlattenOperationComparison(Operation* op)
 /// add/subtract/multiply/divide
 /// and/or/not
 /// syscall
+/// while/if
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -334,6 +402,7 @@ inline void FlattenOperationGeneric(Operation* op)
         arg = 0;
         break;
 
+        case OperationType::If:
         case OperationType::While:
         return;
         
@@ -354,7 +423,6 @@ inline void FlattendOperationAssign(Operation* op)
 
 inline void FlattenOperationNew(Operation* op)
 {
-    
     bool isRef;
     FlattenOperationRefDirect(op->Operands[0], isRef);
 
@@ -372,7 +440,7 @@ inline void FlattenOperationNew(Operation* op)
 
 /// TODO: add checking to make sure that tuple only contains refs
 /// add instructions for params and sets arg to the number of params
-inline void AddInstructionsForParameters(Operation* op, extArg_t& arg)
+inline void AddInstructionsForDefMethodParameters(Operation* op, extArg_t& arg)
 {
     arg = 0;
     /// assumes the tuple contains one argumented scope resolutions
@@ -414,7 +482,7 @@ inline void FlattenOperationDefineMethod(Operation* op)
     arg = noArg;
     if(op->Operands.size() > 1)
     {
-        AddInstructionsForParameters(op->Operands[1], arg);
+        AddInstructionsForDefMethodParameters(op->Operands[1], arg);
     }
 
     opId = IndexOfInstruction(BCI_DefMethod);
@@ -447,6 +515,11 @@ inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
         }
         else
         {
+            if(op->Value->Name == "Nothing")
+            {
+                return;
+            }
+
             bool isRef = false;
             FlattenOperationRefDirect(op, isRef);
             IfNecessaryAddDereference(isRef);
@@ -462,10 +535,8 @@ inline void FlattenOperationEvaluate(Operation* op)
     auto methodOp = op->Operands[1];
     auto paramsOp = op->Operands[2];
 
-
     uint8_t opId;
     extArg_t arg;
-
 
     /// TODO: make this nicer
     /// case with no caller
@@ -533,6 +604,24 @@ inline void FlattenOperationReturn(Operation* op)
     AddByteCodeInstruction(opId, arg);    
 }
 
+inline void FlattenOperationAsk(Operation* op)
+{
+    uint8_t opId = IndexOfInstruction(BCI_SysCall);
+    extArg_t arg;
+
+    if(op->Operands.size() > 0)
+    {
+        FlattenOperation(op->Operands[0]);
+        arg = 0;
+        AddByteCodeInstruction(opId, arg);
+
+        AddEndLineInstruction();
+    }
+
+    arg = 1;
+    AddByteCodeInstruction(opId, arg);
+}
+
 void FlattenOperation(Operation* op)
 {
     if(op->Type == OperationType::ScopeResolution)
@@ -563,6 +652,10 @@ void FlattenOperation(Operation* op)
     {
         FlattenOperationComparison(op);
     }
+    else if(op->Type == OperationType::Ask)
+    {
+        FlattenOperationAsk(op);
+    }
     else
     {
         FlattenOperationGeneric(op);
@@ -574,74 +667,119 @@ int NOPSafetyDomainSize()
     return 2 + CurrentInstructionMagnitude();
 }
 
-inline void AddEndLineInstruction()
-{
-    AddByteCodeInstruction(IndexOfInstruction(BCI_EndLine), noArg);
-}
 
-void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, unsigned long blockOwnerInstructionStart)
+// ---------------------------------------------------------------------------------------------------------------------
+// Control flow
+
+inline void HandleAnonymousScope(Block* block)
 {
     uint8_t opId;
     extArg_t arg = noArg;
+
+    opId = IndexOfInstruction(BCI_EnterLocal);
+    AddByteCodeInstruction(opId, arg);
+
+    FlattenBlock(block);
+    
+    opId = IndexOfInstruction(BCI_LeaveLocal);
+    AddByteCodeInstruction(opId, arg);
+}
+
+inline void HandleWhile(Block* block, extArg_t blockOwnerInstructionStart)
+{
+    uint8_t opId;
+    extArg_t arg = noArg;
+    extArg_t JumpInstructionStart = NextInstructionId();
+    AddNOPS(NOPSafetyDomainSize());
+
+    FlattenBlock(block);
+    
+    opId = IndexOfInstruction(BCI_Jump);
+    arg = blockOwnerInstructionStart;
+    AddByteCodeInstruction(opId, arg);
+
+
+    opId = IndexOfInstruction(BCI_JumpFalse);
+    arg = NextInstructionId();
+    RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
+}
+
+inline void HandleDefineMethod(Block* block)
+{
+    uint8_t opId;
+    extArg_t arg = noArg;
+
+    extArg_t JumpInstructionStart = NextInstructionId();
+    AddNOPS(NOPSafetyDomainSize());
+
+    FlattenBlock(block);
+
+    opId = IndexOfInstruction(BCI_Return);
+    AddByteCodeInstruction(opId, noArg);
+
+    opId = IndexOfInstruction(BCI_Jump);
+    arg = NextInstructionId();
+    RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
+}
+
+inline void HandleIf(Block* block, JumpContext& ctx)
+{
+    HandleAnonymousScope(block);
+    AddInstructionsForUnresolvedJump(ctx);
+}
+
+void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, extArg_t blockOwnerInstructionStart, JumpContext& ctx)
+{
+
     if(blockOwner == nullptr)
     {
-        opId = IndexOfInstruction(BCI_EnterLocal);
-        AddByteCodeInstruction(opId, arg);
-
-        FlattenBlock(block);
-        
-        opId = IndexOfInstruction(BCI_LeaveLocal);
-        AddByteCodeInstruction(opId, arg);
+        HandleAnonymousScope(block);
     }
     else if(blockOwner->Type == OperationType::While)
     {
-        extArg_t JumpInstructionStart = NextInstructionId();
-        AddNOPS(NOPSafetyDomainSize());
-
-        FlattenBlock(block);
-        
-        opId = IndexOfInstruction(BCI_Jump);
-        arg = blockOwnerInstructionStart;
-        AddByteCodeInstruction(opId, arg);
-
-
-        opId = IndexOfInstruction(BCI_JumpFalse);
-        arg = NextInstructionId();
-        RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
+        HandleWhile(block, blockOwnerInstructionStart);
     }
-    else if(blockOwner->Type == OperationType::If)
+    else if(blockOwner->Type == OperationType::If || blockOwner->Type == OperationType::ElseIf)
     {
-
+        HandleIf(block, ctx);
+    }
+    else if(blockOwner->Type == OperationType::Else)
+    {
+        HandleAnonymousScope(block);
     }
     else if(blockOwner->Type == OperationType::DefineMethod)
     {
-        extArg_t JumpInstructionStart = NextInstructionId();
-        AddNOPS(NOPSafetyDomainSize());
-
-        FlattenBlock(block);
-
-        opId = IndexOfInstruction(BCI_Return);
-        AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_Jump);
-        arg = NextInstructionId();
-        RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
+        HandleDefineMethod(block);
     }
     else
     {
-        opId = IndexOfInstruction(BCI_EnterLocal);
-        AddByteCodeInstruction(opId, arg);
-
-        FlattenBlock(block);
-
-        opId = IndexOfInstruction(BCI_LeaveLocal);
-        AddByteCodeInstruction(opId, arg);
+        HandleAnonymousScope(block);
     }
 }
 
 inline bool IsConditionalJump(Operation* op)
 {
-    return op->Type == OperationType::While || op->Type == OperationType::If;
+    return op->Type == OperationType::While || op->Type == OperationType::If || op->Type == OperationType::ElseIf || op->Type == OperationType::Else;
+}
+
+inline bool IsPartOfIfComplex(Operation* op)
+{
+    if(op == nullptr)
+    {
+        return false;
+    }
+
+    return op->Type == OperationType::If || op->Type == OperationType::Else || op->Type == OperationType::ElseIf;
+}
+
+inline bool IsPartOfIfConditional(Operation *op)
+{
+    if(op == nullptr)
+    {
+        return false;
+    }
+
+    return op->Type == OperationType::If || op->Type == OperationType::ElseIf;
 }
 
 /// assumes that all ifs/whiles/methods have blocks
@@ -649,15 +787,34 @@ void FlattenBlock(Block* block)
 {
     Operation* blockOwner = nullptr;
     unsigned long blockOwnerInstructionStart = 0;
+    
+    JumpContext ctx;
+    InitJumpContext(ctx);
+
     for(auto exec: block->Executables)
     {
         switch(exec->ExecType)
         {
             case ExecutableType::Block:
-            HandleFlatteningControlFlow(static_cast<Block*>(exec), blockOwner, blockOwnerInstructionStart);
+            if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(blockOwner))
+            {
+                ResolveJumpContext(ctx);
+            }
+
+            HandleFlatteningControlFlow(static_cast<Block*>(exec), blockOwner, blockOwnerInstructionStart, ctx);
+            blockOwner = nullptr;
             break;
 
             case ExecutableType::Operation:
+            if(JumpContextHasUnresolvedClause(ctx))
+            {
+                ResolveJumpContextClause(ctx);
+            }
+            else if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(static_cast<Operation*>(exec)))
+            {
+                ResolveJumpContext(ctx);
+            }
+
             blockOwnerInstructionStart = NextInstructionId();
             FlattenOperation(static_cast<Operation*>(exec));
             blockOwner = static_cast<Operation*>(exec);
@@ -667,6 +824,12 @@ void FlattenBlock(Block* block)
             {
                 AddEndLineInstruction();
             }
+
+            if(IsPartOfIfConditional(static_cast<Operation*>(exec)))
+            {
+                AddInstructionsForUnresolvedJumpFalse(ctx);
+            }
+
             break;
         }
     }

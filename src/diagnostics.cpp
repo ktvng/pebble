@@ -459,11 +459,23 @@ String ToString(const OperationType& type)
         case OperationType::If:
         return "If";
 
+        case OperationType::ElseIf:
+        return "ElseIf";
+
+        case OperationType::Else:
+        return "Else";
+
         case OperationType::While:
         return "While";
 
         case OperationType::And:
         return "And";
+
+        case OperationType::Or:
+        return "Or";
+
+        case OperationType::Not:
+        return "Not";
 
         case OperationType::DefineMethod:
         return "DefineMethod";
@@ -491,7 +503,28 @@ String ToString(const OperationType& type)
 
         case OperationType::Tuple:
         return "Tuple";
+
+        case OperationType::Ask:
+        return "Ask";
+
+        case OperationType::IsGreaterThan:
+        return "IsGreaterThan";
         
+        case OperationType::IsLessThan:
+        return "IsLessThan";
+        
+        case OperationType::IsGreaterThanOrEqualTo:
+        return "IsGreaterThanOrEqualTo";
+        
+        case OperationType::IsLessThanOrEqualTo:
+        return "IsLessThanOrEqualTo";
+        
+        case OperationType::IsEqual:
+        return "IsEqual";
+        
+        case OperationType::IsNotEqual:
+        return "IsNotEqual";
+
         default:
         return "unimplemented";
     }

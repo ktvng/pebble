@@ -332,7 +332,14 @@ inline void ResolveReferenceKeyword(const String& refName)
     }
     else
     {
-        obj = LastResultReg;
+        if(LastResultReg == nullptr)
+        {
+            obj = &NothingObject;
+        }
+        else
+        {
+            obj = LastResultReg;
+        }
     }
 
     PushToStack<Object>(obj);
@@ -510,6 +517,7 @@ void BCI_Divide(extArg_t arg)
 }
 
 /// 0 = print
+/// 1 = ask
 void BCI_SysCall(extArg_t arg)
 {
     switch(arg)
@@ -518,6 +526,13 @@ void BCI_SysCall(extArg_t arg)
         std::cout << GetStringValue(*TOSpeek_Obj()) << std::endl;
         break;
 
+        case 1:
+        {
+            String* str = new String;;
+            std::getline(std::cin, *str);
+            auto obj = INTERNAL_ObjectConstructor(StringClass, str);
+            PushToStack<Object>(obj);
+        }
         default:
         break;
     }

@@ -61,12 +61,15 @@ enum OperationType
     Not,                            // returns Reference to result of !
     Evaluate,                       // returns Reference to result of method call
     Print,                          // prints a Ref to the screen
+    Ask,
     
     Ref,                            // terminal of an operation tree, returns a Reference
     DefineMethod,                   // add a new method Reference to scope, but returns NullReference
     Return,                         // break out of a method and return a value
 
     If,                             // conditionally executes the next block of code
+    ElseIf,
+    Else,
     While,
     EndLabel,                       // end of an if statement
     Tuple,                          // constructs and returns a (>1) ordering of references

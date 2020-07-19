@@ -111,6 +111,8 @@ Expr -> Expr >= Expr
 Expr -> Expr <= Expr
 
 
+@ Ask lowest Reduce
+Expr -> ask Expr
 
 @ Print lowest Reduce
 Line -> print Expr
@@ -131,9 +133,16 @@ Expr -> Ref ( Expr )
 Expr -> Ref ( Tuple )
 
 
+@ Else : Reduce
+Line -> else :
+
+@ ElseIf : Reduce
+Line -> else if Expr :
 
 @ If : Reduce
 Line -> if Expr :
+
+
 
 @ While : Reduce
 Line -> while Expr :
