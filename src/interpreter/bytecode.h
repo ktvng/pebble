@@ -9,7 +9,7 @@ const uint8_t BitFlag = 0x1;
 
 typedef void (*BCI_Method)(extArg_t);
 
-const inline int BCI_NumberOfInstructions = 26;
+const inline int BCI_NumberOfInstructions = 28;
 
 void BCI_LoadRefName(extArg_t arg);
 void BCI_LoadPrimitive(extArg_t arg);
@@ -48,9 +48,16 @@ void BCI_LeaveLocal(extArg_t arg);
 
 void BCI_Extend(extArg_t arg);
 void BCI_NOP(extArg_t arg);
+void BCI_Dup(extArg_t arg);
+void BCI_EndLine(extArg_t arg);
 
 extern BCI_Method BCI_Instructions[];
 
 int IndexOfInstruction(BCI_Method bci);
+
+inline bool RefNameIsKeyword(const String& refName)
+{
+    return refName == "caller" || refName == "self" || refName == "it" || refName == "that";
+}
 
 #endif

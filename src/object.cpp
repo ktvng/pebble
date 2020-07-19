@@ -387,6 +387,10 @@ String GetStringValue(const Object& obj)
     {
         return "Something";
     }
+    else if(obj.Class == MethodClass)
+    {
+        return "Method";
+    }
     LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";
 }

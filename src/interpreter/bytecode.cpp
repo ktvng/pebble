@@ -91,6 +91,8 @@ BCI_Method BCI_Instructions[] = {
 
     BCI_Extend,
     BCI_NOP,
+    BCI_Dup,
+    BCI_EndLine
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -125,6 +127,11 @@ inline Scope* TOS_Scope()
     auto scope = static_cast<Scope*>(MemoryStack.back());
     MemoryStack.pop_back();
     return scope;
+}
+
+inline void* TOSpeek()
+{
+    return MemoryStack.back();
 }
 
 inline String* TOS_String()
@@ -186,13 +193,14 @@ inline unsigned int MemoryStackSize()
 inline void EnterNewCallFrame(int callerRefId, Object* caller, Object* self)
 {
     std::vector<Scope> localScopeStack;
-    CallStack.push_back({ InstructionReg+1, MemoryStackSize(), callerRefId, localScopeStack });
+    CallStack.push_back({ InstructionReg+1, MemoryStackSize(), callerRefId, localScopeStack, LastResultReg });
     PushToStack<Object>(caller);
     PushToStack<Object>(self);
 
     CallerReg = caller;
     SelfReg = self;
-    LocalScopeReg = self->Attributes; 
+    LocalScopeReg = self->Attributes;
+    LastResultReg = nullptr;
 }
 
 inline bool BothAre(Object* obj1, Object* obj2, ObjectClass cls)
@@ -303,6 +311,25 @@ void AdjustLocalScopeReg()
     {
         LocalScopeReg = &LocalScopeStack().back();
     }
+}
+
+inline void ResolveReferenceKeyword(const String& refName)
+{
+    Object* obj = &NothingObject;
+    if(refName == "caller")
+    {
+        obj = CallerReg;
+    }
+    else if(refName == "self")
+    {
+        obj = SelfReg;
+    }
+    else
+    {
+        obj = LastResultReg;
+    }
+
+    PushToStack<Object>(obj);
 }
 
 
@@ -616,6 +643,13 @@ void BCI_Copy(extArg_t arg)
 void BCI_ResolveDirect(extArg_t arg)
 {
     auto refName = TOS_String();
+
+    if(RefNameIsKeyword(*refName))
+    {
+        ResolveReferenceKeyword(*refName);
+        return;
+    }
+
     auto resolvedRef = FindInScopeOnlyImmediate(LocalScopeReg, *refName);
     if(resolvedRef == nullptr)
     {
@@ -656,13 +690,13 @@ void BCI_ResolveScoped(extArg_t arg)
         ReportError(SystemMessageType::Warning, 1, Msg(" %s refers to the object <%s> which cannot have attributes", TOSpeek_Ref()->Name, TOSpeek_Ref()->To->Class));
         return;
     }
-    auto callerRef = TOS_Obj();
-    auto resolvedRef = FindInScopeOnlyImmediate(ScopeOf(callerRef), *refName);
+    auto callerObj = TOS_Obj();
+    auto resolvedRef = FindInScopeOnlyImmediate(ScopeOf(callerObj), *refName);
 
     if(resolvedRef == nullptr)
     {
         auto newRef = ReferenceConstructor(*refName, &SomethingObject);
-        AddRefToScope(newRef, ScopeOf(callerRef));
+        AddRefToScope(newRef, ScopeOf(callerObj));
         PushToStack<Reference>(newRef);
     }
     else
@@ -740,8 +774,14 @@ void BCI_Return(extArg_t arg)
     {
         PushToStack(returnObj);
     }
+    else
+    {
+        PushToStack(SelfReg);
+    }
 
     InstructionReg = jumpBackTo;
+
+    LastResultReg = CallStack.back().LastResult;
     CallStack.pop_back();
 
     int returnMemStart = CallStack.back().MemoryStackStart;
@@ -761,6 +801,7 @@ void BCI_EnterLocal(extArg_t arg)
 {
     LocalScopeStack().push_back( {{}, LocalScopeReg, false} );
     LocalScopeReg = &LocalScopeStack().back();
+    LastResultReg = nullptr;
 }
 
 void BCI_LeaveLocal(extArg_t arg)
@@ -768,6 +809,7 @@ void BCI_LeaveLocal(extArg_t arg)
     /// TODO: destroy andy local references
     LocalScopeStack().pop_back();
     AdjustLocalScopeReg();
+    LastResultReg = nullptr;
 }
 
 void BCI_Extend(extArg_t arg)
@@ -797,4 +839,15 @@ void BCI_Extend(extArg_t arg)
 void BCI_NOP(extArg_t arg)
 {
     // does nothing, used for optimizations
+}
+
+void BCI_Dup(extArg_t arg)
+{
+    auto entity = TOSpeek();
+    PushToStack<void>(entity);
+}
+
+void BCI_EndLine(extArg_t arg)
+{
+    LastResultReg = TOS_Obj();
 }

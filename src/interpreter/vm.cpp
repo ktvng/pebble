@@ -49,6 +49,8 @@ int JumpStatusReg;
 /// 6: >=
 uint8_t CmpReg = CmpRegDefaultValue;
 
+Object* LastResultReg = nullptr;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -184,8 +186,8 @@ void DoByteCodeProgram()
         {
             JumpStatusReg = 0;
         }
-
     }
+    std::cout << "\n#" << MemoryStack.size() << "\n";
 }
 
 
@@ -303,6 +305,14 @@ String ToString(ByteCodeInstruction& ins)
     else if(ins.Op == IndexOfInstruction(BCI_NOP))
     {
         str += "#BCI_NOP";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_Dup))
+    {
+        str += "#BCI_Dup";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_EndLine))
+    {
+        str += "#BCI_EndLine";
     }
     else
     {
