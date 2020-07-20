@@ -103,7 +103,7 @@ std::vector<ByteCodeInstruction> ByteCodeProgram;
 Object GodObject
 {
     BaseClass,
-    ScopeConstructor(nullptr),
+    nullptr,
     nullptr,
     nullptr,
     nullptr
@@ -113,7 +113,7 @@ Object GodObject
 Object NothingObject
 {
     NullClass,
-    ScopeConstructor(nullptr),
+    nullptr,
     nullptr,
     nullptr,
     nullptr
@@ -123,7 +123,7 @@ Object NothingObject
 Object SomethingObject
 {
     SomethingClass,
-    ScopeConstructor(nullptr),
+    nullptr,
     nullptr,
     nullptr,
     nullptr
@@ -136,6 +136,10 @@ Object SomethingObject
 /// initializes all registers and pushes the program CallFrame onto the CallStack
 void InitRuntime()
 {
+    GodObject.Attributes = ScopeConstructor(nullptr);
+    NothingObject.Attributes = ScopeConstructor(nullptr);
+    SomethingObject.Attributes = ScopeConstructor(nullptr);
+
     std::vector<Scope> localScopeStack;
     extArg_t programEnd = ByteCodeProgram.size();
 
@@ -193,6 +197,9 @@ void GracefullyExit()
     }
 
     ScopeDestructor(ProgramReg);
+    ScopeDestructor(SomethingObject.Attributes);
+    ScopeDestructor(NothingObject.Attributes);
+    ScopeDestructor(GodObject.Attributes);
 }
 
 /// iterates and executes the instructions stored in BytecodeProgram
