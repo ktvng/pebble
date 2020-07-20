@@ -6,13 +6,13 @@
 static ProgramConfiguration* Config = nullptr;
 static Setting* CurrentState = nullptr;
 
-bool MatchesFlag(String token)
+bool MatchesFlag(String token, Setting** matchedSetting)
 {
     for(Setting& s: *Config)
     {
         if(token == s.Flag)
         {
-            CurrentState = &s;
+            *matchedSetting = &s;
             return true;
         }
     }
@@ -30,10 +30,15 @@ void ParseCommandArgs(int argc, char* argv[], ProgramConfiguration config)
     for(int i=1; i<argc; i++)
     {
         String arg = argv[i];
-        if(MatchesFlag(arg))
+        Setting* newSetting = nullptr;
+        if(MatchesFlag(arg, &newSetting))
         {
-            CurrentState->Action(CurrentSettingOptions);
-            CurrentSettingOptions.clear();
+            if(CurrentState != nullptr)
+            {
+                CurrentState->Action(CurrentSettingOptions);
+                CurrentSettingOptions.clear();
+            }
+            CurrentState = newSetting;
         }
         else
         {
@@ -42,7 +47,7 @@ void ParseCommandArgs(int argc, char* argv[], ProgramConfiguration config)
         }
     }
 
-    /// flush
+    // flush
     if(CurrentState != nullptr)
     {
         CurrentState->Action(CurrentSettingOptions);
