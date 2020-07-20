@@ -790,7 +790,7 @@ void BCI_DefMethod(extArg_t arg)
             obj->ByteCodeParamsAsMethod.push_back(argList[i]);
         }
         
-        delete argList;
+        delete[] argList;
     }
 
 
