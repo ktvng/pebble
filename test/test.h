@@ -89,6 +89,12 @@ inline void It(const std::string& name)
 {
     ResetRun();
     testName = name;
+    if(g_noisyReport)
+    {        
+        SetConsoleColor(ConsoleColor::Purple2);
+        std::cout << "\nstarting: " << testName;
+        SetConsoleColor(ConsoleColor::White);
+    }
 }
 
 

@@ -123,8 +123,7 @@ void TestScopeAccess()
 
     CompileAndExecuteProgram("TestScopeAccess");
 
-    TestGenericMemoryLoss("Object");
-    TestGenericMemoryLoss("Reference");
+    Valgrind();
 
     String correctOutput = "Nothing\nNothing\nNothing\nNothing\n10\n";
 
