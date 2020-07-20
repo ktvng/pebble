@@ -6,4 +6,4 @@ logs/log
 test/src/*.cpp
 test/src/*.h
 *.o.t
-*.pebl
+/*.pebl

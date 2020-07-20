@@ -41,6 +41,18 @@ Reference* InternalReferenceConstructor(String refName, Object* toObject)
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Helper methods
+int IndexOfNop()
+{
+    for(size_t i=0; i<BCI_NumberOfInstructions; i++)
+    {
+        if(BCI_Instructions[i] == BCI_NOP)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int IndexOfInstruction(BCI_Method bci)
 {
     for(size_t i=0; i<BCI_NumberOfInstructions; i++)
@@ -50,7 +62,8 @@ int IndexOfInstruction(BCI_Method bci)
             return i;
         }
     }
-    return -1;
+    LogIt(LogSeverityType::Sev3_Critical, "IndexOfInstruction", "instruction not found, returned NOP");
+    return IndexOfNop();
 }
 
 
@@ -207,7 +220,7 @@ inline size_t MemoryStackSize()
 
 /// add a new CallFrame to the CallStack with [caller] and [self] the new caller and self
 /// objects. changes registers appropriately but does not change the instruction pointer
-inline void EnterNewCallFrame(int callerRefId, Object* caller, Object* self)
+inline void EnterNewCallFrame(extArg_t callerRefId, Object* caller, Object* self)
 {
     std::vector<Scope> localScopeStack;
     CallStack.push_back({ InstructionReg+1, MemoryStackSize(), callerRefId, localScopeStack, LastResultReg });
@@ -465,7 +478,7 @@ void BCI_Subtract(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-         int i = GetIntValue(*lObj) - GetIntValue(*rObj);
+        int i = GetIntValue(*lObj) - GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
         
@@ -774,10 +787,10 @@ void BCI_DefMethod(extArg_t arg)
     if(arg != 0)
     {
         argList = new String[arg];
-        for(int i = arg; i > 0; i--)
+        for(extArg_t i = 1; i<=arg; i++)
         {
             auto str = *TOS_String();
-            argList[i-1] = str;
+            argList[arg-i] = str;
         }
     }
 
@@ -814,7 +827,7 @@ void BCI_Eval(extArg_t arg)
     LogDiagnostics(methodObj);
     LogDiagnostics(callerObj);
 
-    int jumpTo = methodObj->BlockStartInstructionId;
+    extArg_t jumpTo = methodObj->BlockStartInstructionId;
     AddParamsToMethodScope(methodObj, paramsList);
 
     /// TODO: figure out caller id
@@ -827,8 +840,8 @@ void BCI_Eval(extArg_t arg)
 /// arg is bool flag on whether or not to return a specific object
 void BCI_Return(extArg_t arg)
 {
-    int jumpBackTo = CallStack.back().ReturnToInstructionId;
-    int stackStart = CallStack.back().MemoryStackStart;
+    extArg_t jumpBackTo = CallStack.back().ReturnToInstructionId;
+    extArg_t stackStart = CallStack.back().MemoryStackStart;
 
     Object* returnObj = nullptr;
     if(arg == 1)
@@ -836,7 +849,7 @@ void BCI_Return(extArg_t arg)
         returnObj = TOS_Obj();
     }
 
-    while(MemoryStack.size() > static_cast<size_t>(stackStart))
+    while(MemoryStack.size() > stackStart)
     {
         TOS_discard();
     }
@@ -855,7 +868,7 @@ void BCI_Return(extArg_t arg)
     LastResultReg = CallStack.back().LastResult;
     CallStack.pop_back();
 
-    int returnMemStart = CallStack.back().MemoryStackStart;
+    extArg_t returnMemStart = CallStack.back().MemoryStackStart;
 
     CallerReg = static_cast<Object*>(MemoryStack[returnMemStart]);
     SelfReg = static_cast<Object*>(MemoryStack[returnMemStart+1]);

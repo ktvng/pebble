@@ -306,7 +306,17 @@ inline bool IsPartOfIfComplex(Operation* op)
         return false;
     }
 
-    return op->Type == OperationType::If || op->Type == OperationType::Else || op->Type == OperationType::ElseIf;
+    return op->Type == OperationType::Else || op->Type == OperationType::ElseIf || op->Type == OperationType::If;
+}
+
+inline bool IsPartOfIfContinuation(Operation* op)
+{
+    if(op == nullptr)
+    {
+        return false;
+    }
+
+    return op->Type == OperationType::Else || op->Type == OperationType::ElseIf;
 }
 
 /// true if [op] is part of an if-conditional (if/else-if)
@@ -868,7 +878,7 @@ inline void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, ext
 /// to the values corresponding to the flatten bytecode of [op]. will resolve [ctx] if necessary
 inline void HandleFlatteningOperation(Operation* op, extArg_t& blockOwnerInstructionStart, Operation** blockOwner, JumpContext& ctx)
 {
-    if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(op))
+    if(JumpContextNeedsResolution(ctx) && !IsPartOfIfContinuation(op))
     {
         ResolveJumpContext(ctx);
     }
@@ -918,7 +928,7 @@ void FlattenBlock(Block* block)
         }
     }
 
-    if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(blockOwner))
+    if(JumpContextNeedsResolution(ctx) && !IsPartOfIfContinuation(blockOwner))
     {
         ResolveJumpContext(ctx);
     }
