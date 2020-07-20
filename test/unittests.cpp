@@ -122,9 +122,7 @@ void TestScopeAccess()
     It("keeps variables accessible only in local scope");
 
     CompileAndExecuteProgram("TestScopeAccess");
-
-    TestGenericMemoryLoss("Object");
-    TestGenericMemoryLoss("Reference");
+    Valgrind();
 
     String correctOutput = "Nothing\nNothing\nNothing\nNothing\n10\n";
 
@@ -138,9 +136,7 @@ void TestMethodRecursion()
     It("method can call itself");
 
     CompileAndExecuteProgram("TestMethodRecursion");
-
     IncludeStandardAssertSuite();
-
 
     String correctOutput = "5\n4\n3\n2\n1\n0\n120\n64\n";
 
@@ -148,6 +144,33 @@ void TestMethodRecursion()
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
     Assert(ProgramOutput == correctOutput );
 }
+
+void TestIfElseComplex()
+{
+    It("correctly evaluates an if/else-if/else statement");
+
+    CompileAndExecuteProgram("TestIfElseComplex");
+    IncludeStandardAssertSuite();
+
+    String correctOutput = "1\n2\nX\n3\n1\n";
+    Should("cascade through else-ifs and pool in else");
+    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
+    Assert(ProgramOutput == correctOutput);
+}
+
+void TestWhile()
+{
+    It("correctly evaluates a while-loop");
+
+    CompileAndExecuteProgram("TestWhile");
+    IncludeStandardAssertSuite();
+
+    String correctOutput = "5\n4\n3\n2\n1\n-5\n-4\n-3\n-2\n-1\n";
+    Should("break out of while when condition is false");
+    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
+    Assert(ProgramOutput == correctOutput);
+}
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test index
@@ -169,5 +192,8 @@ std::vector<TestFunction> Tests =
     TestMethodWithNoParams,
     TestMethodWithSingleParam,
     TestMethodWithMultipleParams,
-    TestMethodRecursion
+    TestMethodRecursion,
+
+    TestIfElseComplex,
+    TestWhile,
 };

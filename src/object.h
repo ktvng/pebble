@@ -21,6 +21,9 @@ class Object
     void* Value;
     Method* Action;
     Scope* DefinitionScope;
+
+    extArg_t BlockStartInstructionId;
+    ParameterList ByteCodeParamsAsMethod;
 };
 
 /// emulated method in Pebble
@@ -33,7 +36,18 @@ class Method
     ParameterList ParameterNames;
 };
 
+Reference* ReferenceConstructor(String refName, Object* obj);
+
+Object* ObjectConstructor(ObjectClass cls, void* value);
+Object* ObjectConstructor();
+Object* NullObject();
+
 void ObjectDestructor(Object* obj);
+
+int* ObjectValueConstructor(int value);
+double* ObjectValueConstructor(double value);
+bool* ObjectValueConstructor(bool value);
+String* ObjectValueConstructor(String value);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ObjectClasses
@@ -46,7 +60,8 @@ inline const ObjectClass BooleanClass = "Boolean";
 inline const ObjectClass NullClass = "Nothing";
 inline const ObjectClass ArrayClass = "Array";
 inline const ObjectClass TupleClass = "Tuple";
-
+inline const ObjectClass SomethingClass = "Something";
+inline const ObjectClass MethodClass = "Method";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Global Object Index

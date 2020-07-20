@@ -10,7 +10,6 @@
 
 Reference* ReferenceConstructor()
 {
-    // LogItDebug("space allocated for new reference", "ReferenceConstructor");
     Reference* ref = new Reference; 
     ref->Name = "";
     ref->To = nullptr;
@@ -18,14 +17,35 @@ Reference* ReferenceConstructor()
     return ref;
 }
 
+Reference* ReferenceConstructor(String refName, Object* obj)
+{
+    Reference* ref = new Reference; 
+    ref->Name = refName;
+    ref->To = obj;
+
+    return ref;
+}
+
 Object* ObjectConstructor()
 {
-    // LogItDebug("space allocated for new object", "ObjectConstructor");
     Object* obj = new Object;
     obj->Attributes = ScopeConstructor(CurrentScope());
     obj->Attributes->IsDurable = true;
     obj->Class = NullClass;
     obj->Value = nullptr;
+    obj->Action = nullptr;
+    obj->DefinitionScope = nullptr;
+
+    return obj;
+}
+
+/// used in the BytecodeRuntime
+Object* ObjectConstructor(ObjectClass cls, void* value)
+{
+    Object* obj = new Object;
+    obj->Attributes = ScopeConstructor(nullptr);
+    obj->Class = cls;
+    obj->Value = value;
     obj->Action = nullptr;
     obj->DefinitionScope = nullptr;
 
@@ -372,6 +392,14 @@ String GetStringValue(const Object& obj)
     else if(obj.Class == BaseClass)
     {
         return "Object";
+    }
+    else if(obj.Class == SomethingClass)
+    {
+        return "Something";
+    }
+    else if(obj.Class == MethodClass)
+    {
+        return "Method";
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetStringValue", "unimplemented for Reference type and generic objects");
     return "";

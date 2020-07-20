@@ -61,6 +61,10 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::Evaluate;
     else if(Name=="If")
         return OperationType::If;
+    else if(Name=="ElseIf")
+        return OperationType::ElseIf;
+    else if(Name=="Else")
+        return OperationType::Else;
     else if(Name=="While")
         return OperationType::While;
     else if(Name=="DefineMethod")
@@ -71,6 +75,8 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::Tuple;
     else if(Name=="Print")
         return OperationType::Print;
+    else if(Name=="Ask")
+        return OperationType::Ask;
     else if(Name=="Return")
         return OperationType::Return;
 
@@ -347,9 +353,14 @@ void ParseTokenDestructor(ParseToken* token)
 Operation* RefOperation(Token* refToken)
 {
     Reference* ref = ReferenceForPrimitive(refToken, c_operationReferenceName);
+
     if(ref == nullptr)
     {
         ref = ReferenceStubConstructor(refToken->Content);
+    }
+    else
+    {
+        ref->Name += ref->To->Class + GetStringValue(*ref->To);
     }
 
     Operation* op = OperationConstructor(OperationType::Ref, ref);
@@ -487,6 +498,7 @@ Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)
     return OperationConstructor(rule.OpType, components);
 }
 
+/// order is caller, method, params
 Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
 {
     if(components.size() == 1)

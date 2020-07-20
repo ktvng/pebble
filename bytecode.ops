@@ -1,0 +1,63 @@
+# Design
+MEMORY_STACK (holds byte references to anything really)
+CALL_STACK (holds cached instruction pointer, BLOCK start in memory)
+
+a BLOCK consists of
+    0: Reference to caller OBJECT
+    1: Reference to self OBJECT
+
+the first 4 are referenced by pointers in 4 registers
+    PROGRAM_REG
+    CALLER_REG
+    SELF_REG
+    LOCAL_REG
+
+MEMORY_ARRAY for
+    OBJ_ARRS
+    REF_ARRS
+    
+    mapping [0:n] to the pointer for each of the (n+1) things (refs/objs/scps)
+
+CMP_REGISTER:
+    byte with position n representing the comparison between (obj1) and (obj2)
+    0: obj1 == obj2
+    1: obj1 > obj2
+    2: obj1 < obj2
+
+SCOPE_STACK
+
+REF_NAMES (list)
+REFNAME_REG (stores the name of a reference (std::string))
+
+
+LOAD_OBJ [byte]         load the object at OBJ_ARRS[byte]
+LOAD_REF [byte]         load the reference at REF_ARRS[byte]
+LOAD_SCP [byte]         load the scope at SCOPE_STACK[byte]
+LOAD_NAME [byte]        load the string REF_NAMES[byte] into the register
+
+ASSIGN                  assign TOS (obj) to TOS1 (ref), push (obj)
+
+ADD                     add TOS (obj) and TOS2 (obj), push result (obj)
+SUBTRACT
+MULTIPY
+DIVIDE
+
+CMP                     compares TOS (obj) and TOS1 (obj) and stores in CMP_REGISTER
+??
+
+SYS_CALL [byte]         calls system function with id [byte]
+
+AND                     computes TOS (obj) && TOS1 (obj), push result (obj)
+OR
+NOT                     computes !TOS (obj). push result (obj)
+
+JUMP_TRUE [byte]        jump to #op [byte] if TOS (obj) is true
+JUMP_FALSE [byte]       jump to #op [byte] if TOS (obj) is false
+
+MAKE_OBJ [byte]         make a copy of TOS (obj), push result (obj)
+MAKE_REF [byte]         make a
+
+RESOLVE_DIRECT          resolves REFNAME_REG into a ref, pushs (ref)
+RESOLVE_SCOPED          resolves REFNAME_REG into a ref inside TOS (obj) scope, pushes (ref)
+
+RETURN                  breaks out of 

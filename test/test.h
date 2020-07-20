@@ -11,7 +11,8 @@
 #include "program.h"
 #include "execute.h"
 #include "parse.h"
-
+#include "flattener.h"
+#include "vm.h"
 
 extern std::string testBuffer;
 
@@ -38,6 +39,7 @@ extern bool g_shouldRunCustomProgram;
 extern bool g_noisyReport;
 
 extern Program* programToRun;
+extern bool g_useBytecodeRuntime;
 
 bool Test();
 void ResetRun();
@@ -130,8 +132,17 @@ inline void Execute()
 {
     if(!FatalCompileError)
     {
-        DoProgram(programToRun);
-        ProgramDestructor(programToRun);
+        if(g_useBytecodeRuntime)
+        {
+            FlattenProgram(programToRun);
+            DoByteCodeProgram();
+            ProgramDestructor(programToRun);
+        }
+        else
+        {
+            DoProgram(programToRun);
+            ProgramDestructor(programToRun);
+        }
     }
 }
 
@@ -143,12 +154,24 @@ inline int NumberOfCallsTo(const std::string& methodName)
 
 inline void SetProgramToRun(const std::string& fileName)
 {
-    programFile = "./test/programs/" + fileName;
+    programFile = "./test/programs/" + fileName + ".pebl";
+    if(g_noisyReport)
+    {        
+        SetConsoleColor(ConsoleColor::Purple2);
+        std::cout << "\nstarting: " << fileName;
+        SetConsoleColor(ConsoleColor::White);
+    }
 }
 
 inline void RunCustomProgram()
 {
     programFile = "./program.pebl";
+    if(g_noisyReport)
+    {        
+        SetConsoleColor(ConsoleColor::Purple2);
+        std::cout << "\nstarting: CustomProgram";
+        SetConsoleColor(ConsoleColor::White);
+    }
 }
 
 inline void CompileAndExecuteProgram(const std::string& programName)

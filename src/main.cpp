@@ -1,4 +1,7 @@
 #include <iostream>
+#include <ctime>
+#include <chrono>
+#include <ratio>
 
 #include "main.h"
 #include "program.h"
@@ -9,7 +12,9 @@
 #include "parse.h"
 #include "execute.h"
 #include "commandargs.h"
-
+#include "vm.h"
+#include "flattener.h"
+#include "scope.h"
 
 void ChangeLogType(std::vector<SettingOption> options)
 {
@@ -43,10 +48,12 @@ ProgramConfiguration Config
 };
 
 
-
 // Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
+LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
 bool g_outputOn = true;
+
+// Runtime
+bool g_useBytecodeRuntime = true;
 
 int main(int argc, char* argv[])
 {
@@ -78,20 +85,38 @@ int main(int argc, char* argv[])
         }
     }
 
+    if(g_useBytecodeRuntime)
+    {
+        FlattenProgram(PROGRAM);
+        LogProgramInstructions();
+    }
+
     // run program
     SetConsoleColor(ConsoleColor::LightBlue);
     std::cout << "################################################################################\n";
     SetConsoleColor(ConsoleColor::White);
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
-
-    DoProgram(prog);
+    auto start = std::chrono::high_resolution_clock::now();
     
+    if(g_useBytecodeRuntime)
+    {
+        DoByteCodeProgram();
+    }   
+    else
+    {
+        DoProgram(prog);
+    }
+    
+    auto end = std::chrono::high_resolution_clock::now();
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
     SetConsoleColor(ConsoleColor::LightBlue);
     std::cout << "################################################################################\n";
     SetConsoleColor(ConsoleColor::White);
 
-    if(ShouldPrintProgramExecutionFinalResult)
+    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    std::cout << time_span.count() << std::endl;
+
+    if(ShouldPrintProgramExecutionFinalResult && !g_useBytecodeRuntime)
     {
         EnterProgram(prog);
         for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
@@ -100,7 +125,17 @@ int main(int argc, char* argv[])
         }
     }
 
-    ProgramDestructor(PROGRAM);
+    /// clean up traditional
+    if(!g_useBytecodeRuntime)
+    {
+        ProgramDestructor(PROGRAM);
+    }
+    else
+    {
+        ProgramDestructor(PROGRAM);
+    }
+    
+
     LogItDebug("end reached.", "main");
     return 0;
 }

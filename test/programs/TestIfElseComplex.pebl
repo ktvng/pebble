@@ -1,0 +1,50 @@
+X = 1
+if X == 1:
+    X = X + 1
+    print "1"
+else if X == 2:
+    print "2"
+else if X == 3:
+    print "3"
+else:
+    print "X"
+
+if X == 1:
+    print "1"
+else if X == 2:
+    X = X + 4
+    print "2"
+else if X == 3:
+    print "3"
+else:
+    print "X"
+
+if X == 1:
+    print "1"
+else if X == 2:
+    print "2"
+else if X == 3:
+    print "3"
+else:
+    X = 3
+    print "X"
+
+if X == 1:
+    print "1"
+else if X == 2:
+    print "2"
+else if X == 3:
+    print "3"
+else:
+    print "X"
+
+X = 1
+if X == 1:
+    X = 2
+    print "1"
+else if X == 2:
+    print "2"
+else if X == 3:
+    print "3"
+else:
+    print "X"

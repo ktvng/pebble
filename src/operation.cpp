@@ -40,12 +40,15 @@ OperationEvaluator OperationEvaluators[] =
     OperationNot,
     OperationEvaluate,
     OperationPrint,
+    OperationAsk,
 
     OperationRef,
     OperationDefineMethod,
     OperationReturn,
 
     OperationIf,
+    OperationElseIf,
+    OperationElse,
     OperationWhile,
     OperationEndLabel,
     OperationTuple,
@@ -805,4 +808,24 @@ Reference* OperationClass(Reference* value, std::vector<Reference*>& operands)
     klass->To->Attributes->InheritedScope = PROGRAM->GlobalScope;
 
     return klass;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Unimplemented
+
+Reference* OperationAsk(Reference* value, std::vector<Reference*>& operands)
+{
+    LogIt(LogSeverityType::Sev3_Critical, "OperationAsk", "unimplemented");
+    return NullReference();
+}
+Reference* OperationElseIf(Reference* value, std::vector<Reference*>& operands)
+{
+    LogIt(LogSeverityType::Sev3_Critical, "OperationAsk", "unimplemented");
+    return NullReference();
+}
+Reference* OperationElse(Reference* value, std::vector<Reference*>& operands)
+{
+    LogIt(LogSeverityType::Sev3_Critical, "OperationAsk", "unimplemented");
+    return NullReference();
 }

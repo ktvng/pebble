@@ -44,7 +44,7 @@ Line -> Class :
 Expr -> SRef
 
 @ New new Reduce
-Ref -> new Ref
+Expr -> new Ref
 
 @ ScopeResolution . Reduce
 > (
@@ -111,6 +111,8 @@ Expr -> Expr >= Expr
 Expr -> Expr <= Expr
 
 
+@ Ask lowest Reduce
+Expr -> ask Expr
 
 @ Print lowest Reduce
 Line -> print Expr
@@ -122,9 +124,7 @@ Expr -> SRef . Ref ( )
 Expr -> SRef . Ref ( Expr )
 Expr -> SRef . Ref ( Tuple )
 
-Expr -> Ref . Ref ( )
-Expr -> Ref . Ref ( Expr )
-Expr -> Ref . Ref ( Tuple )
+
 
 @ Evaluate ( UnscopedEval
 > :
@@ -133,9 +133,16 @@ Expr -> Ref ( Expr )
 Expr -> Ref ( Tuple )
 
 
+@ Else : Reduce
+Line -> else :
+
+@ ElseIf : Reduce
+Line -> else if Expr :
 
 @ If : Reduce
 Line -> if Expr :
+
+
 
 @ While : Reduce
 Line -> while Expr :
