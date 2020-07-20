@@ -1,6 +1,13 @@
 #include <iostream>
 
 #include "execute.h"
+#include "main.h"
+#include "diagnostics.h"
+#include "scope.h"
+#include "operation.h"
+#include "reference.h"
+#include "program.h"
+#include "object.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Diagnostics
@@ -55,8 +62,6 @@ Reference* DoOperation(Operation* op)
 
     Reference* returnRef = DoOperationOnReferences(op, operandReferences);
     LogItDebug(Msg("line[%i] operation %s returned a reference", op->LineNumber, ToString(op->Type)), "DoOperation");
-
-    DereferenceAll(operandReferences);
     return returnRef;
 }
 
@@ -92,7 +97,6 @@ Reference* HandleControlFlowWhile(Operation* op, size_t& execLine, Block* codeBl
         if(codeBlock->Executables.size() > execLine + 1 && codeBlock->Executables.at(execLine+1)->ExecType == ExecutableType::Block)
         {
             auto ref = DoBlock(static_cast<Block *> (codeBlock->Executables.at(execLine+1)));
-            AddReferenceToCurrentScope(ref);
             Dereference(ref);
             execLine -= 1;
         }
@@ -118,6 +122,22 @@ Reference* HandleControlFlowClass(Operation* op, size_t& execLine, Block* block)
     return newClass;
 }
 
+Reference* HandleControlFlowDefineMethod(Operation* op, size_t& execline, Block* block)
+{
+    /// TODO: currently assumes a block
+    if(!(execline + 1 < block->Executables.size() && block->Executables[execline+1]->ExecType == ExecutableType::Block))
+    {
+        ReportRuntimeMsg(SystemMessageType::Exception, "no block after method definition");
+        return NullReference();
+    }
+
+    Reference* method = DoOperation(op);
+
+    auto methodBlock = AsBlock(block->Executables[++execline]);
+    method->To->Action->CodeBlock = methodBlock;
+
+    return method;
+}
 /// executes [op] in [scope] and updates [execLine] based on the control flow properties
 /// of [op]
 Reference* HandleControlFlow(Operation* op, size_t& execLine, Block* block)
@@ -132,6 +152,9 @@ Reference* HandleControlFlow(Operation* op, size_t& execLine, Block* block)
 
         case OperationType::While:
         return HandleControlFlowWhile(op, execLine, block);
+
+        case OperationType::DefineMethod:
+        return HandleControlFlowDefineMethod(op, execLine, block);
         // for any non-control flow operation;
         default:
         return DoOperation(op);
@@ -146,6 +169,13 @@ void HandleRuntimeMessages(int lineNumber)
         RuntimeMsgFlag = false;
     }
 }
+
+bool ProgramFinished()
+{
+    return ScopeStackIsEmpty();
+}
+
+
 bool shouldReturn = false;
 
 /// executes the commands contained in a [codeBlock]
@@ -155,17 +185,15 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
     Reference* previousResult = nullptr;
 
     shouldReturn = false;
-
+    bool scopeIsLocal = false;
     if(scope == nullptr)
+    {
+        scopeIsLocal = true;
         scope = ScopeConstructor(CurrentScope());
+    }
     
     EnterScope(scope);
     {
-        for(auto aref: CurrentScope()->ReferencesIndex)
-        {
-            LogDiagnostics(aref, "scope before block");
-        }
-
         for(size_t i=0; i<codeBlock->Executables.size(); i++)
         {
             auto exec = codeBlock->Executables.at(i);
@@ -174,7 +202,7 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
             {
                 Operation* op = AsOperation(exec); 
 
-                LogDiagnosticsForRuntimeLine(CurrentScope(), op);
+                // LogDiagnosticsForRuntimeLine(CurrentScope(), op);
 
                 LogItDebug(Msg("starting execute line [%i] which is %s", op->LineNumber, ToString(op->Type)), "DoBlock");
 
@@ -195,25 +223,39 @@ Reference* DoBlock(Block* codeBlock, Scope* scope)
                 LogItDebug("discovered child block: starting", "DoBlock");
 
                 result = DoBlock(AsBlock(exec));
-                AddReferenceToCurrentScope(result);
                 UpdatePreviousResult(&result, &previousResult);
 
                 LogItDebug("exiting child block", "DoBlock");
                 if(shouldReturn) break;
             }
         }
-
-        // CurrentScope()->ReferencesIndex.clear();
     }
     ExitScope();
+
+    if(ProgramFinished())
+        return nullptr;
+
+    Reference * returnRef;
     if(result != nullptr)
-        return result;
+    {
+        returnRef = ReferenceFor(c_returnReferenceName, result->To);
+    }
     else
-        return CreateNullReference();
+    {
+        returnRef = NullReference();
+    }
+
+    if(scopeIsLocal)
+        WipeScope(scope);
+    return returnRef;
 }
 
 /// executes all blocks of [program]
-void DoProgram(Program& program)
+void DoProgram(Program* program)
 {
-    DoBlock(program.Main, program.GlobalScope);
+    EnterProgram(program);
+    {
+        DoBlock(program->Main, program->GlobalScope);
+    }
+    ExitProgram();
 }

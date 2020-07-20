@@ -18,6 +18,8 @@
 #include "program.h"
 #include "reference.h"
 #include "operation.h"
+#include "scope.h"
+
 
 #ifdef _WIN32 
 #include <windows.h>
@@ -330,8 +332,25 @@ String ToString(const String& str)
     return str;
 }
 
-
 // Diagnostic printing
+
+String ToString(const Method* method)
+{ 
+    String methodString = Msg("<Method>\n");
+
+    for(auto ref: method->ParameterNames)
+    {
+        methodString += IndentLevel(1) + 
+            StringForAttrbute("param", ref);
+    }
+    
+    if(method->CodeBlock != nullptr)
+        methodString += IndentLevel(1) +
+            StringForAttrbute("block", IndentStringToLevel(ToString(method->CodeBlock), 1));
+
+    return methodString;
+}
+
 String ToString(const Object& obj)
 {
     String objString = "<Object>\n";
@@ -341,9 +360,15 @@ String ToString(const Object& obj)
 
     objString += IndentLevel(1) +
         StringForAttrbute("Value", GetStringValue(obj));
-    
+
     objString += IndentLevel(1) +
         StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes->ReferencesIndex, "Reference"), 1));
+
+    if(obj.Action != nullptr)
+    {
+        objString += IndentLevel(1) + 
+            StringForAttrbute("Action", IndentStringToLevel(ToString(obj.Action), 1));
+    }
 
     return objString;
 }
@@ -353,20 +378,13 @@ String ToString(const Object* obj)
     return ToString(*obj);
 }
 
-String ToString(const Method* method)
-{
-    String methodString = Msg("<Method>\n");
-
-    for(auto ref: method->ParameterNames)
-    {
-        methodString += IndentLevel(1) + 
-            StringForAttrbute("param", ref);
-    }
-    return methodString;
-}
-
 String ToString(const Reference* ref)
 {
+    if(ref->Name == "caller")
+        return "caller ";
+    if(ref->Name == "self")
+        return "self";
+
     String refString = Msg("<Reference> @ %p\n", ref);
 
     refString += IndentLevel(1) +
@@ -375,11 +393,6 @@ String ToString(const Reference* ref)
     if(ObjectOf(ref) != nullptr)
         refString += IndentLevel(1) +
             StringForAttrbute("ToObject", IndentStringToLevel(ToString(ObjectOf(ref)), 1));
-
-    
-    if(MethodOf(ref) != nullptr)
-        refString += IndentLevel(1) +
-            StringForAttrbute("ToMethod", ref->Name);
 
     return refString;
 }
@@ -399,11 +412,6 @@ String ToString(const ObjectReferenceMap& map)
     }
 
     return mapString;
-}
-
-String ToString(const ObjectReferenceMap* map)
-{
-    return ToString(*map);
 }
 
 String ToString(const Token& token)
@@ -481,6 +489,9 @@ String ToString(const OperationType& type)
         case OperationType::Class:
         return "Class";
 
+        case OperationType::Tuple:
+        return "Tuple";
+        
         default:
         return "unimplemented";
     }
@@ -501,23 +512,21 @@ String ToString(const Operation& op, int level)
     if(op.Type == OperationType::Ref)
     {
         if(ObjectOf(op.Value) != nullptr)
-            opString += IndentLevel(1) + 
-                StringForAttrbute(
-                    "OperationType", 
-                    Msg("Ref <Reference> %s to %s %s", 
-                        op.Value->Name, 
-                        ObjectOf(op.Value)->Class,
-                        GetStringValue(*ObjectOf(op.Value))));
-
-        else if(MethodOf(op.Value) != nullptr)
-        {
-            opString += IndentLevel(1) +
-                StringForAttrbute("name", op.Value->Name);
-            opString += IndentLevel(1) + 
-                StringForAttrbute(
-                    "OperationType", 
-                    IndentStringToLevel(ToString(MethodOf(op.Value)), 1));
-        }
+            if(ObjectOf(op.Value)->Action != nullptr)
+            {
+                opString += IndentLevel(1) + 
+                    StringForAttrbute("<Reference>", IndentStringToLevel(ToString(ObjectOf(op.Value)), 1));
+            }
+            else
+            {
+                opString += IndentLevel(1) + 
+                    StringForAttrbute(
+                        "OperationType", 
+                        Msg("Ref <Reference> %s to %s %s", 
+                            op.Value->Name, 
+                            ObjectOf(op.Value)->Class,
+                            GetStringValue(*ObjectOf(op.Value))));
+            }
 
         else
         {
@@ -563,6 +572,7 @@ String ToString(const Block* block, int level)
 {
     String blockString = "<Block>\n";
     blockString.reserve(512);
+
     for(size_t i=0; i<block->Executables.size(); i++)
     {
         Executable* exec = block->Executables.at(i);
@@ -655,12 +665,5 @@ void LogDiagnostics(const ObjectReferenceMap& map, String message, String method
 {
     DebugDumpObjectToLog(DisplayString(map), message, method);
 }
-
-void LogDiagnostics(const ObjectReferenceMap* map, String message, String method)
-{
-    LogDiagnostics(*map, message, method);
-}
-
-
 
 #endif

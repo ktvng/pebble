@@ -4,6 +4,8 @@
 #include <cctype>
 #include <fstream>
 
+#include "token.h"
+
 #include "main.h"
 #include "diagnostics.h"
 #include "reference.h"
@@ -14,6 +16,24 @@
 // TODO:
 // 1. Match boolean tokens in any case (i.e. TRUE, FaLsE)
 
+Token* TokenConstructor(TokenType type, String content, int number)
+{
+    Token* t = new Token { type, content, number };
+    return t;
+}
+
+void TokenDestructor(Token* t)
+{
+    delete t;
+}
+
+void DeleteTokenList(TokenList tokenList)
+{
+    for(auto t: tokenList)
+    {
+        TokenDestructor(t);
+    }
+}
 
 void SkipWhiteSpace(const std::string& line, size_t& position)
 {
@@ -125,7 +145,7 @@ Token* GetSingletonCharToken(const String& line, size_t& position, int tokenNumb
 {
     String tokenString = "";
     tokenString += line.at(position++);
-    return new Token { TokenType::Simple, tokenString, tokenNumber };
+    return TokenConstructor(TokenType::Simple, tokenString, tokenNumber);
 }
 
 bool IsDoubleCharToken(size_t& position, const String& line)
@@ -149,7 +169,7 @@ Token* GetDoubleCharToken(const String& line, size_t& position, int tokenNumber)
     tokenString += line.at(position+1);
     position += 2;
     
-    return new Token { TokenType::Simple, tokenString, tokenNumber };
+    return TokenConstructor(TokenType::Simple, tokenString, tokenNumber);
 }
 
 bool IsStringStartChar(char c)
@@ -165,7 +185,7 @@ Token* GetStringToken(const String& line, size_t& position, int tokenNumber)
         tokenString += line.at(position);
     }
     position++; // get rid of end quote
-    return new Token { TokenType::String, tokenString, tokenNumber };
+    return TokenConstructor(TokenType::String, tokenString, tokenNumber);
 }
 
 
@@ -220,7 +240,7 @@ Token* GetToken(const std::string& line, size_t& position, int tokenNumber)
     if(tokenString == "")
         return nullptr;
     
-    token = new Token { TypeOfTokenString(tokenString), tokenString, tokenNumber };
+    token = TokenConstructor(TypeOfTokenString(tokenString), tokenString, tokenNumber);
 
     return token;
 }

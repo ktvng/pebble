@@ -1,7 +1,7 @@
 #ifndef __TOKEN_H
 #define __TOKEN_H
 
-
+#include "abstract.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Struct definitions
@@ -50,6 +50,8 @@ typedef std::vector<Token*> TokenList;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods
+
+void DeleteTokenList(TokenList tokenList);
 
 /// returns a new string with each character of [str] changed to lowercase
 String ToLowerCase(const String& str);

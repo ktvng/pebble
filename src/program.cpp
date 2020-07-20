@@ -12,6 +12,8 @@
 #include "decision.h"
 #include "parse.h"
 #include "object.h"
+#include "execute.h"
+#include "scope.h"
 
 /// program to execute
 Program* PROGRAM;
@@ -69,6 +71,11 @@ Block* BlockConstructor()
     return b;
 }
 
+void BlockDestructor(Block* b)
+{
+    delete b;
+}
+
 void Reset()
 {
     ProgramOutput.clear();
@@ -82,21 +89,33 @@ void Reset()
     CompileMsgCount = 0;
 }
 
-void InitializePROGRAM()
+void EnterProgram(Program* p)
 {
-    PROGRAM = new Program;
-    PROGRAM->GlobalScope = ScopeConstructor(nullptr);
+    PROGRAM = p;
+}
 
-    EnterScope(PROGRAM->GlobalScope);
+void ExitProgram()
+{
+    PROGRAM = nullptr;
+}
+
+Program* ProgramConstructor()
+{
+    Program* p = new Program;
+    p->GlobalScope = ScopeConstructor(nullptr);
+    p->GlobalScope->IsDurable = true;
+
+    EnterProgram(p);
+    EnterScope(p->GlobalScope);
     {
         Reference* ref = CreateReferenceToNewObject("Object", BaseClass, nullptr);
         AddReferenceToCurrentScope(ref);
     }
     ExitScope();
+    ExitProgram();
+
+    return p;
 }
-
-
-
 
 
 
@@ -385,28 +404,28 @@ void HandleDefineMethod(
     Scope* blockInheritedScope,
     Operation* op)
 {
-    if(op->Type != OperationType::DefineMethod)
-        return;
+    // if(op->Type != OperationType::DefineMethod)
+    //     return;
 
-    auto method = MethodOf(op->Operands[0]->Value);
+    // auto method = ObjectOf(op->Operands[0]->Value)->Action;
 
-    // assumes there is a block
-    int blockSize = SizeOfBlock((*it)+1, *end);
-    Block* b;
-    Scope* scope = ScopeConstructor(CurrentScope());
-    EnterScope(scope);
-    {
-        for(auto param: method->ParameterNames)
-        {
-            NullReference(param);
-        }
-        b = ParseBlock((*it)+1, (*it)+blockSize+1);
-    }
-    ExitScope();
+    // // assumes there is a block
+    // int blockSize = SizeOfBlock((*it)+1, *end);
+    // Block* b;
+    // Scope* scope = ScopeConstructor(CurrentScope());
+    // EnterScope(scope);
+    // {
+    //     for(auto param: method->ParameterNames)
+    //     {
+    //         NullReference(param);
+    //     }
+    //     b = ParseBlock((*it)+1, (*it)+blockSize+1);
+    // }
+    // ExitScope(true);
 
-    *it += blockSize;
-    MethodOf(op->Operands.at(0)->Value)->CodeBlock = b;
-    LogItDebug("exit method", "HandleDefineMethod");
+    // *it += blockSize;
+    // ObjectOf(op->Operands.at(0)->Value)->Action->CodeBlock = b;
+    // LogItDebug("exit method", "HandleDefineMethod");
 }
 
 Block* ParseBlock(
@@ -417,8 +436,14 @@ Block* ParseBlock(
     Block* thisBlock = BlockConstructor();
     
     LogItDebug("entered new block", "ParseBlock");
+    bool scopeIsLocal = false;
+
     if(scope == nullptr)
+    {
         scope = ScopeConstructor(CurrentScope());
+        scopeIsLocal = true;
+    }
+
     EnterScope(scope);
     {
         int previousLineLevel = it->Level;
@@ -458,14 +483,15 @@ Block* ParseBlock(
             }
         }
     }
-    ExitScope();
+    ExitScope(scopeIsLocal);
 
     return thisBlock;
 }
 
 Program* ParseProgram(const std::string filepath)
 {
-    InitializePROGRAM();
+    Program* p = ProgramConstructor();
+    EnterProgram(p);
 
     std::fstream file;
     file.open(filepath, std::ios::in);
@@ -484,11 +510,53 @@ Program* ParseProgram(const std::string filepath)
         lineLevel = LevelOfLine(line);
 
         CodeLine ls = { tokens , lineStart, lineLevel };
-        PROGRAM->Lines.push_back(ls);
+        p->Lines.push_back(ls);
+
     }
 
     // TODO: Allow different blocks
-    Block* b = ParseBlock(PROGRAM->Lines.begin(), PROGRAM->Lines.end(), PROGRAM->GlobalScope);
-    PROGRAM->Main = b;
-    return PROGRAM;
+    Block* b = ParseBlock(p->Lines.begin(), p->Lines.end(), p->GlobalScope);
+    p->Main = b;
+
+    ExitProgram();
+    return p;
+}
+
+void DeleteBlockRecursive(Block* b)
+{
+    for(auto exec: b->Executables)
+    {
+        if(exec->ExecType == ExecutableType::Block)
+            DeleteBlockRecursive(static_cast<Block*>(exec));
+        else
+            DeleteOperationRecursive(static_cast<Operation*>(exec));
+    }
+    BlockDestructor(b);
+}
+
+
+void ProgramDestructor(Program* p)
+{
+    for(size_t i=0; i<p->ObjectsIndex.size(); i++)
+    {
+        auto& map = p->ObjectsIndex[i];
+        for(auto ref: map.References)
+        {
+            ReferenceDestructor(ref);
+        }
+        if(map.IndexedObject == NullObject())
+            continue;
+        ObjectDestructor(map.IndexedObject);
+    }
+
+    ScopeDestructor(p->GlobalScope);
+
+    for(auto codeLine: p->Lines)
+    {
+        DeleteTokenList(codeLine.Tokens);
+    }
+
+    DeleteBlockRecursive(p->Main);
+
+    delete p;
 }

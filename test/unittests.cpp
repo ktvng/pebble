@@ -1,5 +1,18 @@
 #include "unittests.h"
 
+#include "decision.h"
+#include "parse.h"
+#include "token.h"
+#include "diagnostics.h"
+#include "execute.h"
+#include "main.h"
+#include "object.h"
+#include "operation.h"
+#include "program.h"
+#include "reference.h"
+#include "scope.h"
+
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Tests
 
@@ -110,8 +123,8 @@ void TestScopeAccess()
 
     CompileAndExecuteProgram("TestScopeAccess");
 
-    TestObjectMemoryLoss();
-    TestReferenceMemoryLoss();
+    TestGenericMemoryLoss("Object");
+    TestGenericMemoryLoss("Reference");
 
     String correctOutput = "Nothing\nNothing\nNothing\nNothing\n10\n";
 

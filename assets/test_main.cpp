@@ -21,6 +21,9 @@ int main(int argc, char *argv[])
         std::string arg = argv[i];
         if(arg == "--ignore-custom")
             g_shouldRunCustomProgram = false;
+
+        if(arg == "--noisy")
+            g_noisyReport = true;
         
     }
     bool testsFailed = Test();

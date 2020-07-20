@@ -1,11 +1,10 @@
 #ifndef __SCOPE_H
 #define __SCOPE_H
 
-#include "main.h"
-#include "object.h"
-#include "diagnostics.h"
-#include "program.h"
-#include "reference.h"
+#include "abstract.h"
+
+
+
 
 
 
@@ -20,6 +19,7 @@ struct Scope
 {
     std::vector<Reference*> ReferencesIndex;
     Scope* InheritedScope;
+    bool IsDurable;
 };
 
 
@@ -29,6 +29,12 @@ struct Scope
 /// create a new scope with [inheritedScope]
 Scope* ScopeConstructor(Scope* inheritedScope);
 
+bool ScopeStackIsEmpty();
+
+/// destroys the [scope]
+void ScopeDestructor(Scope* scope);
+
+void WipeScope(Scope* scope);
 
 /// add [newscope] to the top of the scope stack so all reference matching is done inside [newscope] 
 void EnterScope(Scope* newScope);
@@ -37,10 +43,7 @@ void EnterScope(Scope* newScope);
 Scope* CurrentScope();
 
 /// pops the top of the scope stack to return to the previous scope
-void ExitScope(); 
-
-/// removes all references in the current scope
-void ClearScope();
+void ExitScope(bool andDestroy = false); 
 
 /// adds [ref] to the ReferencesIndex of the current scope
 void AddReferenceToCurrentScope(Reference* ref);

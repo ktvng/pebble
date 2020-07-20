@@ -1,5 +1,14 @@
 #include "parse.h"
 
+#include "main.h"
+#include "token.h"
+#include "diagnostics.h"
+#include "reference.h"
+#include "operation.h"
+#include "scope.h"
+#include "object.h"
+#include "program.h"
+
 // ---------------------------------------------------------------------------------------------------------------------
 // PrecedenceClass
 bool PrecedenceClass::Contains(String symb)
@@ -129,9 +138,9 @@ int PrecedenceOf(Token* lookaheadToken)
 
 void AssignRulePrecedences()
 {
-    for(auto rule: Grammar)
+    for(auto& rule: Grammar)
     {
-        rule->Precedence = PrecedenceOf(rule->Symbol);
+        rule.Precedence = PrecedenceOf(rule.Symbol);
     }
 }
 
@@ -147,44 +156,43 @@ void AddPrecedenceClass(TokenList& tokens)
 
 void AddGrammarRuleInternal(
     TokenList&tokens, 
-    CFGRule** rule, 
     String& name, 
     String& symbol, 
     String& parseMethod, 
     PrecedenceClass& higherpclass, 
     PrecedenceClass& lowerpclass)
 {
-    *rule = new CFGRule;
+    CFGRule rule;
 
-    (*rule)->HasHigherPrecedenceClassOverride = false;
-    (*rule)->HasLowerPrecedenceClassOverride = false;
+    rule.HasHigherPrecedenceClassOverride = false;
+    rule.HasLowerPrecedenceClassOverride = false;
 
-    (*rule)->Name = name;
-    (*rule)->Symbol = symbol; 
-    (*rule)->ParseMethod = parseMethod; 
+    rule.Name = name;
+    rule.Symbol = symbol; 
+    rule.ParseMethod = parseMethod; 
 
-    (*rule)->OpType = StringNameToOperationType((*rule)->Name);
-    (*rule)->FromProduction = tokens.at(0)->Content;
-    AddProductionVariable((*rule)->FromProduction);
+    rule.OpType = StringNameToOperationType(rule.Name);
+    rule.FromProduction = tokens.at(0)->Content;
+    AddProductionVariable(rule.FromProduction);
 
     if(!higherpclass.Members.empty())
     {
-        (*rule)->HasHigherPrecedenceClassOverride = true;
-        (*rule)->HigherPrecedenceClass = higherpclass;
+        rule.HasHigherPrecedenceClassOverride = true;
+        rule.HigherPrecedenceClass = higherpclass;
     }
 
     if(!lowerpclass.Members.empty())
     {
-        (*rule)->HasLowerPrecedenceClassOverride = true;
-        (*rule)->LowerPrecedenceClass = lowerpclass;
+        rule.HasLowerPrecedenceClassOverride = true;
+        rule.LowerPrecedenceClass = lowerpclass;
     }
 
     for(size_t i=3; i<tokens.size(); i++)
     {
-        (*rule)->IntoPattern.push_back(tokens.at(i)->Content);
+        rule.IntoPattern.push_back(tokens.at(i)->Content);
     }
 
-    Grammar.push_back((*rule));
+    Grammar.push_back(rule);
 }
 
 PrecedenceClass GetOverridePrecedenceClass(TokenList& tokens)
@@ -199,7 +207,7 @@ PrecedenceClass GetOverridePrecedenceClass(TokenList& tokens)
     return pclass;
 }
 
-void AddGrammarRule(TokenList& tokens, CFGRule** rule)
+void AddGrammarRule(TokenList& tokens)
 {
     static String name;
     static String symbol;
@@ -226,7 +234,7 @@ void AddGrammarRule(TokenList& tokens, CFGRule** rule)
     }
     else if(tokens.at(0)->Type == TokenType::Reference)
     {
-        AddGrammarRuleInternal(tokens, rule, name, symbol, parseMethod, higherpclass, lowerpclass);
+        AddGrammarRuleInternal(tokens, name, symbol, parseMethod, higherpclass, lowerpclass);
     }
 }
 
@@ -235,8 +243,6 @@ void CompileGrammar()
     std::fstream file;
     file.open("./assets/grammar.txt", std::ios::in);
 
-
-    CFGRule* rule = nullptr;
 
     // state: +1 upon every occurance of '###'
     //  0: skip all lines
@@ -248,12 +254,17 @@ void CompileGrammar()
     String line;
     while(std::getline(file, line))
     {
+        /// TODO: we don't need to lex every line we should skip the comments
         TokenList tokens = LexLine(line);
         if(tokens.empty())
+        {
+            DeleteTokenList(tokens);
             continue;
+        }
 
         if(tokens.at(0)->Content == "#")
         {
+            DeleteTokenList(tokens);
             state++;
             continue;
         }
@@ -261,13 +272,16 @@ void CompileGrammar()
         switch(state)
         {
             case 1:
-            AddGrammarRule(tokens, &rule);
+            AddGrammarRule(tokens);
+            DeleteTokenList(tokens);
             continue;
             case 2:
             AddPrecedenceClass(tokens);
+            DeleteTokenList(tokens);
             break;
 
             default:
+            DeleteTokenList(tokens);
             continue;
         }
     }
@@ -324,26 +338,32 @@ ParseToken* ParseTokenConstructor(String tokenType)
     return gt;
 }
 
+void ParseTokenDestructor(ParseToken* token)
+{
+    delete token;
+}
+
 /// constructs a operation of type OperationType::Ref with either a primitive value or a named Reference stub
 Operation* RefOperation(Token* refToken)
 {
     Reference* ref = ReferenceForPrimitive(refToken, c_operationReferenceName);
     if(ref == nullptr)
     {
-        ref = ReferenceStub(refToken->Content);
+        ref = ReferenceStubConstructor(refToken->Content);
     }
+
     Operation* op = OperationConstructor(OperationType::Ref, ref);
 
     return op;
 }
 
-CFGRule* MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail)
+bool MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail, CFGRule& match)
 {
-    for(CFGRule* rule: Grammar)
+    for(CFGRule& rule: Grammar)
     {
         bool isMatchForRule = true;
         ParseToken* listItr = listTail;
-        for(int i=rule->IntoPattern.size()-1; i>=0; i--, listItr = listItr->Prev)
+        for(int i=rule.IntoPattern.size()-1; i>=0; i--, listItr = listItr->Prev)
         {
             // false if rule is longer than the list
             if(listItr == nullptr)
@@ -352,16 +372,19 @@ CFGRule* MatchGrammarPatterns(ParseToken* listHead, ParseToken* listTail)
                 break;
             }
 
-            if(listItr->TokenType != rule->IntoPattern.at(i))
+            if(listItr->TokenType != rule.IntoPattern.at(i))
             {
                 isMatchForRule = false;
                 break;
             }
         }
         if(isMatchForRule)
-            return rule;
+        {
+            match = rule;
+            return true;
+        }
     }
-    return nullptr;
+    return false;
 }
 
 void DestroyList(ParseToken* listHead)
@@ -371,7 +394,7 @@ void DestroyList(ParseToken* listHead)
     {
         prevToken = listHead;
         listHead = listHead->Next;
-        delete prevToken;
+        ParseTokenDestructor(prevToken);
     }
 }
 
@@ -388,9 +411,9 @@ bool ParseTokenTypeMatches(String TokenType, std::vector<String> matchTypes)
 
 
 /// pushes listTail back to before the [rule] pattern and sets listSnipHead to be the head (start) of [rule] in the ParseStack
-void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, ParseToken** listSnipHead, CFGRule* rule)
+void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, ParseToken** listSnipHead, CFGRule& rule)
 {
-    int backtrackAmount = rule->IntoPattern.size()-1;
+    int backtrackAmount = rule.IntoPattern.size()-1;
 
     for(int i=0; i<backtrackAmount; i++, *listSnipHead = (*listSnipHead)->Prev);
 
@@ -408,7 +431,7 @@ void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, Pars
 }
 
 /// assumes that the list matches [rule] and removes the rule
-OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** listTail, CFGRule* rule)
+OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** listTail, CFGRule& rule)
 {
     OperationsList operands;
     operands.reserve(5);
@@ -433,13 +456,13 @@ OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** list
 
 
 /// collapse a rule by adding each component as the operand of a new operation
-Operation* CollapseByReduce(CFGRule* rule, OperationsList& components)
+Operation* CollapseByReduce(CFGRule& rule, OperationsList& components)
 {
-    return OperationConstructor(rule->OpType, components);
+    return OperationConstructor(rule.OpType, components);
 }
 
 /// collapse a rule by merging all components into the first component's operand list
-Operation* CollapseByMerge(CFGRule* rule, OperationsList& components)
+Operation* CollapseByMerge(CFGRule& rule, OperationsList& components)
 {
     OperationsList& oplist = components.at(0)->Operands;
     
@@ -451,28 +474,28 @@ Operation* CollapseByMerge(CFGRule* rule, OperationsList& components)
     return components.at(0);
 }
 
-Operation* HackOperation()
+Operation* NothingStubOperation()
 {
-    return OperationConstructor(OperationType::Ref, { ReferenceStub("Hack") }); 
+    return OperationConstructor(OperationType::Ref, { ReferenceStubConstructor(c_nullStubName) }); 
 }
 
-Operation* CollapseByScopedEval(CFGRule* rule, OperationsList& components)
+Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)
 {
     if(components.size() < 3)
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
 
-    return OperationConstructor(rule->OpType, components);
+    return OperationConstructor(rule.OpType, components);
 }
 
-Operation* CollapseByUnscopedEval(CFGRule* rule, OperationsList& components)
+Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
 {
     if(components.size() == 1)
     {
         auto op = components[0];
         components.clear();
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
         components.push_back(op);
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
     }
     else
     {
@@ -480,12 +503,12 @@ Operation* CollapseByUnscopedEval(CFGRule* rule, OperationsList& components)
         auto op2 = components[1];
         
         components.clear();
-        components.push_back(HackOperation());
+        components.push_back(NothingStubOperation());
         components.push_back(op1);
         components.push_back(op2);
     }
 
-    return OperationConstructor(rule->OpType, components);
+    return OperationConstructor(rule.OpType, components);
 }
 
 Reference* ScopeChainTerminal(Operation* op)
@@ -500,61 +523,41 @@ Reference* ScopeChainTerminal(Operation* op)
 }
 
 /// collapse a rule corresponding to defining a method
-Operation* CollapseAsDefineMethod(CFGRule* rule, OperationsList& components)
+Operation* CollapseAsDefineMethod(CFGRule& rule, OperationsList& components)
 {
     LogItDebug("Custom type", "CollapseAsDefineMethod");
 
-    auto methodName = components.at(0)->Value->Name;
-    
-    Method* m = MethodConstructor(CurrentScope());
-    if(components.size() > 1)
-    {
-        if(components.at(1)->Type == OperationType::Tuple)
-        {
-            for(auto op: components.at(1)->Operands)
-            {
-                m->ParameterNames.push_back(ScopeChainTerminal(op)->Name);
-            }
-        }
-        else
-        {
-            auto chain = components.at(1);
-            m->ParameterNames.push_back(ScopeChainTerminal(chain)->Name);
-        }
-    }
-
-    Reference* ref = ReferenceFor(methodName, m);
-    return OperationConstructor(OperationType::DefineMethod, { OperationConstructor(OperationType::Ref, ref) } );
+    return OperationConstructor(OperationType::DefineMethod, components );
 }
 
-Operation* CollapseByChain(CFGRule* rule, OperationsList& components)
+Operation* CollapseByChain(CFGRule& rule, OperationsList& components)
 {
-    return OperationConstructor(rule->OpType, { components.at(0), components.at(1) } );
+    return OperationConstructor(rule.OpType, { components.at(0), components.at(1) } );
 }
 
-Operation* CollapseRuleInternal(CFGRule* rule, OperationsList& components)
+Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
 {
-    if(rule->ParseMethod == "Reduce")
+    if(rule.ParseMethod == "Reduce")
     {
         return CollapseByReduce(rule, components);
     }
-    else if(rule->ParseMethod == "Retain")
+    else if(rule.ParseMethod == "Retain")
     {
         return components.at(0);
     }
-    else if(rule->ParseMethod == "Merge")
+    else if(rule.ParseMethod == "Merge")
     {
         return CollapseByMerge(rule, components);
     }
-    else if(rule->ParseMethod == "Custom")
+    else if(rule.ParseMethod == "Custom")
     {
         return CollapseAsDefineMethod(rule, components);
     }
-    else if(rule->ParseMethod == "ScopedEval")
+    else if(rule.ParseMethod == "ScopedEval")
     {
         return CollapseByScopedEval(rule, components);
     }
-    else if(rule->ParseMethod == "UnscopedEval")
+    else if(rule.ParseMethod == "UnscopedEval")
     {
         return CollapseByUnscopedEval(rule, components);
     }
@@ -566,12 +569,12 @@ Operation* CollapseRuleInternal(CFGRule* rule, OperationsList& components)
 }
 
 /// reverses a rule in the ParseStack
-void CollapseListByRule(ParseToken** listHead, ParseToken** listTail, CFGRule* rule)
+void CollapseListByRule(ParseToken** listHead, ParseToken** listTail, CFGRule& rule)
 {
     OperationsList operands = GetOperandsAndRemoveRule(listHead, listTail, rule);
     Operation* op = CollapseRuleInternal(rule, operands);
 
-    ParseToken* t = ParseTokenConstructor(rule->FromProduction);
+    ParseToken* t = ParseTokenConstructor(rule.FromProduction);
     t->Value = op;
 
     AddToList(listHead, listTail, t);
@@ -605,7 +608,7 @@ void AddSimpleToken(ParseToken** listHead, ParseToken** listTail, Token* token)
 }
 
 const std::vector<String> SkippedKeyWords = { "the", "an", "a" };
-const std::vector<String> ReferenceKeyWords = { "caller", "that", "it" };
+const std::vector<String> ReferenceKeyWords = { "caller", "self", "that", "it" };
 
 void AddNextTokenToList(ParseToken** listHead, ParseToken** listTail, Token* currentToken)
 {
@@ -623,20 +626,20 @@ void AddNextTokenToList(ParseToken** listHead, ParseToken** listTail, Token* cur
     }
 }
 
-bool CurrentRuleHasHigherPrecedence(CFGRule* rule, Token* lookaheadToken)
+bool CurrentRuleHasHigherPrecedence(CFGRule& rule, Token* lookaheadToken)
 {
     if(lookaheadToken != nullptr)
     {
         auto symb = lookaheadToken->Content;
-        if(rule->HasHigherPrecedenceClassOverride && rule->HigherPrecedenceClass.Contains(symb))
+        if(rule.HasHigherPrecedenceClassOverride && rule.HigherPrecedenceClass.Contains(symb))
             return false;
 
-        if(rule->HasLowerPrecedenceClassOverride && rule->LowerPrecedenceClass.Contains(symb))
+        if(rule.HasLowerPrecedenceClassOverride && rule.LowerPrecedenceClass.Contains(symb))
             return true;
     }
 
 
-    int currentRulePrecedence = rule->Precedence;
+    int currentRulePrecedence = rule.Precedence;
     int lookaheadPrecedence = PrecedenceOf(lookaheadToken);
     return (currentRulePrecedence >= lookaheadPrecedence);
 }
@@ -645,20 +648,17 @@ bool CurrentRuleHasHigherPrecedence(CFGRule* rule, Token* lookaheadToken)
 /// the list. continue doing so until no rules match
 void TryReversingGrammarRules(ParseToken** listHead, ParseToken** listTail, Token* lookaheadToken)
 {
-    CFGRule* match = MatchGrammarPatterns(*listHead, *listTail);
+    CFGRule match;
 
-    while(match != nullptr)
+    while(MatchGrammarPatterns(*listHead, *listTail, match))
     {
-        if(match != nullptr){
-            if(CurrentRuleHasHigherPrecedence(match, lookaheadToken))
-            {
-                CollapseListByRule(listHead, listTail, match);
-                match = MatchGrammarPatterns(*listHead, *listTail);
-            }
-            else
-            {
-                break;
-            }
+        if(CurrentRuleHasHigherPrecedence(match, lookaheadToken))
+        {
+            CollapseListByRule(listHead, listTail, match);
+        }
+        else
+        {
+            break;
         }
         LogParseStack(*listHead);
     }
@@ -690,6 +690,7 @@ Operation* ExpressionParser(TokenList& line)
     // if the line could not be parsed
     if(listHead != listTail)
     {
+        DestroyList(listHead);
         ReportCompileMsg(SystemMessageType::Exception, "syntax error");
         FatalCompileError = true;
         return nullptr;
@@ -697,5 +698,9 @@ Operation* ExpressionParser(TokenList& line)
 
     // resolving references will be done at runtime
     LogItDebug("end reached", "ExpressionParser");
-    return listHead->Value;
+    
+    auto ast = listHead->Value;
+    DestroyList(listHead);
+
+    return ast;
 }

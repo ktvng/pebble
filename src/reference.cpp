@@ -1,9 +1,13 @@
 
 #include "reference.h"
-#include "object.h"
-#include "utils.h"
-#include "scope.h"
 
+#include "main.h"
+#include "object.h"
+#include "scope.h"
+#include "program.h"
+#include "token.h"
+#include "diagnostics.h"
+#include "operation.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // TODO:
@@ -19,21 +23,24 @@ void RemoveReferenceFromCurrentScope(Reference* ref)
 {
     size_t refLoc;
     for(refLoc = 0; refLoc<CurrentScope()->ReferencesIndex.size() && CurrentScope()->ReferencesIndex.at(refLoc) != ref; refLoc++);
-    CurrentScope()->ReferencesIndex.erase(CurrentScope()->ReferencesIndex.begin()+refLoc);
+    if(refLoc != CurrentScope()->ReferencesIndex.size())
+        CurrentScope()->ReferencesIndex.erase(CurrentScope()->ReferencesIndex.begin()+refLoc);
 }
 
 /// Remove a reference from ObjectIndex of the global PROGRAM
 void RemoveReferenceFromObjectIndex(Reference* ref)
 {
-    ObjectReferenceMap* map = EntryInIndexOf(ObjectOf(ref));
-    if(map == nullptr)
+    ObjectReferenceMap* map = nullptr;
+    if(FoundEntryInIndexOf(ObjectOf(ref), &map))
+    {
+        size_t refLoc;
+        for(refLoc=0; refLoc<map->References.size() && ref != map->References.at(refLoc); refLoc++);
+        map->References.erase(map->References.begin()+refLoc);
+    }
+    else
     {
         LogIt(LogSeverityType::Sev3_Critical, "RemoveReferenceFromObjectIndex", "cannot find reference in ObjectIndex");
-        return;
     }
-    size_t refLoc;
-    for(refLoc=0; refLoc<map->References.size() && ref != map->References.at(refLoc); refLoc++);
-    map->References.erase(map->References.begin()+refLoc);
 }
 
 /// true if [ref] is a temporary reference
@@ -94,24 +101,12 @@ Reference* GetReference(String refName)
 // ---------------------------------------------------------------------------------------------------------------------
 // Reference Info
 
-/// true if [ref] points to a Method
-bool IsMethod(Reference* ref)
-{
-    if(ref == nullptr)
-        return false;
-    if(MethodOf(ref) != nullptr)
-        return true;
-    return false;
-}
-
 /// true if [ref] points to an Object
 bool IsObject(Reference* ref)
 {
     if(ref == nullptr)
         return false;
-    if(ObjectOf(ref) != nullptr)
-        return true;
-    return false;
+    return true;
 }
 
 bool IsPrimitiveObject(Reference* ref)
@@ -132,9 +127,9 @@ bool IsPrimitiveObject(Reference* ref)
 /// exists, the reference will point to that. otherwise a new object is created for the returned reference
 Reference* ReferenceForPrimitive(int value, String name)
 {
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->IndexedObject;
+        Object* obj = map.IndexedObject;
         if(obj->Class == IntegerClass && GetIntValue(*obj) == value)
             return CreateReference(name, obj);
     }
@@ -145,9 +140,9 @@ Reference* ReferenceForPrimitive(int value, String name)
 /// exists, the reference will point to that. otherwise a new object is created for the returned reference
 Reference* ReferenceForPrimitive(double value, String name)
 {
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->IndexedObject;
+        Object* obj = map.IndexedObject;
         if(obj->Class == DecimalClass && GetDecimalValue(*obj) == value)
             return CreateReference(name, obj);
     }
@@ -158,9 +153,9 @@ Reference* ReferenceForPrimitive(double value, String name)
 /// exists, the reference will point to that. otherwise a new object is created for the returned reference
 Reference* ReferenceForPrimitive(bool value, String name)
 {
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->IndexedObject;
+        Object* obj = map.IndexedObject;
         if(obj->Class == BooleanClass && GetBoolValue(*obj) == value)
             return CreateReference(name, obj);
     }
@@ -171,9 +166,9 @@ Reference* ReferenceForPrimitive(bool value, String name)
 /// exists, the reference will point to that. otherwise a new object is created for the returned reference
 Reference* ReferenceForPrimitive(String value, String name)
 {
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
-        Object* obj = map->IndexedObject;
+        Object* obj = map.IndexedObject;
         if(obj->Class == StringClass && GetStringValue(*obj) == value)
             return CreateReference(name, obj);
     }
@@ -245,6 +240,16 @@ Reference* ReferenceFor(String refName)
     return GetReference(refName);
 }
 
+Reference* ReferenceForInImmediateScope(String refName, Scope* scope)
+{
+    for(auto ref: scope->ReferencesIndex)
+    {
+        if(NameMatchesReference(refName, ref))
+            return ref;
+    }
+    return nullptr;
+}
+
 /// gets a reference for a Integer primitive
 Reference* ReferenceFor(String refName, int value)
 {
@@ -300,21 +305,19 @@ Reference* ReferenceFor(String refName, ObjectClass objClass, void* value)
     return ref;
 }
 
-/// defines a new reference named [refName] to [referable]
-Reference* ReferenceFor(String refName, Referable* refable)
+/// defines a new reference named [refName] to [Object]
+Reference* ReferenceFor(String refName, Object* obj)
 {
-    Reference* ref = CreateReference(refName, refable);
+    Reference* ref = CreateReference(refName, obj);
     AddReferenceToCurrentScope(ref);
     return ref;
 }
 
 /// reassign an existing reference [ref] to [to]
-void ReassignReference(Reference* ref, Referable* to)
+void ReassignReference(Reference* ref, Object* to)
 {
-    if(ObjectOf(ref) != nullptr)
-        RemoveReferenceFromObjectIndex(ref);
-    if(to->Type == ReferableType::Object)
-        IndexObject(static_cast<Object*>(to), ref);
+    RemoveReferenceFromObjectIndex(ref);
+    IndexObject(to, ref);
     
     ref->To = to;
 }
@@ -324,7 +327,7 @@ void ReassignReference(Reference* ref, Referable* to)
 
 /// create a reference stub used in parsing. This is a stand-in unscoped Reference object
 /// that must be resolved into a proper reference 
-Reference* ReferenceStub(String refName)
+Reference* ReferenceStubConstructor(String refName)
 {
     Reference* ref = new Reference;
     ref->Name = refName;
@@ -333,10 +336,15 @@ Reference* ReferenceStub(String refName)
     return ref;
 }
 
+void ReferenceStubDestructor(Reference* ref)
+{
+    delete ref;
+}
+
 /// true if [ref] is a stub
 bool IsReferenceStub(Reference* ref)
 {
-    return ObjectOf(ref) == nullptr && MethodOf(ref) == nullptr;
+    return ObjectOf(ref) == nullptr;
 }
 
 

@@ -4,8 +4,11 @@
 #include "program.h"
 #include "reference.h"
 #include "execute.h"
-
-
+#include "main.h"
+#include "token.h"
+#include "object.h"
+#include "scope.h"
+#include "diagnostics.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -13,7 +16,6 @@
 // 1. Refactor code to put similar methods in the same section (i.e. DecideProbabilityX, OperationX, DecideOperandsX)
 // 2. Implement unimplemented operations
 // 3. Revamp the DecideOperandsX system
-
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -78,24 +80,39 @@ Operation* OperationConstructor(
 }
 
 /// constructor for an operation of [type], with [operands], and value [value]. only operations
-/// of type Ref::Operation should have non-nullptr value.
+/// of type Ref::Operation should have non-nullptr value. For memcheck purposes, cannot call the
+/// other constructor
 Operation* OperationConstructor(
     OperationType type, 
     Reference* value,
     OperationsList operands)
 {
-    return OperationConstructor(type, operands, value);
+    Operation* op = new Operation;
+    op->LineNumber = -1;
+    op->Operands = operands;
+    op->Type = type;
+    op->Value = value;
+
+    op->ExecType = ExecutableType::Operation;
+
+    return op;
 }
 
-/// constructor for a Method* object with [inheritedScope]
-Method* MethodConstructor(Scope* inheritedScope)
+void OperationDestructor(Operation* op)
 {
-    Method* m = new Method;
-    m->CodeBlock = BlockConstructor();
-    m->Type = ReferableType::Method;
-    m->ParameterNames = {};
+    delete op;
+}
 
-    return m;
+void DeleteOperationRecursive(Operation* op)
+{
+    for(auto operand: op->Operands)
+        DeleteOperationRecursive(operand);
+    
+    if(op->Type == OperationType::Ref && IsReferenceStub(op->Value))
+    {
+        ReferenceStubDestructor(op->Value);
+    }
+    OperationDestructor(op);
 }
 
 Reference* ResolveStub(Reference* ref) 
@@ -108,7 +125,7 @@ Reference* ResolveStub(Reference* ref)
         if(PROGRAM->That == nullptr)
         {
             ReportRuntimeMsg(SystemMessageType::Exception, "no previous result to use with 'that'/'it' keyword");
-            return NullReference(ref->Name);
+            return NullReference(c_temporaryReferenceName);
         }
         return ReferenceFor(c_temporaryReferenceName, PROGRAM->That->To);
     }
@@ -120,21 +137,21 @@ Reference* ResolveStub(Reference* ref)
         return lookupRef;
 }
 
-inline Reference* NthOf(std::vector<Reference*>& operands, int n)
+inline Reference* ResolveNthOf(std::vector<Reference*>& operands, size_t n)
 {
-    if(operands.size() >= static_cast<size_t>(n))
+    if(operands.size() >= n)
         return ResolveStub(operands.at(n-1));
     return nullptr;
 }
 
-inline Reference* FirstOf(std::vector<Reference*>& operands)
+inline Reference* ResolveFirst(std::vector<Reference*>& operands)
 {
-    return NthOf(operands, 1);
+    return ResolveNthOf(operands, 1);
 }
 
-inline Reference* SecondOf(std::vector<Reference*>& operands)
+inline Reference* ResolveSecond(std::vector<Reference*>& operands)
 {
-    return NthOf(operands, 2);
+    return ResolveNthOf(operands, 2);
 }
 
 bool ReferencesAreEqual(Reference* lhs, Reference* rhs)
@@ -145,8 +162,8 @@ bool ReferencesAreEqual(Reference* lhs, Reference* rhs)
 /// TODO: allow intra primitive comparisions
 Reference* OperationIsEqual(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lhs = FirstOf(operands);
-    Reference* rhs = SecondOf(operands);
+    Reference* lhs = ResolveFirst(operands);
+    Reference* rhs = ResolveSecond(operands);
     bool areEqual = ReferencesAreEqual(lhs, rhs);
     
     return ReferenceFor(c_temporaryReferenceName, areEqual);
@@ -154,8 +171,8 @@ Reference* OperationIsEqual(Reference* value, std::vector<Reference*>& operands)
 
 Reference* OperationIsNotEqual(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lhs = FirstOf(operands);
-    Reference* rhs = SecondOf(operands);
+    Reference* lhs = ResolveFirst(operands);
+    Reference* rhs = ResolveSecond(operands);
     bool areEqual = ReferencesAreEqual(lhs, rhs);
     
     return ReferenceFor(c_temporaryReferenceName, !areEqual);
@@ -163,8 +180,8 @@ Reference* OperationIsNotEqual(Reference* value, std::vector<Reference*>& operan
 
 Reference* OperationIsLessThan(Reference* value, std::vector<Reference*>& operands)
 {
-    auto lRef = FirstOf(operands);
-    auto rRef = SecondOf(operands);
+    auto lRef = ResolveFirst(operands);
+    auto rRef = ResolveSecond(operands);
     bool comparisonIs = false;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -177,8 +194,8 @@ Reference* OperationIsLessThan(Reference* value, std::vector<Reference*>& operan
 
 Reference* OperationIsGreaterThan(Reference* value, std::vector<Reference*>& operands)
 {
-    auto lRef = FirstOf(operands);
-    auto rRef = SecondOf(operands);
+    auto lRef = ResolveFirst(operands);
+    auto rRef = ResolveSecond(operands);
     bool comparisonIs = false;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -191,8 +208,8 @@ Reference* OperationIsGreaterThan(Reference* value, std::vector<Reference*>& ope
 
 Reference* OperationIsLessThanOrEqualTo(Reference* value, std::vector<Reference*>& operands)
 {
-    auto lRef = FirstOf(operands);
-    auto rRef = SecondOf(operands);
+    auto lRef = ResolveFirst(operands);
+    auto rRef = ResolveSecond(operands);
     bool comparisonIs = false;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -205,8 +222,8 @@ Reference* OperationIsLessThanOrEqualTo(Reference* value, std::vector<Reference*
 
 Reference* OperationIsGreaterThanOrEqualTo(Reference* value, std::vector<Reference*>& operands)
 {
-    auto lRef = FirstOf(operands);
-    auto rRef = SecondOf(operands);
+    auto lRef = ResolveFirst(operands);
+    auto rRef = ResolveSecond(operands);
     bool comparisonIs = false;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -220,8 +237,8 @@ Reference* OperationIsGreaterThanOrEqualTo(Reference* value, std::vector<Referen
 
 Reference* OperationOr(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lRef = FirstOf(operands);
-    Reference* rRef = SecondOf(operands);
+    Reference* lRef = ResolveFirst(operands);
+    Reference* rRef = ResolveSecond(operands);
 
     bool b = GetBoolValue(*ObjectOf(lRef)) || GetBoolValue(*ObjectOf(rRef));
     return ReferenceFor(c_temporaryReferenceName, b);
@@ -229,7 +246,7 @@ Reference* OperationOr(Reference* value, std::vector<Reference*>& operands)
 
 Reference* OperationNot(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* ref = FirstOf(operands);
+    Reference* ref = ResolveFirst(operands);
 
     bool b = !GetBoolValue(*ObjectOf(ref));
     return ReferenceFor(c_temporaryReferenceName, b);
@@ -251,16 +268,17 @@ Reference* OperationRef(Reference* value, std::vector<Reference*>& operands)
     return value;
 }
 
-/// handles OperationType::Assign which assigns a reference [lRef] to the Referable of [rRef]
-/// returns a temporary reference to the assigned Referable
+/// handles OperationType::Assign which assigns a reference [lRef] to the Object of [rRef]
+/// returns a temporary reference to the assigned Object
 Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lRef = FirstOf(operands);
-    Reference* rRef = SecondOf(operands);
+    Reference* lRef = ResolveFirst(operands);
+    Reference* rRef = ResolveSecond(operands);
 
     if(IsNullReference(rRef))
     {
         ReportRuntimeMsg(SystemMessageType::Warning, Msg("cannot assign %s to Nothing", lRef));
+        Dereference(lRef);
         return ReferenceFor(c_temporaryReferenceName, lRef->To);
     }
 
@@ -269,16 +287,20 @@ Reference* OperationAssign(Reference* value, std::vector<Reference*>& operands)
 }
 
 /// handles OperationType::Print which prints the string value of [ref]
-/// returns a temporary reference to the printed Referable
+/// returns a temporary reference to the printed Object
 Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* ref = FirstOf(operands);
+    Reference* ref = ResolveFirst(operands);
 
     if(g_outputOn)
         std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
     ProgramOutput.append(GetStringValue(*ObjectOf(ref)) + "\n");
+
+    auto returnRef = ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
+    if(IsNullReference(ref))
+        Dereference(ref);
     
-    return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
+    return returnRef;
 }
 
 /// handles OperationType::Add which adds the objects of [lRef] and [rRef]
@@ -286,8 +308,8 @@ Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands)
 /// returns a temporary reference to the addition result, which is null on failure
 Reference* OperationAdd(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lRef = FirstOf(operands);
-    Reference* rRef = SecondOf(operands);
+    Reference* lRef = ResolveFirst(operands);
+    Reference* rRef = ResolveSecond(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -332,44 +354,19 @@ Reference* OperationAdd(Reference* value, std::vector<Reference*>& operands)
 /// returns a temporary reference to the result
 Reference* OperationAnd(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lRef = FirstOf(operands);
-    Reference* rRef = SecondOf(operands);
+    Reference* lRef = ResolveFirst(operands);
+    Reference* rRef = ResolveSecond(operands);
 
     bool b = GetBoolValue(*ObjectOf(lRef)) && GetBoolValue(*ObjectOf(rRef));
     return ReferenceFor(c_temporaryReferenceName, b);
-}
-
-/// handles OperationType::Define which adds a new reference to the current scope
-/// returns the newly added [ref]
-Reference* OperationDefine(Reference* value, std::vector<Reference*>& operands)
-{
-    Reference* ref = FirstOf(operands);
-    Reference* containerRef = SecondOf(operands);
-
-    if(containerRef != nullptr)
-    {
-        EnterScope(ObjectOf(containerRef)->Attributes);
-        {
-            AddReferenceToCurrentScope(ref);
-        }
-        ExitScope();
-    }
-    else
-    {
-        AddReferenceToCurrentScope(ref);
-    }
-
-    LogItDebug(Msg("added reference [%s] to scope", ref->Name), "OperationDefine");
-
-    return ref;
 }
 
 /// handles OperationType::Subtract which is only defined for numeric typed objects
 /// returns a temporary reference to the resultant, null if failed
 Reference* OperationSubtract(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lRef = FirstOf(operands);
-    Reference* rRef = SecondOf(operands);
+    Reference* lRef = ResolveFirst(operands);
+    Reference* rRef = ResolveSecond(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -402,13 +399,13 @@ Reference* OperationSubtract(Reference* value, std::vector<Reference*>& operands
 /// returns a temporary reference to an object representing the evaluated if-expression
 Reference* OperationIf(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* ref = FirstOf(operands);
+    Reference* ref = ResolveFirst(operands);
     return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
 Reference* OperationWhile(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* ref = FirstOf(operands);
+    Reference* ref = ResolveFirst(operands);
     return ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
 }
 
@@ -417,8 +414,8 @@ Reference* OperationWhile(Reference* value, std::vector<Reference*>& operands)
 /// returns a temporary reference to the resultant, null if failed
 Reference* OperationMultiply(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lRef = FirstOf(operands);
-    Reference* rRef = SecondOf(operands);
+    Reference* lRef = ResolveFirst(operands);
+    Reference* rRef = ResolveSecond(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -454,8 +451,8 @@ Reference* OperationMultiply(Reference* value, std::vector<Reference*>& operands
 /// returns a temporary reference to the resultant, null if failed
 Reference* OperationDivide(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* lRef = FirstOf(operands);
-    Reference* rRef = SecondOf(operands);
+    Reference* lRef = ResolveFirst(operands);
+    Reference* rRef = ResolveSecond(operands);
     Reference* resultRef;
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
@@ -488,7 +485,7 @@ Reference* OperationDivide(Reference* value, std::vector<Reference*>& operands)
 /// returns a persistant reference to the return value
 Reference* OperationReturn(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* returnRef = FirstOf(operands);
+    Reference* returnRef = ResolveFirst(operands);
     return ReferenceFor(c_returnReferenceName, returnRef->To);
 }
 
@@ -502,22 +499,45 @@ Reference* OperationReturn(Reference* value, std::vector<Reference*>& operands)
 /// handle the operation which adds a Method [ref] to the scope
 Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* ref = FirstOf(operands);
-    if(operands.size() == 2)
+    Reference* methodRef = ResolveFirst(operands);
+    if(IsNullReference(methodRef))
     {
-        Reference* containingRef = SecondOf(operands);
-        EnterScope(ObjectOf(containingRef)->Attributes);
-        {
-            AddReferenceToCurrentScope(ref);
-        }
-        ExitScope();
+        auto refToNewObj = ReferenceFor(c_temporaryReferenceName, BaseClass, nullptr);
+        
+        /// needed because method scope is destroyed after each call
+        if(CurrentScope()->IsDurable)
+            refToNewObj->To->DefinitionScope = CurrentScope();
+        
+        refToNewObj->To->Action = MethodConstructor();
+        ReassignReference(methodRef, refToNewObj->To);
+        Dereference(refToNewObj);
     }
     else
     {
-        AddReferenceToCurrentScope(ref);
+        if(methodRef->To->Action == nullptr)
+            methodRef->To->Action = MethodConstructor();
     }
-    
-    return NullReference();
+
+    ParameterList params;
+    if(operands.size() > 1)
+    {
+        auto argsRef = ResolveSecond(operands);
+        if(IsNullReference(argsRef) || argsRef->To->Class != TupleClass)
+        {
+            params.push_back(argsRef->Name);
+        }
+        else
+        {
+            for(auto paramRef: argsRef->To->Attributes->ReferencesIndex)
+            {
+                params.push_back(paramRef->Name);
+            }
+        }
+    }
+
+    methodRef->To->Action->ParameterNames = params;
+
+    return methodRef;
 }
 
 
@@ -578,88 +598,102 @@ std::vector<Reference*> ResolveParamters(Reference* ref)
 /// or a temporary reference if no return statement was called
 Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands)
 {
-    auto explictCallerRef = FirstOf(operands);
-    Reference* caller;
+    // operands guarenteed to be at size 3
+    String callerName = operands[0]->Name;
+    Reference* caller = nullptr;
 
-    // no explicit caller is given
-    if(IsNullReference(explictCallerRef))
+    Scope* methodResolutionScope = nullptr;
+    Scope* methodCallerScope = nullptr;
+
+    if(callerName == c_nullStubName)
     {
-        // look for native 'caller' Referene
-        caller = ReferenceFor("caller");
-        if(caller == nullptr)
-            caller = NullReference();
+        methodResolutionScope = CurrentScope();
+        methodCallerScope = nullptr;
     }
     else
     {
-        caller = explictCallerRef;
+        caller = ResolveFirst(operands);
+        if(IsNullReference(caller))
+        {
+            ReportRuntimeMsg(SystemMessageType::Exception, "cannot resolve method caller");
+            return caller;
+        }
+
+        methodResolutionScope = caller->To->Attributes;
+        methodCallerScope = caller->To->Attributes;
     }
-    // determine caller scope
-    Scope* callerScope;
-    if(IsNullReference(caller))
-    {
-        /// TODO: change this b/c this doesnt work well
-        callerScope = CurrentScope();
-    }
-    else
-    {
-        callerScope = ObjectOf(caller)->Attributes;
-    }
-    // resolve method call references inside caller scope
+
     Reference* method;
-    EnterScope(callerScope);
+    EnterScope(methodResolutionScope);
     {
-        method = SecondOf(operands);
+        /// TODO: may want to stay exlusively in caller scope
+        method = ResolveSecond(operands);        
     }
     ExitScope();
     
-    if(IsNullReference(method))
-    {
-        EnterScope(CurrentScope());
-        {
-            method = SecondOf(operands);
-        }
-        ExitScope();
-    }
+    /// TODO: was option to look in local scope even if there is a caller
 
     if(IsNullReference(method))
     {
         ReportRuntimeMsg(SystemMessageType::Exception, Msg("cannot resolve %s into a method", method->Name));
+        return method;
+    }
+    if(method->To->Action == nullptr)
+    {
+        ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is not callable", method->Name));
         return NullReference();
     }
 
-    Reference* params = NthOf(operands, 3);
-
+    Reference* params = ResolveNthOf(operands, 3);
     
     // resolve param refs from params
     std::vector<Reference*> givenParamsList = ResolveParamters(params);
     auto givenNum = givenParamsList.size();
-    auto requiredNum = MethodOf(method)->ParameterNames.size();
+    auto requiredNum = ObjectOf(method)->Action->ParameterNames.size();
     if(givenNum != requiredNum)
     {
         ReportRuntimeMsg(SystemMessageType::Exception, Msg("wrong number of parameters: given %i, but expected %i", givenNum, requiredNum));
         return NullReference();
     }
 
-    auto methodParamNames = MethodOf(method)->ParameterNames;
+    auto methodParamNames = ObjectOf(method)->Action->ParameterNames;
+    
+    /// if no caller, then method scope should be the one it was defined in
+    if(caller == nullptr)
+    {
+        // prefer DefinitionScope if it is durable and has been set. otherwise default to current scope
+        methodCallerScope = method->To->DefinitionScope;
+        if(methodCallerScope == nullptr)
+        {
+            methodCallerScope = CurrentScope();
+        }
+    }
 
     // add parameters to method scope
-    auto methodScope = ScopeConstructor(callerScope);
-    EnterScope(methodScope);
+    auto methodSelfScope = method->To->Attributes;
+    methodSelfScope->InheritedScope = methodCallerScope;
+
+    auto methodBodyScope = ScopeConstructor(methodSelfScope);
+    EnterScope(methodBodyScope);
     {
         for(size_t i=0; i<methodParamNames.size(); i++)
         {
             ReferenceFor(methodParamNames[i], givenParamsList[i]->To);
         }
-        ReferenceFor("caller", caller->To);
+        if(caller == nullptr)
+            NullReference("caller");
+        else
+            ReferenceFor("caller", caller->To);
+
+        ReferenceFor("self", method->To);
     }
     ExitScope();
 
     Reference* result;
-    auto methodBlock = MethodOf(method)->CodeBlock;
-    result = DoBlock(methodBlock, methodScope);
-    AddReferenceToCurrentScope(result);
+    auto methodBlock = ObjectOf(method)->Action->CodeBlock;
+    result = DoBlock(methodBlock, methodBodyScope);
 
-    LogDiagnostics(result, "evaluate result");
+    WipeScope(methodBodyScope);
 
     LogItDebug("finished evaluate", "OperationEvaluate");
     return result;
@@ -673,12 +707,8 @@ Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands
 /// creates a new object and copies all attributes
 Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* ref = FirstOf(operands);
-    
-    for(auto ref: PROGRAM->GlobalScope->ReferencesIndex)
-        LogDiagnostics(ref, "dubaduba");
+    Reference* ref = ResolveFirst(operands);
 
-    LogDiagnostics(ref);
     if(IsNullReference(ref))
     {
         ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is Nothing, it must be defined before use", ref->Name));
@@ -686,6 +716,10 @@ Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
     }
 
     Reference* returnRef = ReferenceFor(c_temporaryReferenceName, ObjectOf(ref)->Class, ObjectOf(ref)->Value);
+    
+    // needed because method scope is destroyed after each call
+    if(CurrentScope()->IsDurable)
+        returnRef->To->DefinitionScope = CurrentScope();
     for(auto attributeRef: ObjectOf(ref)->Attributes->ReferencesIndex)
     {
         EnterScope(ObjectOf(returnRef)->Attributes);
@@ -695,6 +729,7 @@ Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
         ExitScope();
     }
     ObjectOf(returnRef)->Attributes->InheritedScope = ObjectOf(ref)->Attributes->InheritedScope;
+    returnRef->To->Action = ref->To->Action;
 
     return returnRef;
 }
@@ -702,35 +737,47 @@ Reference* OperationNew(Reference* value, std::vector<Reference*>& operands)
 // ---------------------------------------------------------------------------------------------------------------------
 // Scope Resolution Operation
 
+inline bool HasNoCaller(std::vector<Reference*>& operands)
+{
+    return operands.size() < 2;
+}
+
 /// resolves one link in a scope chain
 Reference* OperationScopeResolution(Reference* value, std::vector<Reference*>& operands)
 {
-    Reference* inContext = FirstOf(operands);
-    Reference* lookFor = SecondOf(operands);
-    Reference* returnRef;
-
-    /// if there is no scope chain, return the first argument
-    if(lookFor == nullptr)
-        return inContext;
-
-    /// if the context we are inside is Nothing, raise error and continue propgating Nothing
-    if(IsNullReference(inContext))
+    if(HasNoCaller(operands))
     {
-        ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is Nothing and has no attribute %s", inContext->Name, lookFor->Name));
-        return NullReference(lookFor->Name);
+        Reference* ref = ResolveFirst(operands);
+        if(IsTemporaryReference(ref))
+            return ReferenceFor(c_temporaryReferenceName, ref->To);
+        else
+            return ref;
     }
-    
-    EnterScope(ObjectOf(inContext)->Attributes);
+    else
     {
-        returnRef = ReferenceFor(lookFor->Name);
-        if(returnRef == nullptr)
+        Reference* caller = ResolveFirst(operands);
+
+        if(IsNullReference(caller))
         {
-            returnRef = NullReference(lookFor->Name);
+            ReportRuntimeMsg(SystemMessageType::Exception, Msg("%s is Nothing and has no attributes", caller->Name));
+            return NullReference();
         }
-    }
-    ExitScope();
 
-    return returnRef;
+        String attributeName = operands.at(1)->Name;
+        Scope* callerScope = caller->To->Attributes;
+        Reference* attribute = ReferenceForInImmediateScope(attributeName, callerScope);
+
+        if(attribute == nullptr)
+        {
+            EnterScope(callerScope);
+            {
+                attribute = NullReference(attributeName);
+            }
+            ExitScope();
+        }
+
+        return attribute;
+    }
 }
 
 
@@ -740,11 +787,22 @@ Reference* OperationScopeResolution(Reference* value, std::vector<Reference*>& o
 Reference* OperationClass(Reference* value, std::vector<Reference*>& operands)
 {
     /// TODO: clean up and handle inheritance
-    Reference* klass = FirstOf(operands);
-    Reference* tempRefToNewObj = ReferenceFor(c_temporaryReferenceName, klass->Name, nullptr);
-    ReassignReference(klass, tempRefToNewObj->To);
-    ObjectOf(klass)->Attributes->InheritedScope = PROGRAM->GlobalScope;
-    Dereference(tempRefToNewObj);
+    if(operands.size() == 0)
+    {
+        ReportRuntimeMsg(SystemMessageType::Exception, "no class name specified");
+        return NullReference();
+    }
+
+    String className = operands.at(0)->Name;
+    Reference* klass = ReferenceFor(className, className, nullptr);
+
+    EnterScope(klass->To->Attributes);
+    {
+        ReferenceFor("self", klass->To);
+    }
+    ExitScope();
+
+    klass->To->Attributes->InheritedScope = PROGRAM->GlobalScope;
 
     return klass;
 }

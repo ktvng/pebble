@@ -1,51 +1,14 @@
 #ifndef __OPERATION_H
 #define __OPERATION_H
 
-#include "main.h"
-#include "token.h"
-#include "object.h"
-
+#include "abstract.h"
+#include "executable.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Struct definitions
 
-/// different atomic operations which build Pebble code
-enum OperationType
-{
-    Assign,                         // change what a Reference points to
-    IsEqual,                        // returns Reference to BooleanClass result of ==
-    IsNotEqual,                     // returns Reference to BooleanClass result of !=
-    IsLessThan,                     // returns Reference to BooleanClass result of <
-    IsGreaterThan,                  // returns Reference to BooleanClass result of >
-    IsLessThanOrEqualTo,            // returns Reference to BooleanClass result of <=
-    IsGreaterThanOrEqualTo,         // returns Reference to BooleanClass result of >=
 
-    Add,                            // returns Reference to result of +
-    Subtract,                       // returns Reference to result of -
-    Multiply,                       // returns Reference to result of *
-    Divide,                         // returns Reference to result of /
-
-    And,                            // returns Reference to result of &&
-    Or,                             // returns Reference to result of ||
-    Not,                            // returns Reference to result of !
-    Evaluate,                       // returns Reference to result of method call
-    Print,                          // prints a Ref to the screen
-    
-    Ref,                            // terminal of an operation tree, returns a Reference
-    DefineMethod,                   // add a new method Reference to scope, but returns NullReference
-    Return,                         // break out of a method and return a value
-
-    If,                             // conditionally executes the next block of code
-    While,
-    EndLabel,                       // end of an if statement
-    Tuple,                          // constructs and returns a (>1) ordering of references
-    New,
-    ScopeResolution,
-    Class,
-
-
-};
 
 /// a representation of an atomic operation with
 /// [Type] which governs how the operation should be executed
@@ -80,8 +43,8 @@ Operation* OperationConstructor(
     Reference* value = nullptr
 );
 
-Method* MethodConstructor(Scope* inheritedScope);
-
+void DeleteOperationRecursive(Operation* op);
+void OperationDestructor(Operation* op);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Handle the execution of atomic operations

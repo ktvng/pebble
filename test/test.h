@@ -6,12 +6,10 @@
 #include <vector>
 #include <iostream>
 
-#include "main.h"
-#include "program.h"
-#include "token.h"
+#include "abstract.h"
 #include "diagnostics.h"
-#include "operation.h"
-#include "reference.h"
+#include "program.h"
+#include "execute.h"
 #include "parse.h"
 
 
@@ -37,6 +35,9 @@ extern std::map<MethodName, InjectedFunction> FunctionInjections;
 extern std::map<MethodName, int> methodHitMap;
 
 extern bool g_shouldRunCustomProgram;
+extern bool g_noisyReport;
+
+extern Program* programToRun;
 
 bool Test();
 void ResetRun();
@@ -121,7 +122,7 @@ inline void Compile()
     ProgramMsgs = "";
     FatalCompileError = false;
     CompileGrammar();
-    ParseProgram(programFile);
+    programToRun = ParseProgram(programFile);
 }
 
 /// execute the program
@@ -129,7 +130,8 @@ inline void Execute()
 {
     if(!FatalCompileError)
     {
-        DoProgram(*PROGRAM);
+        DoProgram(programToRun);
+        ProgramDestructor(programToRun);
     }
 }
 
@@ -157,10 +159,9 @@ inline void CompileAndExecuteProgram(const std::string& programName)
     Execute();
 }
 
-void TestObjectMemoryLoss();
-void TestReferenceMemoryLoss();
-void TestNoProgramMessages();
+void TestGenericMemoryLoss(String className);
 void IncludeStandardAssertSuite();
+void Valgrind();
 
 
 #endif

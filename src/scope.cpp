@@ -1,6 +1,8 @@
 #include "scope.h"
 
-
+#include "diagnostics.h"
+#include "reference.h"
+#include "utils.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Constructors
@@ -12,10 +14,25 @@ Scope* ScopeConstructor(Scope* inheritedScope)
     Scope* s = new Scope;
     s->InheritedScope = inheritedScope;
     s->ReferencesIndex = {};
+    s->IsDurable = false;
 
     return s;
 }
 
+void WipeScope(Scope* scope)
+{
+    for(auto ref: scope->ReferencesIndex)
+    {
+        RemoveReferenceFromObjectIndex(ref);
+        ReferenceDestructor(ref);
+    }
+    ScopeDestructor(scope);
+}
+
+void ScopeDestructor(Scope* scope)
+{
+    delete scope;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Scopestack
@@ -37,16 +54,12 @@ void EnterScope(Scope* newScope)
     ScopeStack.Push(newScope);
 }
 
-/// removes all references from a scope
-void ClearScope()
-{
-    CurrentScope()->ReferencesIndex.clear();
-}
-
 /// exit the current scope and return to the previous scope (i.e. the scope before entering this one)
-void ExitScope()
+void ExitScope(bool andDestroy)
 {
-    ScopeStack.Pop();
+    auto scope = ScopeStack.Pop();
+    if(andDestroy)
+        ScopeDestructor(scope);
 }
 
 /// add [ref] to current scope
@@ -56,4 +69,9 @@ void AddReferenceToCurrentScope(Reference* ref)
         LogItDebug("current scope is not set", "AddReferenceToCurrentScope");
     LogItDebug("added reference to current scope", "AddReferenceToCurrentScope");
     CurrentScope()->ReferencesIndex.push_back(ref);
+}
+
+bool ScopeStackIsEmpty()
+{
+    return ScopeStack.Size() == 0;
 }

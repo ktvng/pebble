@@ -5,6 +5,8 @@
 #include "diagnostics.h"
 #include "program.h"
 #include "reference.h"
+#include "scope.h"
+#include "token.h"
 
 Reference* ReferenceConstructor()
 {
@@ -21,36 +23,88 @@ Object* ObjectConstructor()
     // LogItDebug("space allocated for new object", "ObjectConstructor");
     Object* obj = new Object;
     obj->Attributes = ScopeConstructor(CurrentScope());
+    obj->Attributes->IsDurable = true;
     obj->Class = NullClass;
     obj->Value = nullptr;
-    obj->Type = ReferableType::Object;
+    obj->Action = nullptr;
+    obj->DefinitionScope = nullptr;
 
     return obj;
 }
+
+void ObjectValueDestructor(Object* obj)
+{
+    auto klass = obj->Class;
+    if(klass == IntegerClass)
+    {
+        delete static_cast<int*>(obj->Value);
+    }
+    else if(klass == DecimalClass)
+    {
+        delete static_cast<double*>(obj->Value);
+    }
+    else if(klass == BooleanClass)
+    {
+        delete static_cast<bool*>(obj->Value);
+    }
+    else if(klass == StringClass)
+    {
+        delete static_cast<std::string*>(obj->Value);
+    }
+}
+
+void ObjectDestructor(Object* obj)
+{
+    ScopeDestructor(obj->Attributes);
+    if(IsCallable(obj))
+    {
+        MethodDestructor(obj->Action);
+    }
+    if(obj->Value != nullptr)
+    {
+        ObjectValueDestructor(obj);
+    }
+    delete obj;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Methods
+
+/// constructor for a Method* object with [inheritedScope]
+Method* MethodConstructor()
+{
+    Method* m = new Method;
+    m->CodeBlock = nullptr;
+    m->ParameterNames = {};
+
+    return m;
+}
+
+void MethodDestructor(Method* m)
+{
+    delete m;
+}
+
+
 
 Object* ObjectOf(const Reference* ref)
 {
     if(ref->To == nullptr)
         return nullptr;
 
-    if(ref->To->Type == ReferableType::Object)
-        return static_cast<Object*>(ref->To);
-
-    return nullptr;
+    return ref->To;
 }
 
-Method* MethodOf(const Reference* ref)
+bool IsCallable(const Reference* ref)
 {
-    if(ref->To == nullptr)
-        return nullptr;
-
-    if(ref->To->Type == ReferableType::Method)
-        return static_cast<Method*>(ref->To);
-
-    return nullptr;
+    return ref->To->Action != nullptr;
 }
 
-
+bool IsCallable(const Object* obj)
+{
+    return obj->Action != nullptr;
+}
 
 // TODO: should ensure that ref is actually an object
 bool IsNumeric(const Reference* ref)
@@ -68,9 +122,9 @@ bool IsString(const Reference* ref)
 
 
 
-bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
+bool ObjectHasReference(const ObjectReferenceMap& map, const Reference* ref)
 {
-    for(Reference* objRef: map->References)
+    for(Reference* objRef: map.References)
     {
         if(ref == objRef)
             return true;
@@ -79,34 +133,35 @@ bool ObjectHasReference(const ObjectReferenceMap* map, const Reference* ref)
 }
 
 /// returns the ObjectReferenceMap corresonding to [obj] or nullptr if not found
-ObjectReferenceMap* EntryInIndexOf(const Object* obj)
+bool FoundEntryInIndexOf(const Object* obj, ObjectReferenceMap** foundMap)
 {
-    for(ObjectReferenceMap* map: PROGRAM->ObjectsIndex)
+    for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
-        if(map->IndexedObject == obj)
-            return map;
+        if(map.IndexedObject == obj)
+        {
+            *foundMap = &map;            
+            return true;
+        }
     }
-    return nullptr;
+    foundMap = nullptr;
+    return false;
 }
 
 void IndexObject(Object* obj, Reference* ref)
 {
-    ObjectReferenceMap* map = EntryInIndexOf(obj);
-
-    if(map == nullptr)
+    ObjectReferenceMap* map = nullptr;
+    if(FoundEntryInIndexOf(obj, &map))
     {
-        ObjectReferenceMap* objMap = new ObjectReferenceMap;
+        map->References.push_back(ref);
+    }
+    else
+    {
         std::vector<Reference*> refs = { ref };
         
-        *objMap = ObjectReferenceMap{ obj, refs };
+        ObjectReferenceMap objMap = { obj, refs };
         PROGRAM->ObjectsIndex.push_back(objMap);
-        
-        // LogItDebug("reference added for new object", "IndexObject");
-        return;
     }
-    
-    // LogItDebug("reference added for existing object", "IndexObject");
-    map->References.push_back(ref);
+
 }
 
 Reference* CreateReferenceInternal(String name, ObjectClass objClass)
@@ -140,43 +195,62 @@ Reference* CreateReferenceToArrayObject(String name, ObjectClass objClass, int v
     return ref;
 }
 
+int* ObjectValueConstructor(int value)
+{
+    int* s = new int;
+    *s = value;
+    return s;
+}
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    int* i = new int;
-    *i = value;
-    ObjectOf(ref)->Value = i;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
 
     return ref;
+}
+
+double* ObjectValueConstructor(double value)
+{
+    double* s = new double;
+    *s = value;
+    return s;
 }
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    double* d = new double;
-    *d = value;
-    ObjectOf(ref)->Value = d;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
 
     return ref;
+}
+
+bool* ObjectValueConstructor(bool value)
+{
+    bool* s = new bool;
+    *s = value;
+    return s;
 }
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    bool* b = new bool;
-    *b = value;
-    ObjectOf(ref)->Value = b;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
 
     return ref;
+}
+
+String* ObjectValueConstructor(String value)
+{
+    std::string* s = new std::string;
+    *s = value;
+    return s;
 }
 
 Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value)
 {
     Reference* ref = CreateReferenceInternal(name, objClass);
-    std::string* s = new std::string;
-    *s = value;
-    ObjectOf(ref)->Value = s;
+    ObjectOf(ref)->Value = ObjectValueConstructor(value);
     
     return ref;
 }
@@ -218,14 +292,13 @@ Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* v
 
 
 
-Reference* CreateReference(String name, Referable* refable)
+Reference* CreateReference(String name, Object* obj)
 {
     Reference* ref = ReferenceConstructor();
-    if(refable->Type == ReferableType::Object)
-        IndexObject(static_cast<Object*>(refable), ref);
+    IndexObject(obj, ref);
 
     ref->Name = name;
-    ref->To = refable;
+    ref->To = obj;
 
     return ref;
 }
@@ -234,9 +307,10 @@ Reference* CreateReference(String name, Referable* refable)
 Object* NullObject()
 {
     static Object nullObject;
+    static Scope nullScope;
     nullObject.Class = NullClass;
     nullObject.Value = nullptr;
-    nullObject.Attributes = ScopeConstructor(nullptr);
+    nullObject.Attributes = &nullScope;
 
     return &nullObject;
 }

@@ -1,9 +1,7 @@
 #ifndef __PROGRAM_H
 #define __PROGRAM_H
 
-#include "main.h"
-#include "diagnostics.h"
-#include "execute.h"
+#include "abstract.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -13,12 +11,6 @@
 struct ObjectReferenceMap
 {
     Object* IndexedObject;
-    std::vector<Reference*> References;
-};
-
-struct MethodReferenceMap
-{
-    Method* IndexedMethod;
     std::vector<Reference*> References;
 };
 
@@ -43,11 +35,29 @@ struct Program
     std::vector<CodeLine> Lines;
     Scope* GlobalScope;
     Block* Main;
-    std::vector<ObjectReferenceMap*> ObjectsIndex;
-    std::vector<MethodReferenceMap*> MethodsIndex;
+    std::vector<ObjectReferenceMap> ObjectsIndex;
     Reference* That;
 };
 
+void EnterProgram(Program* p);
+void ExitProgram();
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Pebble system messages
+
+enum class SystemMessageType
+{
+    Exception,
+    Warning,
+    Advice
+};
+
+struct SystemMessage
+{
+    String Content;
+    SystemMessageType Type;
+};
 
 /// log all messages at or above this level
 extern LogSeverityType LogAtLevel;
@@ -78,6 +88,7 @@ extern Program* PROGRAM;
 // Method declarations
 
 Block* BlockConstructor();
+void ProgramDestructor(Program* p);
 
 Operation* ParseLine(TokenList& tokens);
 Block* ParseBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::iterator end, Scope* scope=nullptr);
@@ -85,5 +96,7 @@ Program* ParseProgram(const std::string filepath);
 
 void ReportCompileMsg(SystemMessageType type, String message);
 void ReportRuntimeMsg(SystemMessageType type, String message);
+
+void DeleteBlockRecursive(Block* b);
 
 #endif

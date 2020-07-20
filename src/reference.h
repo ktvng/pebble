@@ -1,25 +1,24 @@
 #ifndef __REFERENCE_H
 #define __REFERENCE_H
 
-#include "main.h"
-#include "program.h"
-#include "token.h"
-#include "scope.h"
+#include "abstract.h"
+
 
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Struct definitions
 
-/// these are used as names to references either Referable things (either object or methods)
+/// these are used as names to references either  things (either object or methods)
 /// [Name] is the name which is used to call the Reference
-/// [To] a Referable (Method/Object) 
+/// [To] a Object (Method/Object) 
 struct Reference
 {
     std::string Name;
-    Referable* To = nullptr;
+    Object* To = nullptr;
 };
 
+void ReferenceDestructor(Reference* ref);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Constants
@@ -34,9 +33,13 @@ inline const std::string c_returnReferenceName = "!ReturnedReference";
 /// used for primitive objects resolved during compile time and incorporated as constants in an operation tree
 inline const std::string c_operationReferenceName = "!ConstPrimitive";
 
+inline const std::string c_nullStubName = "!Nothing";
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Dereferencing 
+
+void RemoveReferenceFromObjectIndex(Reference* ref);
 
 /// removes all mentions of [ref] in the current scope and in the ObjectIndex and destroys [ref]
 void Dereference(Reference* ref);
@@ -46,7 +49,7 @@ void DereferenceAll(std::vector<Reference*> referenceList);
 
 
 /// changes [ref]->To into [to] and updates all dependencies
-void ReassignReference(Reference* ref, Referable* to);
+void ReassignReference(Reference* ref, Object* to);
 
 /// changes [ref->To] into the NullObject and updates all dependencies
 void AssignToNull(Reference* ref);
@@ -65,8 +68,9 @@ Reference* ReferenceFor(String refName, double value);
 Reference* ReferenceFor(String refName, String value);
 
 // for existing object
-Reference* ReferenceFor(String refName, Referable* refable);
+Reference* ReferenceFor(String refName, Object* refable);
 Reference* ReferenceFor(String refName);
+Reference* ReferenceForInImmediateScope(String refName, Scope* scope);
 
 // for null
 Reference* NullReference(String refName = c_temporaryReferenceName);
@@ -81,17 +85,17 @@ Reference* ReferenceFor(Token* token, String refName = c_temporaryReferenceName)
 // ReferenceStubs
 
 /// creates a stub reference (one that has ref->To = nullptr) with [refName]
-Reference* ReferenceStub(String refName);
+Reference* ReferenceStubConstructor(String refName);
+
+void ReferenceStubDestructor(Reference* ref);
 
 /// true if [ref] is a reference stub
 bool IsReferenceStub(Reference* ref);
 
+bool IsTemporaryReference(Reference* ref);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Reference info
-
-/// true if [ref]->To is a method
-bool IsMethod(Reference* ref);
 
 /// true if [ref]->To is an object
 bool IsObject(Reference* ref);

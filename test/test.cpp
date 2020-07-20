@@ -17,12 +17,13 @@ std::string testName = "*unspecified*";
 
 std::string programFile = "./program";
 
+Program* programToRun = nullptr;
 
 int failedAsserts = 0;
 int succeededAsserts = 0;
 
 bool g_shouldRunCustomProgram = true;
-
+bool g_noisyReport = false;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers
@@ -37,7 +38,7 @@ int ReferencesInIndex(Program* p)
     int i=0;
     for(auto entry: p->ObjectsIndex)
     {
-        i+= entry->References.size();
+        i+= entry.References.size();
     }
     return i;
 }
@@ -57,34 +58,15 @@ void ResetRun()
 // ---------------------------------------------------------------------------------------------------------------------
 // Test primitives
 
-/// inject a function [func] to evaluate before method [name] is called
-
-
-/// tests that all objects are accessible
-void TestObjectMemoryLoss()
+void TestGenericMemoryLoss(String typeName)
 {
-    Should("not lose any objects in memory");
+    Should("not lose any " + typeName +"s in memory");
+    
+    int created = NumberOfCallsTo(typeName + "Constructor");
+    int destroyed = NumberOfCallsTo(typeName + "Destructor");
 
-    bool nullObjectCreated = NumberOfCallsTo("NullObject") > 0;
-    int createdObjs = NumberOfCallsTo("ObjectConstructor") + (nullObjectCreated ? 1 : 0);
-    int objsInIndex = ObjectIndexSize(PROGRAM);
-
-    OtherwiseReport(Msg("created objects (%i) != objects in index (%i)", createdObjs, objsInIndex));
-    Assert(createdObjs == objsInIndex);
-}
-
-/// tests that all references are accessible
-void TestReferenceMemoryLoss()
-{
-    Should("not lose any references in memory");
-
-    int createdRefs = NumberOfCallsTo("ReferenceConstructor");
-    int destroyedRefs = NumberOfCallsTo("ReferenceDestructor");
-    int accessibleRefs = ReferencesInIndex(PROGRAM);
-    int methods = NumberOfCallsTo("MethodConstructor");
-
-    OtherwiseReport(Msg("created refs (%i) != destroyed (%i) + accessible (%i) + methods (%i)", createdRefs, destroyedRefs, accessibleRefs, methods));
-    Assert(createdRefs == destroyedRefs + accessibleRefs + methods);
+    OtherwiseReport(Msg("created (%i) != destroyed (%i)", created, destroyed));
+    Assert(created == destroyed);    
 }
 
 void TestNoProgramMessages()
@@ -95,11 +77,33 @@ void TestNoProgramMessages()
     Assert(ProgramMsgs == "");
 }
 
+void Valgrind()
+{
+    std::vector<String> objectsToTest = 
+    {
+        "Object",
+        "Reference",
+        "Scope",
+        "Method",
+        "Token",
+        "Block",
+        "Operation",
+        "Program",
+        "ParseToken",
+        "ObjectValue",
+        "ReferenceStub"
+    };
+
+    for(auto str: objectsToTest)
+    {
+        TestGenericMemoryLoss(str);
+    }
+}
+
 /// tests standard things
 void IncludeStandardAssertSuite()
 {
-    TestObjectMemoryLoss();
-    TestReferenceMemoryLoss();
+    Valgrind();
     TestNoProgramMessages();
 }
 
@@ -117,6 +121,12 @@ void DoAllTests()
 {
     for(auto test: Tests)
     {
+        if(g_noisyReport)
+        {
+            SetConsoleColor(ConsoleColor::Purple2);
+            std::cout << "\n finished " << testName;
+            SetConsoleColor(ConsoleColor::White);
+        }
         testName = "*unspecified*";
         test();
     }
