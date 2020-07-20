@@ -57,6 +57,6 @@ ByteCodeError ErrorClasses[] =
     },
     {
         2,
-        "method call argument mismatch"
+        "method call arguments mismatch"
     }
 };

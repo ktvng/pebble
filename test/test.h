@@ -89,12 +89,6 @@ inline void It(const std::string& name)
 {
     ResetRun();
     testName = name;
-    if(g_noisyReport)
-    {        
-        SetConsoleColor(ConsoleColor::Purple2);
-        std::cout << "\nstarting: " << testName;
-        SetConsoleColor(ConsoleColor::White);
-    }
 }
 
 
@@ -160,12 +154,24 @@ inline int NumberOfCallsTo(const std::string& methodName)
 
 inline void SetProgramToRun(const std::string& fileName)
 {
-    programFile = "./test/programs/" + fileName;
+    programFile = "./test/programs/" + fileName + ".pebl";
+    if(g_noisyReport)
+    {        
+        SetConsoleColor(ConsoleColor::Purple2);
+        std::cout << "\nstarting: " << fileName;
+        SetConsoleColor(ConsoleColor::White);
+    }
 }
 
 inline void RunCustomProgram()
 {
     programFile = "./program.pebl";
+    if(g_noisyReport)
+    {        
+        SetConsoleColor(ConsoleColor::Purple2);
+        std::cout << "\nstarting: CustomProgram";
+        SetConsoleColor(ConsoleColor::White);
+    }
 }
 
 inline void CompileAndExecuteProgram(const std::string& programName)

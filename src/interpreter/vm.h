@@ -60,7 +60,7 @@ struct CallFrame
 {
     extArg_t ReturnToInstructionId;
     extArg_t MemoryStackStart;
-    int Owner;
+    extArg_t Owner;
     std::vector<Scope> LocalScopeStack;
     Object* LastResult;
 };

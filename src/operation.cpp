@@ -814,6 +814,18 @@ Reference* OperationClass(Reference* value, std::vector<Reference*>& operands)
 // ---------------------------------------------------------------------------------------------------------------------
 // Unimplemented
 
-Reference* OperationAsk(Reference* value, std::vector<Reference*>& operands){}
-Reference* OperationElseIf(Reference* value, std::vector<Reference*>& operands){}
-Reference* OperationElse(Reference* value, std::vector<Reference*>& operands){}
+Reference* OperationAsk(Reference* value, std::vector<Reference*>& operands)
+{
+    LogIt(LogSeverityType::Sev3_Critical, "OperationAsk", "unimplemented");
+    return NullReference();
+}
+Reference* OperationElseIf(Reference* value, std::vector<Reference*>& operands)
+{
+    LogIt(LogSeverityType::Sev3_Critical, "OperationAsk", "unimplemented");
+    return NullReference();
+}
+Reference* OperationElse(Reference* value, std::vector<Reference*>& operands)
+{
+    LogIt(LogSeverityType::Sev3_Critical, "OperationAsk", "unimplemented");
+    return NullReference();
+}
