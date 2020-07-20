@@ -50,6 +50,9 @@ extern std::vector<void*> MemoryStack;
 extern std::vector<String> ReferenceNames;
 extern std::vector<Object*> ConstPrimitives;
 
+extern std::vector<Object*> RuntimeObjects;
+extern std::vector<Reference*> RuntimeReferences;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -97,5 +100,8 @@ extern Object SomethingObject;
 void DoByteCodeProgram();
 void LogProgramInstructions();
 String ToString(ByteCodeInstruction& ins);
+void AddRuntimeObject(Object* obj);
+void AddRuntimeReference(Reference* ref);
+
 
 #endif

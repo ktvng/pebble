@@ -16,23 +16,27 @@
 // ---------------------------------------------------------------------------------------------------------------------
 // Internal Constructors
 
-Object* INTERNAL_ObjectConstructor(ObjectClass cls, void* value)
+Object* InternalObjectConstructor(ObjectClass cls, void* value)
 {
-    Object* obj = new Object;
-    obj->Attributes = ScopeConstructor(nullptr);
-    obj->Class = cls;
-    obj->Value = value;
-    obj->Action = nullptr;
-    obj->DefinitionScope = nullptr;
+    Object* obj = ObjectConstructor(cls, value);
 
+    AddRuntimeObject(obj);
     return obj;
 }
 
-Object* INTERNAL_BooleanObjectConstructor(bool value)
+Object* InternalBooleanObjectConstructor(bool value)
 {
-    bool* b = new bool;
+    bool* b = ObjectValueConstructor(value);
     *b = value;
-    return INTERNAL_ObjectConstructor(BooleanClass, b);
+    return InternalObjectConstructor(BooleanClass, b);
+}
+
+Reference* InternalReferenceConstructor(String refName, Object* toObject)
+{
+    Reference* ref = ReferenceConstructor(refName, toObject);
+
+    AddRuntimeReference(ref);
+    return ref;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -245,7 +249,7 @@ inline void AddParamsToMethodScope(Object* methodObj, std::vector<Object*> param
 
     for(size_t i =0; i<paramsList.size() && i<methodObj->ByteCodeParamsAsMethod.size(); i++)
     {
-        auto ref = ReferenceConstructor(methodObj->ByteCodeParamsAsMethod[i], paramsList[paramsList.size()-1-i]);
+        auto ref = InternalReferenceConstructor(methodObj->ByteCodeParamsAsMethod[i], paramsList[paramsList.size()-1-i]);
         AddRefToScope(ref, ScopeOf(methodObj));
     }
 }
@@ -424,24 +428,24 @@ void BCI_Add(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int* ans = new int;
-        *ans = GetIntValue(*lObj) + GetIntValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(IntegerClass, ans);
+        int i = GetIntValue(*lObj) + GetIntValue(*rObj);
+        int* ans = ObjectValueConstructor(i);
+        obj = InternalObjectConstructor(IntegerClass, ans);
         
         obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double* ans = new double;
-        *ans = GetDecimalValue(*lObj) + GetDecimalValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(DecimalClass, ans);
+        double d = GetIntValue(*lObj) + GetIntValue(*rObj);
+        double* ans = ObjectValueConstructor(d);
+        obj = InternalObjectConstructor(DecimalClass, ans);
         obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, StringClass))
     {
-        String* ans = new String;
-        *ans = GetStringValue(*lObj) + GetStringValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(StringClass, ans);
+        String s = GetStringValue(*lObj) + GetStringValue(*rObj);
+        String* ans = ObjectValueConstructor(s);
+        obj = InternalObjectConstructor(StringClass, ans);
         obj->Value = ans;
     }
     else
@@ -461,17 +465,17 @@ void BCI_Subtract(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int* ans = new int;
-        *ans = GetIntValue(*lObj) - GetIntValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(IntegerClass, ans);
+         int i = GetIntValue(*lObj) - GetIntValue(*rObj);
+        int* ans = ObjectValueConstructor(i);
+        obj = InternalObjectConstructor(IntegerClass, ans);
         
         obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double* ans = new double;
-        *ans = GetDecimalValue(*lObj) - GetDecimalValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(DecimalClass, ans);
+        double d = GetIntValue(*lObj) - GetIntValue(*rObj);
+        double* ans = ObjectValueConstructor(d);
+        obj = InternalObjectConstructor(DecimalClass, ans);
         obj->Value = ans;
     }
     else
@@ -491,17 +495,17 @@ void BCI_Multiply(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int* ans = new int;
-        *ans = GetIntValue(*lObj) * GetIntValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(IntegerClass, ans);
+        int i = GetIntValue(*lObj) * GetIntValue(*rObj);
+        int* ans = ObjectValueConstructor(i);
+        obj = InternalObjectConstructor(IntegerClass, ans);
         
         obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double* ans = new double;
-        *ans = GetDecimalValue(*lObj) * GetDecimalValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(DecimalClass, ans);
+        double d = GetIntValue(*lObj) * GetIntValue(*rObj);
+        double* ans = ObjectValueConstructor(d);
+        obj = InternalObjectConstructor(DecimalClass, ans);
         obj->Value = ans;
     }
     else
@@ -521,17 +525,17 @@ void BCI_Divide(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int* ans = new int;
-        *ans = GetIntValue(*lObj) / GetIntValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(IntegerClass, ans);
+        int i = GetIntValue(*lObj) / GetIntValue(*rObj);
+        int* ans = ObjectValueConstructor(i);
+        obj = InternalObjectConstructor(IntegerClass, ans);
         
         obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double* ans = new double;
-        *ans = GetDecimalValue(*lObj) / GetDecimalValue(*rObj);
-        obj = INTERNAL_ObjectConstructor(DecimalClass, ans);
+        double d = GetIntValue(*lObj) / GetIntValue(*rObj);
+        double* ans = ObjectValueConstructor(d);
+        obj = InternalObjectConstructor(DecimalClass, ans);
         obj->Value = ans;
     }
     else
@@ -550,14 +554,22 @@ void BCI_SysCall(extArg_t arg)
     switch(arg)
     {
         case 0:
-        std::cout << GetStringValue(*TOSpeek_Obj()) << std::endl;
+        {
+            String msg = GetStringValue(*TOSpeek_Obj()) + "\n";
+            ProgramOutput += msg;
+            if(g_outputOn)
+            {
+                std::cout << msg;
+            }
+        }
         break;
 
         case 1:
         {
-            String* str = new String;;
-            std::getline(std::cin, *str);
-            auto obj = INTERNAL_ObjectConstructor(StringClass, str);
+            String s;
+            std::getline(std::cin, s);
+            String* str = ObjectValueConstructor(s);
+            auto obj = InternalObjectConstructor(StringClass, str);
             PushToStack<Object>(obj);
         }
         default:
@@ -570,9 +582,9 @@ void BCI_And(extArg_t arg)
     auto rObj = TOS_Obj();
     auto lObj = TOS_Obj();
 
-    bool* ans = new bool;
-    *ans = GetBoolValue(*lObj) && GetBoolValue(*rObj);
-    Object* obj = INTERNAL_ObjectConstructor(BooleanClass, ans);
+    bool b = GetBoolValue(*lObj) && GetBoolValue(*rObj);
+    bool* ans = ObjectValueConstructor(b);
+    Object* obj = InternalObjectConstructor(BooleanClass, ans);
 
     PushToStack<Object>(obj);
 }
@@ -582,9 +594,9 @@ void BCI_Or(extArg_t arg)
     auto rObj = TOS_Obj();
     auto lObj = TOS_Obj();
 
-    bool* ans = new bool;
-    *ans = GetBoolValue(*lObj) || GetBoolValue(*rObj);
-    Object* obj = INTERNAL_ObjectConstructor(BooleanClass, ans);
+    bool b = GetBoolValue(*lObj) || GetBoolValue(*rObj);
+    bool* ans = ObjectValueConstructor(b);
+    Object* obj = InternalObjectConstructor(BooleanClass, ans);
 
     PushToStack<Object>(obj);
 }
@@ -593,9 +605,9 @@ void BCI_Not(extArg_t arg)
 {
     auto obj = TOS_Obj();
 
-    bool* ans = new bool;
-    *ans = !GetBoolValue(*obj);
-    Object* newObj = INTERNAL_ObjectConstructor(BooleanClass, ans);
+    bool b =!GetBoolValue(*obj);
+    bool* ans = ObjectValueConstructor(b);
+    Object* newObj = InternalObjectConstructor(BooleanClass, ans);
 
     PushToStack<Object>(newObj);
 }
@@ -637,7 +649,7 @@ void BCI_LoadCmp(extArg_t arg)
         case 4: 
         case 5:
         case 6:
-        boolObj = INTERNAL_BooleanObjectConstructor(NthBit(CmpReg, arg));
+        boolObj = InternalBooleanObjectConstructor(NthBit(CmpReg, arg));
         break;
 
         default:
@@ -668,13 +680,13 @@ void BCI_Jump(extArg_t arg)
 void BCI_Copy(extArg_t arg)
 {
     auto obj = TOS_Obj();
-    auto objCopy = INTERNAL_ObjectConstructor(obj->Class, obj->Value);
+    auto objCopy = InternalObjectConstructor(obj->Class, obj->Value);
     objCopy->BlockStartInstructionId = obj->BlockStartInstructionId;
     
     /// TODO: maybe take this out?
     for(auto ref: obj->Attributes->ReferencesIndex)
     {
-        auto refcopy = ReferenceConstructor(ref->Name, ref->To);
+        auto refcopy = InternalReferenceConstructor(ref->Name, ref->To);
         AddRefToScope(refcopy, objCopy->Attributes);
     }
 
@@ -716,7 +728,7 @@ void BCI_ResolveDirect(extArg_t arg)
 
     if(resolvedRef == nullptr)
     {
-        auto newRef = ReferenceConstructor(*refName, &SomethingObject);
+        auto newRef = InternalReferenceConstructor(*refName, &NothingObject);
         AddRefToScope(newRef, LocalScopeReg);
         PushToStack<Reference>(newRef);
     }
@@ -733,7 +745,7 @@ void BCI_ResolveScoped(extArg_t arg)
 {
     auto refName = TOS_String();
 
-    if(TOSpeek_Obj() == &NothingObject || TOSpeek_Obj() == &SomethingObject)
+    if(TOSpeek_Obj() == &NothingObject || TOSpeek_Obj() == &NothingObject)
     {
         ReportError(SystemMessageType::Warning, 1, Msg(" %s refers to the object <%s> which cannot have attributes", TOSpeek_Ref()->Name, TOSpeek_Ref()->To->Class));
         return;
@@ -743,7 +755,7 @@ void BCI_ResolveScoped(extArg_t arg)
 
     if(resolvedRef == nullptr)
     {
-        auto newRef = ReferenceConstructor(*refName, &SomethingObject);
+        auto newRef = InternalReferenceConstructor(*refName, &NothingObject);
         AddRefToScope(newRef, ScopeOf(callerObj));
         PushToStack<Reference>(newRef);
     }
@@ -769,11 +781,11 @@ void BCI_DefMethod(extArg_t arg)
         }
     }
 
-    auto obj = INTERNAL_ObjectConstructor(MethodClass, nullptr);
+    auto obj = InternalObjectConstructor(MethodClass, nullptr);
 
     if(arg != 0)
     {
-        for(int i=0; i<arg; i++)
+        for(extArg_t i=0; i<arg; i++)
         {
             obj->ByteCodeParamsAsMethod.push_back(argList[i]);
         }

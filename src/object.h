@@ -38,10 +38,16 @@ class Method
 
 Reference* ReferenceConstructor(String refName, Object* obj);
 
+Object* ObjectConstructor(ObjectClass cls, void* value);
 Object* ObjectConstructor();
 Object* NullObject();
 
 void ObjectDestructor(Object* obj);
+
+int* ObjectValueConstructor(int value);
+double* ObjectValueConstructor(double value);
+bool* ObjectValueConstructor(bool value);
+String* ObjectValueConstructor(String value);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ObjectClasses

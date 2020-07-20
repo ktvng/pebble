@@ -9,6 +9,7 @@
 #include "diagnostics.h"
 #include "program.h"
 #include "main.h"
+#include "program.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Scope Registers
@@ -75,6 +76,11 @@ std::vector<String> ReferenceNames;
 /// list of all constant primitives appearing in a program
 std::vector<Object*> ConstPrimitives;
 
+/// list of all objects that are created during runtime which are not ConstPrimitives
+std::vector<Object*> RuntimeObjects;
+
+/// list of all references that are created during runtime
+std::vector<Reference*> RuntimeReferences;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -132,6 +138,15 @@ void InitRuntime()
 {
     std::vector<Scope> localScopeStack;
     extArg_t programEnd = ByteCodeProgram.size();
+
+    RuntimeObjects.clear();
+    RuntimeObjects.reserve(256);
+
+    RuntimeReferences.clear();
+    RuntimeReferences.reserve(256);
+
+    CallStack.clear();
+    CallStack.reserve(256);
     
     /// TODO: update arg 3 (caller ID);
     CallStack.push_back( {programEnd, 0, 0, localScopeStack });
@@ -139,11 +154,16 @@ void InitRuntime()
     CallerReg = &NothingObject;
     SelfReg = &NothingObject;
 
+    MemoryStack.clear();
+    MemoryStack.reserve(256);
+
     MemoryStack.push_back(CallerReg);
     MemoryStack.push_back(SelfReg);
 
     ProgramReg = ScopeConstructor(nullptr);
     LocalScopeReg = ProgramReg;
+
+    InstructionReg = 0;
 }
 
 /// true if [ins] is not an Extend instruction and the exponent of the ExtendedArg
@@ -162,7 +182,17 @@ inline bool IsNOP(const ByteCodeInstruction& ins)
 /// TODO: implement
 void GracefullyExit()
 {
+    for(auto ref: RuntimeReferences)
+    {
+        ReferenceDestructor(ref);
+    }
 
+    for(auto obj: RuntimeObjects)
+    {
+        ObjectDestructor(obj);
+    }
+
+    ScopeDestructor(ProgramReg);
 }
 
 /// iterates and executes the instructions stored in BytecodeProgram
@@ -207,9 +237,25 @@ void DoByteCodeProgram()
             JumpStatusReg = 0;
         }
     }
-    std::cout << "\n#" << MemoryStack.size() << "\n";
+    
+    if(LogAtLevel == LogSeverityType::Sev0_Debug)
+    {
+        std::cout << "\nmem#" << MemoryStack.size() << "\n";
+    }
+    GracefullyExit();
 }
 
+/// add [obj] to RuntimeObjects
+void AddRuntimeObject(Object* obj)
+{
+    RuntimeObjects.push_back(obj);
+}
+
+/// add [ref] to RuntimeReferences
+void AddRuntimeReference(Reference* ref)
+{
+    RuntimeReferences.push_back(ref);
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------

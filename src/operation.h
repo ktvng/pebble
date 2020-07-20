@@ -72,12 +72,15 @@ Reference* OperationOr(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationNot(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationEvaluate(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationAsk(Reference* value, std::vector<Reference*>& operands);
 
 Reference* OperationRef(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationDefineMethod(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationReturn(Reference* value, std::vector<Reference*>& operands);
 
 Reference* OperationIf(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationElseIf(Reference* value, std::vector<Reference*>& operands);
+Reference* OperationElse(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationWhile(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationEndLabel(Reference* value, std::vector<Reference*>& operands);
 Reference* OperationTuple(Reference* value, std::vector<Reference*>& operands);

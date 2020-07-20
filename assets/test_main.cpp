@@ -13,6 +13,7 @@
 // Logging
 LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 bool g_outputOn = false;
+bool g_useBytecodeRuntime = true;
 
 int main(int argc, char *argv[])
 {
