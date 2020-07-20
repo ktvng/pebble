@@ -585,6 +585,8 @@ void BCI_SysCall(extArg_t arg)
             auto obj = InternalObjectConstructor(StringClass, str);
             PushToStack<Object>(obj);
         }
+        break;
+        
         default:
         break;
     }
