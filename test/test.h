@@ -11,7 +11,8 @@
 #include "program.h"
 #include "execute.h"
 #include "parse.h"
-
+#include "flattener.h"
+#include "vm.h"
 
 extern std::string testBuffer;
 
@@ -38,6 +39,7 @@ extern bool g_shouldRunCustomProgram;
 extern bool g_noisyReport;
 
 extern Program* programToRun;
+extern bool g_useBytecodeRuntime;
 
 bool Test();
 void ResetRun();
@@ -130,8 +132,17 @@ inline void Execute()
 {
     if(!FatalCompileError)
     {
-        DoProgram(programToRun);
-        ProgramDestructor(programToRun);
+        if(g_useBytecodeRuntime)
+        {
+            FlattenProgram(programToRun);
+            DoByteCodeProgram();
+            ProgramDestructor(programToRun);
+        }
+        else
+        {
+            DoProgram(programToRun);
+            ProgramDestructor(programToRun);
+        }
     }
 }
 

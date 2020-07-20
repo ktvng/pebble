@@ -209,7 +209,7 @@ namespace TestBuild
     /// true if method has return type (non-void)
     bool NonVoidReturn(const std::string& call)
     {
-        return call.substr(0, call.find("(")).find("void") == std::string::npos;
+        return call.find("void ") == std::string::npos;
     }
 
     /// removes anything past the right paren of a method call

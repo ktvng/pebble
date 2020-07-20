@@ -73,6 +73,7 @@ enum OperationType
     While,
     EndLabel,                       // end of an if statement
     Tuple,                          // constructs and returns a (>1) ordering of references
+    
     New,
     ScopeResolution,
     Class,

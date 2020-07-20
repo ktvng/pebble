@@ -7,11 +7,13 @@ if(X):
 print Z
 
 Method():
-    A = 44
+    A = 4
 print A
 
+Method():
+    B = 12
 Method()
-print A
+print B
 
 MethodWithAccess():
     print X

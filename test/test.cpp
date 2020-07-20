@@ -122,7 +122,7 @@ void DoAllTests()
     for(auto test: Tests)
     {
         if(g_noisyReport)
-        {
+        {        
             SetConsoleColor(ConsoleColor::Purple2);
             std::cout << "\n finished " << testName;
             SetConsoleColor(ConsoleColor::White);

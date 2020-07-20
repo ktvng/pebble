@@ -868,15 +868,15 @@ inline void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, ext
 /// to the values corresponding to the flatten bytecode of [op]. will resolve [ctx] if necessary
 inline void HandleFlatteningOperation(Operation* op, extArg_t& blockOwnerInstructionStart, Operation** blockOwner, JumpContext& ctx)
 {
-    if(JumpContextHasUnresolvedClause(ctx))
-    {
-        ResolveJumpContextClause(ctx);
-    }
-    else if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(op))
+    if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(op))
     {
         ResolveJumpContext(ctx);
     }
-
+    else if(JumpContextHasUnresolvedClause(ctx))
+    {
+        ResolveJumpContextClause(ctx);
+    }
+    
     blockOwnerInstructionStart = NextInstructionId();
     FlattenOperation(op);
     *blockOwner = op;
@@ -916,6 +916,11 @@ void FlattenBlock(Block* block)
 
             break;
         }
+    }
+
+    if(JumpContextNeedsResolution(ctx) && !IsPartOfIfComplex(blockOwner))
+    {
+        ResolveJumpContext(ctx);
     }
 }
 

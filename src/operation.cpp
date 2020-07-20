@@ -40,12 +40,15 @@ OperationEvaluator OperationEvaluators[] =
     OperationNot,
     OperationEvaluate,
     OperationPrint,
+    OperationAsk,
 
     OperationRef,
     OperationDefineMethod,
     OperationReturn,
 
     OperationIf,
+    OperationElseIf,
+    OperationElse,
     OperationWhile,
     OperationEndLabel,
     OperationTuple,
@@ -806,3 +809,11 @@ Reference* OperationClass(Reference* value, std::vector<Reference*>& operands)
 
     return klass;
 }
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Unimplemented
+
+Reference* OperationAsk(Reference* value, std::vector<Reference*>& operands){}
+Reference* OperationElseIf(Reference* value, std::vector<Reference*>& operands){}
+Reference* OperationElse(Reference* value, std::vector<Reference*>& operands){}

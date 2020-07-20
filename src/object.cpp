@@ -10,7 +10,6 @@
 
 Reference* ReferenceConstructor()
 {
-    // LogItDebug("space allocated for new reference", "ReferenceConstructor");
     Reference* ref = new Reference; 
     ref->Name = "";
     ref->To = nullptr;
@@ -20,7 +19,6 @@ Reference* ReferenceConstructor()
 
 Reference* ReferenceConstructor(String refName, Object* obj)
 {
-    // LogItDebug("space allocated for new reference", "ReferenceConstructor");
     Reference* ref = new Reference; 
     ref->Name = refName;
     ref->To = obj;
@@ -30,12 +28,24 @@ Reference* ReferenceConstructor(String refName, Object* obj)
 
 Object* ObjectConstructor()
 {
-    // LogItDebug("space allocated for new object", "ObjectConstructor");
     Object* obj = new Object;
     obj->Attributes = ScopeConstructor(CurrentScope());
     obj->Attributes->IsDurable = true;
     obj->Class = NullClass;
     obj->Value = nullptr;
+    obj->Action = nullptr;
+    obj->DefinitionScope = nullptr;
+
+    return obj;
+}
+
+/// used in the BytecodeRuntime
+Object* ObjectConstructor(ObjectClass cls, void* value)
+{
+    Object* obj = new Object;
+    obj->Attributes = ScopeConstructor(nullptr);
+    obj->Class = cls;
+    obj->Value = value;
     obj->Action = nullptr;
     obj->DefinitionScope = nullptr;
 

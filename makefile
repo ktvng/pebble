@@ -77,7 +77,7 @@ TestBuilder: ./test/testbuilder.cpp
 build/test.o: test/test.cpp test/test.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/test.o -c ./test/test.cpp
 
-build/unittests.o: test/unittests.cpp test/unittests.h
+build/unittests.o: test/unittests.cpp test/unittests.h test/test.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/unittests.o -c ./test/unittests.cpp
 
 pebble_testbuild.exe: $(TEST_OBJS) build/test.o build/unittests.o
