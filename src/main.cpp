@@ -19,7 +19,7 @@
 bool Usage(std::vector<SettingOption> options)
 {
     // If this was derived at build time, that would be fantastic
-	// TODO - generate from Settings table and use null flags as non-flag [] args
+    // TODO - generate from Settings table and use null flags as non-flag [] args
     std::cerr << "Usage pebble: [--help] [--log sev0|sev1|sev2|sev3] [program.pebl]" << std::endl;
 
     exit(2);
@@ -53,15 +53,15 @@ bool ChangeLogType(std::vector<SettingOption> options)
 
 ProgramConfiguration Config
 {
-	{
-		/* 
-			This is the .pebl file to ingest. 
-			The flag string will be filled retro-actively with the program name, if any. 
-			Must be the 0'th Setting. 
-			Note: making Flag a vector rather than string could allow multiple files/args
-		*/
-		"Pebl File", "program.pebl", nullptr
-	},
+    {
+        /* 
+            This is the .pebl file to ingest. 
+            The flag string will be filled retro-actively with the program name, if any. 
+            Must be the 0'th Setting. 
+            Note: making Flag a vector rather than string could allow multiple files/args
+        */
+        "Pebl File", "program.pebl", nullptr
+    },
     {
         "Usage", "--help", Usage
     },

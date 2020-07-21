@@ -8,16 +8,16 @@ static Setting* CurrentState = nullptr;
 
 bool MatchesFlag(String token, Setting** matchedSetting)
 {
-	if(token.length() < 1)
-	{
-		return false;
-	}
+    if(token.length() < 1)
+    {
+        return false;
+    }
 
     for(Setting& s: *Config)
     {
         if(token == s.Flag)
         {
-        	CurrentState = &s;
+            CurrentState = &s;
             *matchedSetting = &s;
             return true;
         }
@@ -48,12 +48,12 @@ void ParseCommandArgs(int argc, char* argv[], ProgramConfiguration* config)
         Setting* newSetting = nullptr;
         if(MatchesFlag(arg, &newSetting))
         {            
-			if(CurrentState->Action(CurrentSettingOptions))
-			{
-				inFlag = true;
-			}
-				
-			CurrentSettingOptions.clear();
+            if(CurrentState->Action(CurrentSettingOptions))
+            {
+                inFlag = true;
+            }
+                
+            CurrentSettingOptions.clear();
         }
         else if(inFlag)
         {
