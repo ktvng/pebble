@@ -28,7 +28,7 @@ bool Usage(std::vector<SettingOption> options)
 bool ChangeLogType(std::vector<SettingOption> options)
 {
     if(options.size() < 1)
-        return false;
+        return true;
 
     SettingOption option = options[0];
     if(option == "sev0")

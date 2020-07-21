@@ -48,9 +48,12 @@ void ParseCommandArgs(int argc, char* argv[], ProgramConfiguration* config)
         Setting* newSetting = nullptr;
         if(MatchesFlag(arg, &newSetting))
         {            
-			CurrentState->Action(CurrentSettingOptions);
+			if(CurrentState->Action(CurrentSettingOptions))
+			{
+				inFlag = true;
+			}
+				
 			CurrentSettingOptions.clear();
-            inFlag = true;
         }
         else if(inFlag)
         {
