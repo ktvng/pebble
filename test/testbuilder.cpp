@@ -475,7 +475,7 @@ bool IsH(const std::string& str)
 bool IsSpecial(const std::string& str)
 {
     std::string name = TestBuild::FileNameFromPath(str);
-    return name == "utils.cpp" || name == "diagnostics.cpp";;
+    return name == "utils.cpp" || name == "diagnostics.cpp" || name == "bytecode.cpp";
 }
 
 void HandleFlag(const std::string& str)
