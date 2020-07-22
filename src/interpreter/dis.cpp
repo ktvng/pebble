@@ -96,6 +96,10 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_DefMethod";
     }
+    else if(ins.Op == IndexOfInstruction(BCI_DefType))
+    {
+        str += "#BCI_DefType";
+    }
     else if(ins.Op == IndexOfInstruction(BCI_Eval))
     {
         str += "#BCI_Eval";
@@ -131,6 +135,10 @@ String ToString(ByteCodeInstruction& ins)
     else if(ins.Op == IndexOfInstruction(BCI_EndLine))
     {
         str += "#BCI_EndLine";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_Swap))
+    {
+        str += "#BCI_Swap";
     }
     else
     {
