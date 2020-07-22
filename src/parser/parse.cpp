@@ -59,6 +59,9 @@ OperationType StringNameToOperationType(String Name)
 
     else if(Name=="Evaluate")
         return OperationType::Evaluate;
+    else if(Name=="EvaluateHere")
+        return OperationType::EvaluateHere;
+
     else if(Name=="If")
         return OperationType::If;
     else if(Name=="ElseIf")
@@ -86,9 +89,11 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::ScopeResolution;
     else if(Name=="Class")
         return OperationType::Class;
-
-    else
+    else if(Name=="Ref")
         return OperationType::Ref;
+    
+    LogIt(LogSeverityType::Sev2_Important, "StringNameToOperationType", Msg("possibly unimplemented enum type %s", Name));
+    return OperationType::Ref;
 }
 
 
@@ -537,7 +542,6 @@ Reference* ScopeChainTerminal(Operation* op)
 /// collapse a rule corresponding to defining a method
 Operation* CollapseAsDefineMethod(CFGRule& rule, OperationsList& components)
 {
-    LogItDebug("Custom type", "CollapseAsDefineMethod");
 
     return OperationConstructor(OperationType::DefineMethod, components );
 }
@@ -709,8 +713,6 @@ Operation* ExpressionParser(TokenList& line)
     }
 
     // resolving references will be done at runtime
-    LogItDebug("end reached", "ExpressionParser");
-    
     auto ast = listHead->Value;
     DestroyList(listHead);
 

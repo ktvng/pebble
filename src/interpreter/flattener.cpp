@@ -13,11 +13,18 @@
 #include "vm.h"
 #include "bytecode.h"
 #include "errormsg.h"
+#include "dis.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // TODO
 // 1. Add checking for reference assignment (should throw error) ie. 4 =5
 // 2. Allow scoped references to exist even for primitives, ie. A.5 ??? maybe
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Contants
+inline constexpr extArg_t GOD_OBJECT_ID = 0;
+inline constexpr extArg_t SOMETHING_OBJECT_ID = 1;
+inline constexpr extArg_t NOTHING_OBJECT_ID = 2;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -647,7 +654,7 @@ inline void FlattenOperationEvaluate(Operation* op)
     if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
     {
         opId = IndexOfInstruction(BCI_LoadPrimitive);
-        arg = 2;
+        arg = NOTHING_OBJECT_ID; 
         AddByteCodeInstruction(opId, arg);
 
         opId = IndexOfInstruction(BCI_LoadRefName);
@@ -686,6 +693,56 @@ inline void FlattenOperationEvaluate(Operation* op)
     AddInstructionsForEvaluateParameters(paramsOp, arg);
 
     opId = IndexOfInstruction(BCI_Eval);
+    AddByteCodeInstruction(opId, arg);
+}
+
+/// adds bytecode instructions for [op] with OperationType::EvaluateHere
+inline void FlattenOperationEvaluateHere(Operation* op)
+{
+    op = op->Operands[0];
+    /// order of operands is caller, method, params
+    auto callerOp = op->Operands[0];
+    auto methodOp = op->Operands[1];
+    auto paramsOp = op->Operands[2];
+
+    uint8_t opId;
+    extArg_t arg;
+
+    if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
+    {
+        opId = IndexOfInstruction(BCI_LoadRefName);
+        arg = methodOp->EntityIndex;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveDirect);
+        AddByteCodeInstruction(opId, noArg);
+
+        opId = IndexOfInstruction(BCI_Dereference);
+        AddByteCodeInstruction(opId, noArg);
+    }
+    else
+    {
+        FlattenOperationScopeResolutionWithDereference(callerOp);
+
+        opId = IndexOfInstruction(BCI_LoadRefName);
+        arg = methodOp->EntityIndex;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveScoped);
+        AddByteCodeInstruction(opId, noArg);
+
+        opId = IndexOfInstruction(BCI_Dereference);
+        AddByteCodeInstruction(opId, noArg);
+    }
+
+    /// methods are done on cloned objects
+    opId = IndexOfInstruction(BCI_Copy);
+    AddByteCodeInstruction(opId, noArg);
+    
+    arg = 0;
+    AddInstructionsForEvaluateParameters(paramsOp, arg);
+
+    opId = IndexOfInstruction(BCI_EvalHere);
     AddByteCodeInstruction(opId, arg);
 }
 
@@ -758,6 +815,10 @@ void FlattenOperation(Operation* op)
     else if(IsOperationComparision(op))
     {
         FlattenOperationComparison(op);
+    }
+    else if(op->Type == OperationType::EvaluateHere)
+    {
+        FlattenOperationEvaluateHere(op);
     }
     else if(op->Type == OperationType::Ask)
     {

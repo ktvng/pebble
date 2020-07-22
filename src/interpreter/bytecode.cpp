@@ -100,6 +100,7 @@ BCI_Method BCI_Instructions[] = {
     BCI_ResolveScoped,
 
     BCI_DefMethod,
+    BCI_EvalHere,
     BCI_Eval,
     BCI_Return,
 
@@ -818,7 +819,7 @@ void BCI_DefMethod(extArg_t arg)
 }
 
 /// arg is number of parameters
-/// assumes TOS an obj (params), TOS1 is an object (method), TOS2 an objBlockStartInstructionId (caller)
+/// assumes TOS[arg] are objs (params), TOS[arg+1] is an object (method), TOS[arg+2] an obj (caller)
 /// adds caller and self to TOS (in that order)
 void BCI_Eval(extArg_t arg)
 {
@@ -834,6 +835,24 @@ void BCI_Eval(extArg_t arg)
 
     /// TODO: figure out caller id
     EnterNewCallFrame(0, callerObj, methodObj);
+    
+    InstructionReg = jumpTo;
+    JumpStatusReg = 1;
+}
+
+/// arg is number of parameters
+/// assumes TOS[arg] are objs (params), TOS[arg+1] is an object (method)
+/// adds caller and self to TOS (in that order)
+void BCI_EvalHere(extArg_t arg)
+{
+    auto paramsList = GetParameters(arg);
+    auto methodObj = TOS_Obj();
+
+    extArg_t jumpTo = methodObj->BlockStartInstructionId;
+    AddParamsToMethodScope(SelfReg, paramsList);
+
+    /// TODO: figure out caller id
+    EnterNewCallFrame(0, CallerReg, SelfReg);
     
     InstructionReg = jumpTo;
     JumpStatusReg = 1;

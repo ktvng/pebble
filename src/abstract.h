@@ -13,6 +13,7 @@ struct Scope;
 struct CodeLine;
 struct Program;
 struct Reference;
+struct ByteCodeInstruction;
 
 class Object;
 class Method;
@@ -60,6 +61,7 @@ enum OperationType
     Or,                             // returns Reference to result of ||
     Not,                            // returns Reference to result of !
     Evaluate,                       // returns Reference to result of method call
+    EvaluateHere,
     Print,                          // prints a Ref to the screen
     Ask,
     
