@@ -1,13 +1,13 @@
 Fact(X):
     print X
-    if(X):
+    if(X)
         return X * Fact(X-1)
     return 1
 
 print Fact(5)
 
 Pow(X, Y):
-    if(Y):
+    if(Y)
         return X * Pow(X, Y-1)
     return 1
 
