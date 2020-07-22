@@ -79,6 +79,8 @@ enum OperationType
     New,
     ScopeResolution,
     Class,
+
+    NoOperationType,
 };
 
 enum class SystemMessageType

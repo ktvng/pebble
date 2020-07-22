@@ -91,6 +91,8 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::Class;
     else if(Name=="Ref")
         return OperationType::Ref;
+    else if(Name=="NoOperationType")
+        return OperationType::NoOperationType;
     
     LogIt(LogSeverityType::Sev2_Important, "StringNameToOperationType", Msg("possibly unimplemented enum type %s", Name));
     return OperationType::Ref;
@@ -135,8 +137,8 @@ int PrecedenceOf(String opSymbol)
         }
         i++;
     }
-    LogIt(Sev3_Critical, "PrecedenceOf", Msg("unknown operation symbol %s", opSymbol));
-    return 0;
+    LogIt(Sev2_Important, "PrecedenceOf", Msg("unknown operation symbol %s", opSymbol));
+    return PrecedenceRules.size() - 1;
 }
 
 int PrecedenceOf(Token* lookaheadToken)
@@ -450,7 +452,7 @@ void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, Pars
 OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** listTail, CFGRule& rule)
 {
     OperationsList operands;
-    operands.reserve(5);
+    operands.reserve(4);
 
     ParseToken* listSnipHead = *listTail;
     
@@ -459,12 +461,12 @@ OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** list
     // gets the operands
     for(ParseToken* listSnipItr = listSnipHead; listSnipItr != nullptr; listSnipItr = listSnipItr->Next)
     {
-        if(ParseTokenTypeMatches(listSnipItr->TokenType, ProductionVariables))
+        if(ParseTokenTypeMatches(listSnipItr->TokenType, ProductionVariables) && listSnipItr->Value != nullptr)
         {
             operands.push_back(listSnipItr->Value);
         }
     }
-    
+
     DestroyList(listSnipHead);
 
     return operands;
@@ -577,6 +579,10 @@ Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
     {
         return CollapseByUnscopedEval(rule, components);
     }
+    else if(rule.ParseMethod == "Rewrite")
+    {
+        return nullptr;
+    }
     else
     {
         LogIt(LogSeverityType::Sev1_Notify, "CollapseRule", "unknown collapsing procedure");
@@ -620,10 +626,11 @@ void AddRefToken(ParseToken** listHead, ParseToken** listTail, Token* token)
 void AddSimpleToken(ParseToken** listHead, ParseToken** listTail, Token* token)
 {
     ParseToken* t = ParseTokenConstructor(token->Content);
+    t->Value = nullptr;
     AddToList(listHead, listTail, t);
 }
 
-const std::vector<String> SkippedKeyWords = { "the", "an", "a" };
+const std::vector<String> SkippedKeyWords = { "the" };
 const std::vector<String> ReferenceKeyWords = { "caller", "self", "that", "it" };
 
 void AddNextTokenToList(ParseToken** listHead, ParseToken** listTail, Token* currentToken)
