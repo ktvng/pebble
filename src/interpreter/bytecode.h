@@ -9,7 +9,13 @@ const uint8_t BitFlag = 0x1;
 
 typedef void (*BCI_Method)(extArg_t);
 
-const inline int BCI_NumberOfInstructions = 28;
+struct ByteCodeInstruction
+{
+    uint8_t Op;
+    uint8_t Arg;
+};
+
+const inline int BCI_NumberOfInstructions = 29;
 
 void BCI_LoadRefName(extArg_t arg);
 void BCI_LoadPrimitive(extArg_t arg);
@@ -40,6 +46,7 @@ void BCI_ResolveDirect(extArg_t arg);
 void BCI_ResolveScoped(extArg_t arg);
 
 void BCI_DefMethod(extArg_t arg);
+void BCI_EvalHere(extArg_t arg);
 void BCI_Eval(extArg_t arg);
 void BCI_Return(extArg_t arg);
 

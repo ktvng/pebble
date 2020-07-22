@@ -117,14 +117,16 @@ Expr -> ask Expr
 @ Print lowest Reduce
 Line -> print Expr
 
+@ EvaluateHere ! Reduce
+Expr -> here Expr
+
+
 
 @ Evaluate ( ScopedEval
 > :
 Expr -> SRef . Ref ( )
 Expr -> SRef . Ref ( Expr )
 Expr -> SRef . Ref ( Tuple )
-
-
 
 @ Evaluate ( UnscopedEval
 > :

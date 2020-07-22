@@ -171,6 +171,18 @@ void TestWhile()
     Assert(ProgramOutput == correctOutput);
 }
 
+void TestHere()
+{
+    It("correctly evaluates a method with the here operator");
+
+    CompileAndExecuteProgram("TestHere");
+    IncludeStandardAssertSuite();
+
+    String correctOutput = "7\n";
+    Should("execute method in inplace without changing scope when called with here operator");
+    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
+    Assert(ProgramOutput == correctOutput);
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test index
