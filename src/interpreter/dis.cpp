@@ -64,6 +64,14 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_Not";
     }
+    else if(ins.Op == IndexOfInstruction(BCI_Equals))
+    {
+        str += "#BCI_Equals";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_NotEquals))
+    {
+        str += "#BCI_NotEquals";
+    }    
     else if(ins.Op == IndexOfInstruction(BCI_Cmp))
     {
         str += "#BCI_Cmp";

@@ -18,7 +18,16 @@
 
 Object* InternalObjectConstructor(ObjectClass cls, void* value)
 {
-    Object* obj = ObjectConstructor(cls, value);
+    Object* obj = FindExistingObject(cls, value);
+    if(obj != nullptr)
+    {
+        /// TODO: make this more efficient... we don't need to be destroying values because we made them before
+        /// we checked that a primitive object with that value/class already existed
+        ObjectValueDestructor(cls, value);
+        return obj;
+    }
+
+    obj = ObjectConstructor(cls, value);
 
     AddRuntimeObject(obj);
     return obj;
@@ -88,6 +97,8 @@ BCI_Method BCI_Instructions[] = {
     BCI_Or,
     BCI_Not,
 
+    BCI_NotEquals,
+    BCI_Equals,
     BCI_Cmp,
     BCI_LoadCmp,
 
@@ -414,22 +425,18 @@ void BCI_Add(extArg_t arg)
         int i = GetIntValue(*lObj) + GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) + GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, StringClass))
     {
         String s = GetStringValue(*lObj) + GetStringValue(*rObj);
         String* ans = ObjectValueConstructor(s);
         obj = InternalObjectConstructor(StringClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -451,15 +458,12 @@ void BCI_Subtract(extArg_t arg)
         int i = GetIntValue(*lObj) - GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) - GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -481,15 +485,12 @@ void BCI_Multiply(extArg_t arg)
         int i = GetIntValue(*lObj) * GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) * GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -511,15 +512,12 @@ void BCI_Divide(extArg_t arg)
         int i = GetIntValue(*lObj) / GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) / GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -595,6 +593,28 @@ void BCI_Not(extArg_t arg)
     Object* newObj = InternalObjectConstructor(BooleanClass, ans);
 
     PushTOS<Object>(newObj);
+}
+
+/// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
+/// leaves obj (bool compare result) as TOS
+void BCI_NotEquals(extArg_t arg)
+{
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
+
+    auto boolObj = InternalBooleanObjectConstructor(rObj != lObj);
+    PushTOS<Object>(boolObj);
+}
+
+/// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
+/// leaves obj (bool compare result) as TOS
+void BCI_Equals(extArg_t arg)
+{
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
+
+    auto boolObj = InternalBooleanObjectConstructor(rObj == lObj);
+    PushTOS<Object>(boolObj);
 }
 
 /// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively

@@ -15,7 +15,7 @@ struct ByteCodeInstruction
     uint8_t Arg;
 };
 
-const inline int BCI_NumberOfInstructions = 31;
+const inline int BCI_NumberOfInstructions = 32;
 
 void BCI_LoadRefName(extArg_t arg);
 void BCI_LoadPrimitive(extArg_t arg);
@@ -34,6 +34,8 @@ void BCI_And(extArg_t arg);
 void BCI_Or(extArg_t arg);
 void BCI_Not(extArg_t arg);
 
+void BCI_NotEquals(extArg_t arg);
+void BCI_Equals(extArg_t arg);
 void BCI_Cmp(extArg_t arg);
 void BCI_LoadCmp(extArg_t arg);
 

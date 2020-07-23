@@ -459,7 +459,6 @@ bool IsOperationComparision(Operation* op)
     auto opType = op->Type;
     return opType == OperationType::IsGreaterThan
         || opType == OperationType::IsLessThan
-        || opType == OperationType::IsEqual
         || opType == OperationType::IsGreaterThanOrEqualTo
         || opType == OperationType::IsLessThanOrEqualTo;
 }
@@ -491,10 +490,6 @@ inline void FlattenOperationComparison(Operation* op)
     opId = IndexOfInstruction(BCI_LoadCmp);
     switch(op->Type)
     {
-        case OperationType::IsEqual:
-        arg = 2;
-        break;
-
         case OperationType::IsLessThan:
         arg = 3;
         break;
@@ -525,6 +520,7 @@ inline void FlattenOperationComparison(Operation* op)
 /// and/or/not
 /// syscall (print)
 /// while/if/elseif/else
+/// isequal
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -562,6 +558,14 @@ inline void FlattenOperationGeneric(Operation* op)
 
         case OperationType::Not:
         opId = IndexOfInstruction(BCI_Not);
+        break;
+
+        case OperationType::IsEqual:
+        opId = IndexOfInstruction(BCI_Equals);
+        break; 
+
+        case OperationType::IsNotEqual:
+        opId = IndexOfInstruction(BCI_NotEquals);
         break;
 
         case OperationType::Print:
