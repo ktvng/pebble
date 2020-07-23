@@ -54,6 +54,7 @@ int JumpStatusReg;
 /// 4: >
 /// 5: <=
 /// 6: >=
+/// 7: true if all comparisons valid, false if only == valid
 uint8_t CmpReg = CmpRegDefaultValue;
 
 /// stores the result of the last line of code and is updated by the BCI_Endline 
@@ -211,7 +212,7 @@ void DoByteCodeProgram()
     while(InstructionReg < ByteCodeProgram.size())
     {
         auto ins = ByteCodeProgram[InstructionReg];
-        LogItDebug(ToString(ins));
+        LogItDebug(Msg("%i: %s", (int)InstructionReg, ToString(ins)));
         if(IsNOP(ins))
         {
             InstructionReg++;
@@ -263,4 +264,52 @@ void AddRuntimeObject(Object* obj)
 void AddRuntimeReference(Reference* ref)
 {
     RuntimeReferences.push_back(ref);
+}
+
+bool ValuesMatch(ObjectClass cls, void* value, Object* obj)
+{
+    if(cls != obj->Class)
+    {
+        return false;
+    }
+
+    if(cls == StringClass)
+    {
+        return *static_cast<String*>(value) == *static_cast<String*>(obj->Value);
+    }
+    else if(cls == IntegerClass)
+    {
+        return *static_cast<int*>(value) == *static_cast<int*>(obj->Value); 
+    }
+    else if(cls == DecimalClass)
+    {
+        return *static_cast<double*>(value) == *static_cast<double*>(obj->Value); 
+    }
+    else if(cls == BooleanClass)
+    {
+        return *static_cast<bool*>(value) == *static_cast<bool*>(obj->Value); 
+    }
+
+    return false;    
+}
+
+Object* FindExistingObject(ObjectClass cls, void* value)
+{
+    for(auto obj: ConstPrimitives)
+    {
+        if(ValuesMatch(cls, value, obj))
+        {
+            return obj;
+        }
+    }
+
+    for(auto obj: RuntimeObjects)
+    {
+        if(IsPrimitiveObject(obj) && ValuesMatch(cls, value, obj))
+        {
+            return obj;
+        }
+    }
+
+    return nullptr;
 }

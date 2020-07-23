@@ -8,303 +8,11 @@
 #include "scope.h"
 #include "object.h"
 #include "program.h"
-
-// ---------------------------------------------------------------------------------------------------------------------
-// PrecedenceClass
-bool PrecedenceClass::Contains(String symb)
-{
-    for(auto str: Members)
-        if(str == symb)
-            return true;
-
-    return false;
-}
-
+#include "grammar.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Formal grammar parser parser
-
-OperationType StringNameToOperationType(String Name)
-{
-    if(Name=="Add")
-        return OperationType::Add;
-    else if(Name=="Subtract")
-        return OperationType::Subtract;
-    else if(Name=="Multiply")
-        return OperationType::Multiply;
-    else if(Name=="Divide")
-        return OperationType::Divide;
-
-    else if(Name=="And")
-        return OperationType::And;
-    else if(Name=="Or")
-        return OperationType::Or;
-    else if(Name=="Not")
-        return OperationType::Not;
-
-    else if(Name=="IsEqual")
-        return OperationType::IsEqual;
-    else if(Name=="IsNotEqual")
-        return OperationType::IsNotEqual;
-    else if(Name=="IsGreaterThan")
-        return OperationType::IsGreaterThan;
-    else if(Name=="IsLessThan")
-        return OperationType::IsLessThan;
-    else if(Name=="IsGreaterThanOrEqualTo")
-        return OperationType::IsGreaterThanOrEqualTo;
-    else if(Name=="IsLessThanOrEqualTo")
-        return OperationType::IsLessThanOrEqualTo;
-
-
-    else if(Name=="Evaluate")
-        return OperationType::Evaluate;
-    else if(Name=="EvaluateHere")
-        return OperationType::EvaluateHere;
-
-    else if(Name=="If")
-        return OperationType::If;
-    else if(Name=="ElseIf")
-        return OperationType::ElseIf;
-    else if(Name=="Else")
-        return OperationType::Else;
-    else if(Name=="While")
-        return OperationType::While;
-    else if(Name=="DefineMethod")
-        return OperationType::DefineMethod;
-    else if(Name=="Assign")
-        return OperationType::Assign;
-    else if(Name=="Tuple")
-        return OperationType::Tuple;
-    else if(Name=="Print")
-        return OperationType::Print;
-    else if(Name=="Ask")
-        return OperationType::Ask;
-    else if(Name=="Return")
-        return OperationType::Return;
-
-    else if(Name=="New")
-        return OperationType::New;
-    else if(Name=="ScopeResolution")
-        return OperationType::ScopeResolution;
-    else if(Name=="Class")
-        return OperationType::Class;
-    else if(Name=="Ref")
-        return OperationType::Ref;
-    
-    LogIt(LogSeverityType::Sev2_Important, "StringNameToOperationType", Msg("possibly unimplemented enum type %s", Name));
-    return OperationType::Ref;
-}
-
-
-void AddProductionVariable(String newProductionVar)
-{
-    for(auto productionVar: ProductionVariables)
-    {
-        if(productionVar == newProductionVar)
-            return;
-    }
-    ProductionVariables.push_back(newProductionVar);
-}
-
-// TODO: move to diagnostics
-void PrintPrecedenceRules()
-{
-    std::cout << "PRINTING\n";
-    for(auto rule: PrecedenceRules)
-    {
-        for(auto s: rule.Members)
-        {
-            std::cout << s << " ";
-        }
-        std::cout << "\n";
-    }
-}
-
-int PrecedenceOf(String opSymbol)
-{
-    int i=1;
-    for(auto rule: PrecedenceRules)
-    {
-        for(auto str: rule.Members)
-        {
-            if(str == opSymbol)
-            {
-                return i;
-            }
-        }
-        i++;
-    }
-    LogIt(Sev3_Critical, "PrecedenceOf", Msg("unknown operation symbol %s", opSymbol));
-    return 0;
-}
-
-int PrecedenceOf(Token* lookaheadToken)
-{
-    if(lookaheadToken == nullptr)
-        return 0;
-
-    return PrecedenceOf(lookaheadToken->Content);
-}
-
-void AssignRulePrecedences()
-{
-    for(auto& rule: Grammar)
-    {
-        rule.Precedence = PrecedenceOf(rule.Symbol);
-    }
-}
-
-void AddPrecedenceClass(TokenList& tokens)
-{
-    PrecedenceClass precdence;
-    for(Token* t: tokens)
-    {
-        precdence.Members.push_back(t->Content);
-    }
-    PrecedenceRules.push_front(precdence);
-}
-
-void AddGrammarRuleInternal(
-    TokenList&tokens, 
-    String& name, 
-    String& symbol, 
-    String& parseMethod, 
-    PrecedenceClass& higherpclass, 
-    PrecedenceClass& lowerpclass)
-{
-    CFGRule rule;
-
-    rule.HasHigherPrecedenceClassOverride = false;
-    rule.HasLowerPrecedenceClassOverride = false;
-
-    rule.Name = name;
-    rule.Symbol = symbol; 
-    rule.ParseMethod = parseMethod; 
-
-    rule.OpType = StringNameToOperationType(rule.Name);
-    rule.FromProduction = tokens.at(0)->Content;
-    AddProductionVariable(rule.FromProduction);
-
-    if(!higherpclass.Members.empty())
-    {
-        rule.HasHigherPrecedenceClassOverride = true;
-        rule.HigherPrecedenceClass = higherpclass;
-    }
-
-    if(!lowerpclass.Members.empty())
-    {
-        rule.HasLowerPrecedenceClassOverride = true;
-        rule.LowerPrecedenceClass = lowerpclass;
-    }
-
-    for(size_t i=3; i<tokens.size(); i++)
-    {
-        rule.IntoPattern.push_back(tokens.at(i)->Content);
-    }
-
-    Grammar.push_back(rule);
-}
-
-PrecedenceClass GetOverridePrecedenceClass(TokenList& tokens)
-{
-    PrecedenceClass pclass;
-    pclass.Members.reserve(tokens.size()-1);
-    for(size_t i=1; i<tokens.size(); i++)
-    {
-        pclass.Members.push_back(tokens.at(i)->Content);
-    }
-
-    return pclass;
-}
-
-void AddGrammarRule(TokenList& tokens)
-{
-    static String name;
-    static String symbol;
-    static String parseMethod;
-    static PrecedenceClass higherpclass;
-    static PrecedenceClass lowerpclass;
-
-    if(tokens.at(0)->Content == "@")
-    {
-        name = tokens.at(1)->Content;
-        symbol = tokens.at(2)->Content;
-        parseMethod = tokens.at(3)->Content;
-        higherpclass.Members.clear();
-        lowerpclass.Members.clear();
-        
-    }
-    else if(tokens.at(0)->Content == ">")
-    {
-        higherpclass = GetOverridePrecedenceClass(tokens);
-    }
-    else if(tokens.at(0)->Content == "<")
-    {
-        lowerpclass = GetOverridePrecedenceClass(tokens);
-    }
-    else if(tokens.at(0)->Type == TokenType::Reference)
-    {
-        AddGrammarRuleInternal(tokens, name, symbol, parseMethod, higherpclass, lowerpclass);
-    }
-}
-
-void CompileGrammar()
-{
-    std::fstream file;
-    file.open("./assets/grammar.txt", std::ios::in);
-
-
-    // state: +1 upon every occurance of '###'
-    //  0: skip all lines
-    //  1: read grammar rules 
-    //  2: read precedences
-    //  other: skip all lines
-    int state = 0;
-
-    String line;
-    while(std::getline(file, line))
-    {
-        /// TODO: we don't need to lex every line we should skip the comments
-        TokenList tokens = LexLine(line);
-        if(tokens.empty())
-        {
-            DeleteTokenList(tokens);
-            continue;
-        }
-
-        if(tokens.at(0)->Content == "#")
-        {
-            DeleteTokenList(tokens);
-            state++;
-            continue;
-        }
-
-        switch(state)
-        {
-            case 1:
-            AddGrammarRule(tokens);
-            DeleteTokenList(tokens);
-            continue;
-            case 2:
-            AddPrecedenceClass(tokens);
-            DeleteTokenList(tokens);
-            break;
-
-            default:
-            DeleteTokenList(tokens);
-            continue;
-        }
-    }
-
-    AssignRulePrecedences();
-}
-
-
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Formal grammar parser (experimental)
+// Formal expression parser
 
 /// add a [newToken] to an existing [listTail]
 void AddToList(ParseToken** listHead, ParseToken** listTail, ParseToken* newToken)
@@ -414,7 +122,6 @@ void DestroyList(ParseToken* listHead)
     }
 }
 
-
 bool ParseTokenTypeMatches(String TokenType, std::vector<String> matchTypes)
 {
     for(auto str: matchTypes)
@@ -424,7 +131,6 @@ bool ParseTokenTypeMatches(String TokenType, std::vector<String> matchTypes)
     }
     return false;
 }
-
 
 /// pushes listTail back to before the [rule] pattern and sets listSnipHead to be the head (start) of [rule] in the ParseStack
 void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, ParseToken** listSnipHead, CFGRule& rule)
@@ -450,7 +156,7 @@ void PointToHeadOfRuleAndSnip(ParseToken** listHead, ParseToken** listTail, Pars
 OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** listTail, CFGRule& rule)
 {
     OperationsList operands;
-    operands.reserve(5);
+    operands.reserve(4);
 
     ParseToken* listSnipHead = *listTail;
     
@@ -459,17 +165,21 @@ OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** list
     // gets the operands
     for(ParseToken* listSnipItr = listSnipHead; listSnipItr != nullptr; listSnipItr = listSnipItr->Next)
     {
-        if(ParseTokenTypeMatches(listSnipItr->TokenType, ProductionVariables))
+        if(ParseTokenTypeMatches(listSnipItr->TokenType, ProductionVariables) && listSnipItr->Value != nullptr)
         {
             operands.push_back(listSnipItr->Value);
         }
     }
-    
+
     DestroyList(listSnipHead);
 
     return operands;
 }
 
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Methods of collapsing grammar rules
 
 /// collapse a rule by adding each component as the operand of a new operation
 Operation* CollapseByReduce(CFGRule& rule, OperationsList& components)
@@ -577,6 +287,10 @@ Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
     {
         return CollapseByUnscopedEval(rule, components);
     }
+    else if(rule.ParseMethod == "Rewrite")
+    {
+        return nullptr;
+    }
     else
     {
         LogIt(LogSeverityType::Sev1_Notify, "CollapseRule", "unknown collapsing procedure");
@@ -620,10 +334,11 @@ void AddRefToken(ParseToken** listHead, ParseToken** listTail, Token* token)
 void AddSimpleToken(ParseToken** listHead, ParseToken** listTail, Token* token)
 {
     ParseToken* t = ParseTokenConstructor(token->Content);
+    t->Value = nullptr;
     AddToList(listHead, listTail, t);
 }
 
-const std::vector<String> SkippedKeyWords = { "the", "an", "a" };
+const std::vector<String> SkippedKeyWords = { "the" };
 const std::vector<String> ReferenceKeyWords = { "caller", "self", "that", "it" };
 
 void AddNextTokenToList(ParseToken** listHead, ParseToken** listTail, Token* currentToken)
@@ -680,13 +395,87 @@ void TryReversingGrammarRules(ParseToken** listHead, ParseToken** listTail, Toke
     }
 }
 
-Operation* ExpressionParser(TokenList& line)
+bool PositionMatchesPreprocessorRule(TokenList& list, size_t startPos, PreprocessorRule** matchedRule)
+{
+    PreprocessorRule* longestMatch = nullptr;
+    for(auto& rule: PreprocessorRules)
+    {
+        if(list.size() < rule.Pattern.size() + startPos)
+        {
+            continue;
+        }
+
+        bool ruleMatches = true;
+        for(size_t i=0; i<rule.Pattern.size(); i++)
+        {
+            if(rule.Pattern[i] != list[startPos + i]->Content)
+            {
+                ruleMatches = false;
+                break;
+            }
+        }
+
+        if(ruleMatches)
+        {
+            if(longestMatch == nullptr)
+            {
+                longestMatch = &rule;
+            }
+            else
+            {
+                if(longestMatch->Pattern.size() < rule.Pattern.size())
+                {
+                    longestMatch = &rule;
+                }
+            }
+        }
+    }
+
+    if(longestMatch != nullptr)
+    {
+        *matchedRule = longestMatch;
+        return true;
+    }
+
+    return false;
+}
+
+TokenList Preprocess(TokenList& list)
+{
+    TokenList processedList;
+    int newListIndex = 0;
+    for(size_t i=0; i<list.size(); i++)
+    {
+        PreprocessorRule* rule = nullptr;
+        if(PositionMatchesPreprocessorRule(list, i, &rule))
+        {
+            Token* t = new Token;
+            *t = { TokenType::Simple, rule->Becomes, newListIndex };
+            processedList.push_back(t);
+            i += rule->Pattern.size() - 1;
+        }
+        else
+        {
+            auto t = list[i];
+            t->Position = newListIndex;
+            processedList.push_back(t);
+        }
+
+        newListIndex++;
+    }
+
+    return processedList;
+}
+
+Operation* ExpressionParser(TokenList& rawline)
 {
     ParseToken* listHead = nullptr;
     ParseToken* listTail = nullptr;
 
-    int pos = 0;
+    TokenList line = Preprocess(rawline);
+    LogDiagnostics(line);
 
+    int pos = 0;
     while(static_cast<size_t>(pos) < line.size())
     {
         Token* currentToken = line.at(pos);

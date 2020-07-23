@@ -94,6 +94,6 @@ extern Object SomethingObject;
 void DoByteCodeProgram();
 void AddRuntimeObject(Object* obj);
 void AddRuntimeReference(Reference* ref);
-
+Object* FindExistingObject(ObjectClass cls, void* value);
 
 #endif

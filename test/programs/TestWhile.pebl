@@ -1,13 +1,13 @@
 X = 5
-while X > 0:
+while X > 0
     print X
     X = X - 1
 
 X = false
-while X:
+while X
     print "in"
 
 X = 0 - 5
-while X < 0:
+while X < 0
     print X
     X = X + 1

@@ -1,8 +1,7 @@
 Documentation: 
-    Everything before the first line with leading character '#' is ignored
+    Everything before the first line with leading character ';' is ignored
 
-    The first section defines grammars rules. A rule will span two lines, with
-    the first line starting with the symbol '@'. Individual tokens are separated
+    The first section defines grammars rules. Individual tokens are separated
     by spaces, and all whitespace is ignored.
 
     The first line should be formatted
@@ -18,55 +17,131 @@ Documentation:
         [CollapseMethod] defines how to merge the output of the rule back into 
             the parent operation
 
+    Optional precendence override:
+    Following the declaration line, there are the option precedence override lines.
+    There lines must begin with either '<' or '>' and contain a list of whitespace
+    separated operator tokens. 
+
+    Tokens listed after '>' will be treated as having higher precedence than the current
+    rule while tokens listed after '<' will be treated as having lower precedence
+
+    Following these optional lines, the actual production rules can be listed. There
+    may be multiple production rules which corresopnd to the same declaration and
+    override lines.
+
     The second line should be formatted
         [ProductionRule] -> ...
 
     Note: All production rules should begin with an uppercase
-
+    Note: Grammar rules are matched in the order they are listed. Matching is greedy.
 
 Precedence:
     The second section defines precedence classes listed from high to low.
     
 
 
-# Grammar
-@ Class class Reduce
-Class -> class Ref
+------------------------------------------------------------------------------------------------------------------------
+;;; Preprocessing
+@ <=
+is leq to
+is leq
+leq 
+leq to
+is less than or equal to
 
-@ Class class Merge
-Class -> Class < Ref
+@ >=
+is geq to
+is geq
+geq
+geq to
+is greater than or equal to
+
+@ ==
+equals
+is equal
+is equal to
+is
+
+@ !=
+does not equal
+not equal
+not equal to
+not equals
+is not
+
+@ !
+not
+
+@ a
+an
+
+@ &&
+and
+
+@ ||
+or
+
+@ here
+inherits
+
+@ say
+print
+
+@ .
+'s
+
+@ else
+otherwise
+ow
+
+;;; Grammar begins here
+
+@ IsEqual == Reduce
+Expr -> Expr == Expr
+
+@ IsNotEqual != Reduce
+Expr -> Expr != Expr
+
+
+@ IsGreaterThan > Reduce
+Expr -> Expr > Expr
+
+@ IsLessThan > Reduce
+Expr -> Expr < Expr
+
+@ IsGreaterThanOrEqualTo >= Reduce
+Expr -> Expr >= Expr
+
+
+@ IsLessThanOrEqualTo <= Reduce
+Expr -> Expr <= Expr
+
+@ Class class Reduce
+Class -> a Ref 
 
 @ Class class Retain
-Line -> Class :
+Class -> Class ():
+Class -> Class :
 
-@ Promote ! Retain
+@ NoOperationType ! Retain
 > =
 Expr -> SRef
+
 
 @ New new Reduce
 Expr -> new Ref
 
+
 @ ScopeResolution . Reduce
 > (
 < to
+SRef -> Expr . Ref
 SRef -> SRef . Ref
-SRef -> SRef 's Ref
-
 SRef -> Ref
+
 
 @ Return = Reduce
 Line -> return Expr
-
-
-
-
-@ IsEqual == Reduce
-Expr -> Expr == Expr
-Expr -> Expr is Expr
-
-@ IsNotEqual != Reduce
-Expr -> Expr != Expr
-Expr -> Expr is not Expr
 
 
 @ Add + Reduce
@@ -82,51 +157,40 @@ Expr -> Expr * Expr
 Expr -> Expr / Expr
 
 
-
 @ And && Reduce
 Expr -> Expr && Expr
-Expr -> Expr and Expr
 
 @ Or || Reduce
 Expr -> Expr || Expr
-Expr -> Expr or Expr
 
 @ Not ! Retain
 Expr -> ! Expr
-Expr -> not Expr
-
-
-
-
-@ IsGreaterThan > Reduce
-Expr -> Expr > Expr
-
-@ IsLessThan > Reduce
-Expr -> Expr < Expr
-
-@ IsGreaterThanOrEqualTo >= Reduce
-Expr -> Expr >= Expr
-
-@ IsLessThanOrEqualTo <= Reduce
-Expr -> Expr <= Expr
 
 
 @ Ask lowest Reduce
 Expr -> ask Expr
 
 @ Print lowest Reduce
-Line -> print Expr
+Line -> say Expr
+
+
 
 @ EvaluateHere ! Reduce
 Expr -> here Expr
-
-
 
 @ Evaluate ( ScopedEval
 > :
 Expr -> SRef . Ref ( )
 Expr -> SRef . Ref ( Expr )
 Expr -> SRef . Ref ( Tuple )
+
+Expr -> Expr . Ref ( )
+Expr -> Expr . Ref ( Expr )
+Expr -> Expr . Ref ( Tuple )
+
+Expr -> Class . Ref ( )
+Expr -> Class . Ref ( Expr )
+Expr -> Class . Ref ( Tuple )
 
 @ Evaluate ( UnscopedEval
 > :
@@ -136,36 +200,38 @@ Expr -> Ref ( Tuple )
 
 
 @ Else : Reduce
-Line -> else :
+> if
+Line -> else
 
 @ ElseIf : Reduce
-Line -> else if Expr :
+Line -> else if Expr
 
 @ If : Reduce
-Line -> if Expr :
-
+Line -> if Expr
 
 
 @ While : Reduce
-Line -> while Expr :
+Line -> while Expr
 
 @ For : Reduce
-Line -> for ( Ref in Expr ) :
-Line -> for Ref in Expr :
+Line -> for each ( Ref in Expr )
+Line -> for each Ref in Expr 
+
 
 @ DefineMethod : Custom
 Line -> Ref ( Tuple ) :
 Line -> Ref ( Expr ) :
 Line -> Ref ( ) :
 
+
 @ Assign = Reduce
-Line -> set SRef to Expr
 Line -> SRef = Expr
 Line -> SRef = ( Tuple )
 
 
-@ Parens ( Retain
+@ NoOperationType ( Retain
 Expr -> ( Expr )
+
 
 @ Tuple , Merge
 Tuple -> Tuple , Expr
@@ -182,20 +248,28 @@ Line -> Expr
 
 
 
-# Operator Precedence
-in new class to
+
+
+;;; Operator Precedence
+in new class to highest
 (
-[ . 's
+[ .
 !
 * /
 + -
 < > <= >=
-== != is
-&& and
-|| or
+== !=
+&&
+||
 =
 ,
 ) :
 lowest 
 
-### End 
+
+
+
+;;; End 
+
+
+

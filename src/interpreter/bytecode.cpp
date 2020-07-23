@@ -18,7 +18,16 @@
 
 Object* InternalObjectConstructor(ObjectClass cls, void* value)
 {
-    Object* obj = ObjectConstructor(cls, value);
+    Object* obj = FindExistingObject(cls, value);
+    if(obj != nullptr)
+    {
+        /// TODO: make this more efficient... we don't need to be destroying values because we made them before
+        /// we checked that a primitive object with that value/class already existed
+        ObjectValueDestructor(cls, value);
+        return obj;
+    }
+
+    obj = ObjectConstructor(cls, value);
 
     AddRuntimeObject(obj);
     return obj;
@@ -88,6 +97,8 @@ BCI_Method BCI_Instructions[] = {
     BCI_Or,
     BCI_Not,
 
+    BCI_NotEquals,
+    BCI_Equals,
     BCI_Cmp,
     BCI_LoadCmp,
 
@@ -95,6 +106,7 @@ BCI_Method BCI_Instructions[] = {
     BCI_Jump,
 
     BCI_Copy,
+    BCI_DefType,
 
     BCI_ResolveDirect,
     BCI_ResolveScoped,
@@ -110,7 +122,9 @@ BCI_Method BCI_Instructions[] = {
     BCI_Extend,
     BCI_NOP,
     BCI_Dup,
-    BCI_EndLine
+    BCI_EndLine,
+
+    BCI_Swap
 };
 
 
@@ -120,51 +134,24 @@ BCI_Method BCI_Instructions[] = {
 // Instruction Helpers
 
 /// returns TOS as a Reference*
-inline Reference* TOS_Ref()
+template <typename T>
+inline T* PopTOS()
 {
-    auto ref = static_cast<Reference*>(MemoryStack.back());
+    T* tos = static_cast<T*>(MemoryStack.back());
     MemoryStack.pop_back();
-    return ref;
+    return tos;
 }
 
-/// returns a pointer to TOS as a Reference*
-inline Reference* TOSpeek_Ref()
+template <typename T>
+inline void PushTOS(T* entity)
 {
-    return static_cast<Reference*>(MemoryStack.back());
+    MemoryStack.push_back(static_cast<void*>(entity));
 }
 
-/// returns TOS as an Object*
-inline Object* TOS_Obj()
+template <typename T>
+inline T* PeekTOS()
 {
-    auto obj = static_cast<Object*>(MemoryStack.back());
-    MemoryStack.pop_back();
-    return obj;
-}
-
-/// returns a pointer to TOS as an Object*
-inline Object* TOSpeek_Obj()
-{
-    return static_cast<Object*>(MemoryStack.back());
-}
-
-/// returns a pointer to TOS as a void*
-inline void* TOSpeek()
-{
-    return MemoryStack.back();
-}
-
-/// returns TOS as a String*
-inline String* TOS_String()
-{
-    auto str = static_cast<String*>(MemoryStack.back());
-    MemoryStack.pop_back();
-    return str;
-}
-
-/// discards (pops) TOS
-inline void TOS_discard()
-{
-    MemoryStack.pop_back();
+    return static_cast<T*>(MemoryStack.back());
 }
 
 /// finds and returns a Reference with [refName] in [scope] without checking 
@@ -206,13 +193,6 @@ inline Scope* ScopeOf(Object* obj)
     return obj->Attributes;
 }
 
-/// push a pointer T* [entity] of tyoe <T> to TOS
-template <typename T>
-inline void PushToStack(T* entity)
-{
-    MemoryStack.push_back(static_cast<void*>(entity));
-}
-
 /// return the size of the MemoryStack
 inline size_t MemoryStackSize()
 {
@@ -225,8 +205,8 @@ inline void EnterNewCallFrame(extArg_t callerRefId, Object* caller, Object* self
 {
     std::vector<Scope> localScopeStack;
     CallStack.push_back({ InstructionReg+1, MemoryStackSize(), callerRefId, localScopeStack, LastResultReg });
-    PushToStack<Object>(caller);
-    PushToStack<Object>(self);
+    PushTOS<Object>(caller);
+    PushTOS<Object>(self);
 
     CallerReg = caller;
     SelfReg = self;
@@ -276,7 +256,7 @@ inline std::vector<Object*> GetParameters(extArg_t numParams)
     params.reserve(numParams);
     for(extArg_t i=0; i<numParams; i++)
     {
-        params.push_back(TOS_Obj());
+        params.push_back(PopTOS<Object>());
     }
     
     return params;
@@ -286,6 +266,14 @@ inline std::vector<Object*> GetParameters(extArg_t numParams)
 inline bool NthBit(uint8_t data, int n)
 {
     return (data & (BitFlag << n)) >> n;
+}
+
+extArg_t IndexAfterNextJump()
+{
+    extArg_t i = InstructionReg;
+    for(; i<ByteCodeProgram.size() && 
+        (ByteCodeProgram[i].Op != IndexOfInstruction(BCI_Jump)); i++);
+    return i+1;
 }
 
 /// fills in <= >= using the comparisions already made
@@ -387,7 +375,7 @@ inline void ResolveReferenceKeyword(const String& refName)
         }
     }
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 
@@ -400,7 +388,7 @@ inline void ResolveReferenceKeyword(const String& refName)
 /// leaves the String refName as TOS
 void BCI_LoadRefName(extArg_t arg)
 {
-    PushToStack<String>(&ReferenceNames[arg]);
+    PushTOS<String>(&ReferenceNames[arg]);
 }
 
 /// no asumptions
@@ -410,34 +398,34 @@ void BCI_LoadPrimitive(extArg_t arg)
     if(arg >= ConstPrimitives.size())
         return; 
 
-    PushToStack<Object>(ConstPrimitives[arg]);
+    PushTOS<Object>(ConstPrimitives[arg]);
 }
 
 /// assumes TOS is a ref
 /// leaves object of that references as TOS
 void BCI_Dereference(extArg_t arg)
 {
-    auto ref = TOS_Ref();
-    PushToStack<Object>(ref->To);
+    auto ref = PopTOS<Reference>();
+    PushTOS<Object>(ref->To);
 }
 
 /// assumes TOS is the new object and TOS1 is the reference to reassign
 /// leaves the object
 void BCI_Assign(extArg_t arg)
 {
-    auto obj = TOS_Obj();
-    auto ref = TOS_Ref();
+    auto obj = PopTOS<Object>();
+    auto ref = PopTOS<Reference>();
 
     ref->To = obj;
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 /// assumes TOS1 and TOS2 are rhs object and lhs object respectively
 /// leaves the result as TOS
 void BCI_Add(extArg_t arg)
 {
-    auto rObj = TOS_Obj();
-    auto lObj = TOS_Obj();
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
 
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
@@ -445,22 +433,18 @@ void BCI_Add(extArg_t arg)
         int i = GetIntValue(*lObj) + GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) + GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, StringClass))
     {
         String s = GetStringValue(*lObj) + GetStringValue(*rObj);
         String* ans = ObjectValueConstructor(s);
         obj = InternalObjectConstructor(StringClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -468,13 +452,13 @@ void BCI_Add(extArg_t arg)
         ReportError(SystemMessageType::Warning, 0, Msg("cannot add types %s and %s", lObj->Class, rObj->Class));
     }
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 void BCI_Subtract(extArg_t arg)
 {
-    auto rObj = TOS_Obj();
-    auto lObj = TOS_Obj();
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
 
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
@@ -482,15 +466,12 @@ void BCI_Subtract(extArg_t arg)
         int i = GetIntValue(*lObj) - GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) - GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -498,13 +479,13 @@ void BCI_Subtract(extArg_t arg)
         ReportError(SystemMessageType::Warning, 0, Msg("cannot subtract types %s and %s", lObj->Class, rObj->Class));
     }
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 void BCI_Multiply(extArg_t arg)
 {
-    auto rObj = TOS_Obj();
-    auto lObj = TOS_Obj();
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
 
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
@@ -512,15 +493,12 @@ void BCI_Multiply(extArg_t arg)
         int i = GetIntValue(*lObj) * GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) * GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -528,13 +506,13 @@ void BCI_Multiply(extArg_t arg)
         ReportError(SystemMessageType::Warning, 0, Msg("cannot multiply types %s and %s", lObj->Class, rObj->Class));
     }
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 void BCI_Divide(extArg_t arg)
 {
-    auto rObj = TOS_Obj();
-    auto lObj = TOS_Obj();
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
 
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
@@ -542,15 +520,12 @@ void BCI_Divide(extArg_t arg)
         int i = GetIntValue(*lObj) / GetIntValue(*rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
-        
-        obj->Value = ans;
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
         double d = GetIntValue(*lObj) / GetIntValue(*rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
-        obj->Value = ans;
     }
     else
     {
@@ -558,7 +533,7 @@ void BCI_Divide(extArg_t arg)
         ReportError(SystemMessageType::Warning, 0, Msg("cannot divide types %s and %s", lObj->Class, rObj->Class));
     }
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 /// 0 = print
@@ -569,7 +544,7 @@ void BCI_SysCall(extArg_t arg)
     {
         case 0:
         {
-            String msg = GetStringValue(*TOSpeek_Obj()) + "\n";
+            String msg = GetStringValue(*PeekTOS<Object>()) + "\n";
             ProgramOutput += msg;
             if(g_outputOn)
             {
@@ -584,7 +559,7 @@ void BCI_SysCall(extArg_t arg)
             std::getline(std::cin, s);
             String* str = ObjectValueConstructor(s);
             auto obj = InternalObjectConstructor(StringClass, str);
-            PushToStack<Object>(obj);
+            PushTOS<Object>(obj);
         }
         break;
         
@@ -595,37 +570,59 @@ void BCI_SysCall(extArg_t arg)
 
 void BCI_And(extArg_t arg)
 {
-    auto rObj = TOS_Obj();
-    auto lObj = TOS_Obj();
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
 
     bool b = GetBoolValue(*lObj) && GetBoolValue(*rObj);
     bool* ans = ObjectValueConstructor(b);
     Object* obj = InternalObjectConstructor(BooleanClass, ans);
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 void BCI_Or(extArg_t arg)
 {
-    auto rObj = TOS_Obj();
-    auto lObj = TOS_Obj();
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
 
     bool b = GetBoolValue(*lObj) || GetBoolValue(*rObj);
     bool* ans = ObjectValueConstructor(b);
     Object* obj = InternalObjectConstructor(BooleanClass, ans);
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 void BCI_Not(extArg_t arg)
 {
-    auto obj = TOS_Obj();
+    auto obj = PopTOS<Object>();
 
     bool b =!GetBoolValue(*obj);
     bool* ans = ObjectValueConstructor(b);
     Object* newObj = InternalObjectConstructor(BooleanClass, ans);
 
-    PushToStack<Object>(newObj);
+    PushTOS<Object>(newObj);
+}
+
+/// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
+/// leaves obj (bool compare result) as TOS
+void BCI_NotEquals(extArg_t arg)
+{
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
+
+    auto boolObj = InternalBooleanObjectConstructor(rObj != lObj);
+    PushTOS<Object>(boolObj);
+}
+
+/// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
+/// leaves obj (bool compare result) as TOS
+void BCI_Equals(extArg_t arg)
+{
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
+
+    auto boolObj = InternalBooleanObjectConstructor(rObj == lObj);
+    PushTOS<Object>(boolObj);
 }
 
 /// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
@@ -633,8 +630,8 @@ void BCI_Not(extArg_t arg)
 void BCI_Cmp(extArg_t arg)
 {
     CmpReg = CmpRegDefaultValue;
-    auto rObj = TOS_Obj();
-    auto lObj = TOS_Obj();
+    auto rObj = PopTOS<Object>();
+    auto lObj = PopTOS<Object>();
     
 
     if(BothAre(lObj, rObj, IntegerClass))
@@ -672,12 +669,12 @@ void BCI_LoadCmp(extArg_t arg)
         return;
     }
 
-    PushToStack<Object>(boolObj);
+    PushTOS<Object>(boolObj);
 }
 
 void BCI_JumpFalse(extArg_t arg)
 {
-    auto obj = TOS_Obj();
+    auto obj = PopTOS<Object>();
     if(!GetBoolValue(*obj))
     {
         InstructionReg = arg;
@@ -695,10 +692,9 @@ void BCI_Jump(extArg_t arg)
 /// leaves object copy as TOS
 void BCI_Copy(extArg_t arg)
 {
-    auto obj = TOS_Obj();
+    auto obj = PopTOS<Object>();
     auto objCopy = InternalObjectConstructor(obj->Class, obj->Value);
     objCopy->BlockStartInstructionId = obj->BlockStartInstructionId;
-    
     /// TODO: maybe take this out?
     for(auto ref: obj->Attributes->ReferencesIndex)
     {
@@ -711,14 +707,26 @@ void BCI_Copy(extArg_t arg)
         objCopy->ByteCodeParamsAsMethod.push_back(str);
     }
 
-    PushToStack<Object>(objCopy);
+    PushTOS<Object>(objCopy);
+}
+
+/// assumes TOS is a string (typeName)
+/// leaves object of type as TOS
+void BCI_DefType(extArg_t arg)
+{
+    auto typeName = *PopTOS<String>();
+    auto obj = InternalObjectConstructor(typeName, nullptr);
+
+    obj->BlockStartInstructionId = IndexAfterNextJump();
+
+    PushTOS<Object>(obj);
 }
 
 /// assumes TOS is a String
 /// leaves resolved reference as TOS
 void BCI_ResolveDirect(extArg_t arg)
 {
-    auto refName = TOS_String();
+    auto refName = PopTOS<String>();
 
     if(RefNameIsKeyword(*refName))
     {
@@ -746,11 +754,11 @@ void BCI_ResolveDirect(extArg_t arg)
     {
         auto newRef = InternalReferenceConstructor(*refName, &NothingObject);
         AddRefToScope(newRef, LocalScopeReg);
-        PushToStack<Reference>(newRef);
+        PushTOS<Reference>(newRef);
     }
     else
     {
-        PushToStack<Reference>(resolvedRef);
+        PushTOS<Reference>(resolvedRef);
     }
 
 }
@@ -759,25 +767,25 @@ void BCI_ResolveDirect(extArg_t arg)
 /// leaves resolved reference as TOS
 void BCI_ResolveScoped(extArg_t arg)
 {
-    auto refName = TOS_String();
+    auto refName = PopTOS<String>();
 
-    if(TOSpeek_Obj() == &NothingObject || TOSpeek_Obj() == &NothingObject)
+    if(PeekTOS<Object>() == &NothingObject || PeekTOS<Object>() == &NothingObject)
     {
-        ReportError(SystemMessageType::Warning, 1, Msg(" %s refers to the object <%s> which cannot have attributes", TOSpeek_Ref()->Name, TOSpeek_Ref()->To->Class));
+        ReportError(SystemMessageType::Warning, 1, Msg(" %s refers to the object <%s> which cannot have attributes", PeekTOS<Reference>()->Name, PeekTOS<Reference>()->To->Class));
         return;
     }
-    auto callerObj = TOS_Obj();
+    auto callerObj = PopTOS<Object>();
     auto resolvedRef = FindInScopeOnlyImmediate(ScopeOf(callerObj), *refName);
 
     if(resolvedRef == nullptr)
     {
         auto newRef = InternalReferenceConstructor(*refName, &NothingObject);
         AddRefToScope(newRef, ScopeOf(callerObj));
-        PushToStack<Reference>(newRef);
+        PushTOS<Reference>(newRef);
     }
     else
     {
-        PushToStack<Reference>(resolvedRef);
+        PushTOS<Reference>(resolvedRef);
     }
 }
 
@@ -792,7 +800,7 @@ void BCI_DefMethod(extArg_t arg)
         argList = new String[arg];
         for(extArg_t i = 1; i<=arg; i++)
         {
-            auto str = *TOS_String();
+            auto str = *PopTOS<String>();
             argList[arg-i] = str;
         }
     }
@@ -813,9 +821,9 @@ void BCI_DefMethod(extArg_t arg)
     /// expects a block
     /// TODO: verify block
     /// TODO: currently assumes NOPS (AND) and Assign after
-    obj->BlockStartInstructionId = InstructionReg + NOPSafetyDomainSize() + 2;
+    obj->BlockStartInstructionId = IndexAfterNextJump();
 
-    PushToStack<Object>(obj);
+    PushTOS<Object>(obj);
 }
 
 /// arg is number of parameters
@@ -824,8 +832,8 @@ void BCI_DefMethod(extArg_t arg)
 void BCI_Eval(extArg_t arg)
 {
     auto paramsList = GetParameters(arg);
-    auto methodObj = TOS_Obj();
-    auto callerObj = TOS_Obj();
+    auto methodObj = PopTOS<Object>();
+    auto callerObj = PopTOS<Object>();
 
     LogDiagnostics(methodObj);
     LogDiagnostics(callerObj);
@@ -846,7 +854,7 @@ void BCI_Eval(extArg_t arg)
 void BCI_EvalHere(extArg_t arg)
 {
     auto paramsList = GetParameters(arg);
-    auto methodObj = TOS_Obj();
+    auto methodObj = PopTOS<Object>();
 
     extArg_t jumpTo = methodObj->BlockStartInstructionId;
     AddParamsToMethodScope(SelfReg, paramsList);
@@ -867,21 +875,29 @@ void BCI_Return(extArg_t arg)
     Object* returnObj = nullptr;
     if(arg == 1)
     {
-        returnObj = TOS_Obj();
+        returnObj = PopTOS<Object>();
     }
 
     while(MemoryStack.size() > stackStart)
     {
-        TOS_discard();
+        PopTOS<void>();
     }
 
     if(arg == 1)
     {
-        PushToStack(returnObj);
+        PushTOS(returnObj);
     }
     else
     {
-        PushToStack(SelfReg);
+        if(CallerReg != &NothingObject)
+        {
+            PushTOS(CallerReg);
+        }
+        else
+        {
+            PushTOS(SelfReg);
+
+        }
     }
 
     InstructionReg = jumpBackTo;
@@ -956,13 +972,23 @@ void BCI_NOP(extArg_t arg)
 /// pushes a pointer to the old TOS to the TOS
 void BCI_Dup(extArg_t arg)
 {
-    auto entity = TOSpeek();
-    PushToStack<void>(entity);
+    auto entity = PeekTOS<void>();
+    PushTOS<void>(entity);
 }
 
 /// assumes TOS is an object
 /// changes LastResultReg to this object
 void BCI_EndLine(extArg_t arg)
 {
-    LastResultReg = TOS_Obj();
+    LastResultReg = PopTOS<Object>();
+}
+
+/// swaps TOS with TOS1
+void BCI_Swap(extArg_t arg)
+{
+    void* TOS = PopTOS<void*>();
+    void* TOS1 = PopTOS<void*>();
+
+    PushTOS<void>(TOS);
+    PushTOS<void>(TOS1);
 }

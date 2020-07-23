@@ -409,7 +409,16 @@ void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference
 void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference)
 {
     auto firstOperand = op->Operands[0];
-    FlattenOperationScopeResolutionWithDereference(firstOperand);
+    if(firstOperand->Type == OperationType::ScopeResolution)
+    {
+        FlattenOperationScopeResolutionWithDereference(firstOperand);
+    }
+    else
+    {
+        /// must be an expression
+        FlattenOperation(firstOperand);
+    }
+    
 
     auto secondOperand = op->Operands[1];
     bool isRef = false;
@@ -459,7 +468,6 @@ bool IsOperationComparision(Operation* op)
     auto opType = op->Type;
     return opType == OperationType::IsGreaterThan
         || opType == OperationType::IsLessThan
-        || opType == OperationType::IsEqual
         || opType == OperationType::IsGreaterThanOrEqualTo
         || opType == OperationType::IsLessThanOrEqualTo;
 }
@@ -491,10 +499,6 @@ inline void FlattenOperationComparison(Operation* op)
     opId = IndexOfInstruction(BCI_LoadCmp);
     switch(op->Type)
     {
-        case OperationType::IsEqual:
-        arg = 2;
-        break;
-
         case OperationType::IsLessThan:
         arg = 3;
         break;
@@ -525,6 +529,7 @@ inline void FlattenOperationComparison(Operation* op)
 /// and/or/not
 /// syscall (print)
 /// while/if/elseif/else
+/// isequal
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -562,6 +567,14 @@ inline void FlattenOperationGeneric(Operation* op)
 
         case OperationType::Not:
         opId = IndexOfInstruction(BCI_Not);
+        break;
+
+        case OperationType::IsEqual:
+        opId = IndexOfInstruction(BCI_Equals);
+        break; 
+
+        case OperationType::IsNotEqual:
+        opId = IndexOfInstruction(BCI_NotEquals);
         break;
 
         case OperationType::Print:
@@ -638,6 +651,30 @@ inline void FlattenOperationDefineMethod(Operation* op)
     AddByteCodeInstruction(opId, noArg);
 }
 
+inline void FlattenOperationClass(Operation* op)
+{
+    auto refOp = op->Operands[0];
+    uint8_t opId;
+    extArg_t arg;
+
+    opId = IndexOfInstruction(BCI_LoadRefName);
+    arg = refOp->EntityIndex;
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_ResolveDirect);
+    AddByteCodeInstruction(opId, noArg);
+
+    opId = IndexOfInstruction(BCI_LoadRefName);
+    arg = refOp->EntityIndex;
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_DefType);
+    AddByteCodeInstruction(opId, noArg);
+
+    opId = IndexOfInstruction(BCI_Assign);
+    AddByteCodeInstruction(opId, noArg);
+}
+
 /// adds bytecode instructions for [op] with OperationType::Evaluate
 inline void FlattenOperationEvaluate(Operation* op)
 {
@@ -667,7 +704,7 @@ inline void FlattenOperationEvaluate(Operation* op)
         opId = IndexOfInstruction(BCI_Dereference);
         AddByteCodeInstruction(opId, noArg);
     }
-    else
+    else if(callerOp->Type == OperationType::ScopeResolution)
     {
         FlattenOperationScopeResolutionWithDereference(callerOp);
 
@@ -684,6 +721,29 @@ inline void FlattenOperationEvaluate(Operation* op)
         opId = IndexOfInstruction(BCI_Dereference);
         AddByteCodeInstruction(opId, noArg);
     }
+    else if(callerOp->Type == OperationType::Class)
+    {
+        /// TODO: implement
+    }
+    else
+    {
+        // case for expression 
+        FlattenOperation(callerOp);
+
+        opId = IndexOfInstruction(BCI_Dup);
+        AddByteCodeInstruction(opId, noArg);
+
+        opId = IndexOfInstruction(BCI_LoadRefName);
+        arg = methodOp->EntityIndex;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveScoped);
+        AddByteCodeInstruction(opId, noArg);
+
+        opId = IndexOfInstruction(BCI_Dereference);
+        AddByteCodeInstruction(opId, noArg);
+    }
+    
 
     /// methods are done on cloned objects
     opId = IndexOfInstruction(BCI_Copy);
@@ -803,6 +863,10 @@ void FlattenOperation(Operation* op)
     else if(op->Type == OperationType::DefineMethod)
     {
         FlattenOperationDefineMethod(op);
+    }
+    else if(op->Type == OperationType::Class)
+    {
+        FlattenOperationClass(op);
     }
     else if(op->Type == OperationType::Evaluate)
     {
@@ -926,6 +990,10 @@ inline void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, ext
         HandleAnonymousScope(block);
     }
     else if(blockOwner->Type == OperationType::DefineMethod)
+    {
+        HandleDefineMethod(block);
+    }
+    else if(blockOwner->Type == OperationType::Class)
     {
         HandleDefineMethod(block);
     }
