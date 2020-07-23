@@ -38,9 +38,15 @@ struct CFGRule
     PrecedenceClass LowerPrecedenceClass;
 };
 
+struct PreprocessorRule
+{
+    String Becomes;
+    std::vector<String> Pattern;
+};
+
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Static definitions
+// Definitions
 
 /// the [Grammar] consists of a list of production rules represented as [CFGRules]
 extern std::vector<CFGRule> Grammar;
@@ -51,6 +57,7 @@ extern std::list<PrecedenceClass> PrecedenceRules;
 /// the production variables are the string representations of the possible production rules
 extern std::vector<String> ProductionVariables;
 
+extern std::vector<PreprocessorRule> PreprocessorRules;
 
 /// compiles the [Grammar] from ./assets/grammar.txt
 void CompileGrammar();
@@ -58,5 +65,6 @@ void CompileGrammar();
 int PrecedenceOf(String opSymbol);
 int PrecedenceOf(Token* lookaheadToken);
 
+inline const String g_ContextStartSymbol = "@";
 
 #endif

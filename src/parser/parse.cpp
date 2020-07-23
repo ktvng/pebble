@@ -177,6 +177,10 @@ OperationsList GetOperandsAndRemoveRule(ParseToken** listHead, ParseToken** list
 }
 
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Methods of collapsing grammar rules
+
 /// collapse a rule by adding each component as the operand of a new operation
 Operation* CollapseByReduce(CFGRule& rule, OperationsList& components)
 {
@@ -391,13 +395,87 @@ void TryReversingGrammarRules(ParseToken** listHead, ParseToken** listTail, Toke
     }
 }
 
-Operation* ExpressionParser(TokenList& line)
+bool PositionMatchesPreprocessorRule(TokenList& list, size_t startPos, PreprocessorRule** matchedRule)
+{
+    PreprocessorRule* longestMatch = nullptr;
+    for(auto& rule: PreprocessorRules)
+    {
+        if(list.size() < rule.Pattern.size() + startPos)
+        {
+            continue;
+        }
+
+        bool ruleMatches = true;
+        for(size_t i=0; i<rule.Pattern.size(); i++)
+        {
+            if(rule.Pattern[i] != list[startPos + i]->Content)
+            {
+                ruleMatches = false;
+                break;
+            }
+        }
+
+        if(ruleMatches)
+        {
+            if(longestMatch == nullptr)
+            {
+                longestMatch = &rule;
+            }
+            else
+            {
+                if(longestMatch->Pattern.size() < rule.Pattern.size())
+                {
+                    longestMatch = &rule;
+                }
+            }
+        }
+    }
+
+    if(longestMatch != nullptr)
+    {
+        *matchedRule = longestMatch;
+        return true;
+    }
+
+    return false;
+}
+
+TokenList Preprocess(TokenList& list)
+{
+    TokenList processedList;
+    int newListIndex = 0;
+    for(size_t i=0; i<list.size(); i++)
+    {
+        PreprocessorRule* rule = nullptr;
+        if(PositionMatchesPreprocessorRule(list, i, &rule))
+        {
+            Token* t = new Token;
+            *t = { TokenType::Simple, rule->Becomes, newListIndex };
+            processedList.push_back(t);
+            i += rule->Pattern.size() - 1;
+        }
+        else
+        {
+            auto t = list[i];
+            t->Position = newListIndex;
+            processedList.push_back(t);
+        }
+
+        newListIndex++;
+    }
+
+    return processedList;
+}
+
+Operation* ExpressionParser(TokenList& rawline)
 {
     ParseToken* listHead = nullptr;
     ParseToken* listTail = nullptr;
 
-    int pos = 0;
+    TokenList line = Preprocess(rawline);
+    LogDiagnostics(line);
 
+    int pos = 0;
     while(static_cast<size_t>(pos) < line.size())
     {
         Token* currentToken = line.at(pos);

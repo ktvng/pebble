@@ -8,7 +8,8 @@
 
 std::vector<CFGRule> Grammar;
 std::list<PrecedenceClass> PrecedenceRules;
-std::vector<String> ProductionVariables = { "Ref" };
+std::vector<String> ProductionVariables;
+std::vector<PreprocessorRule> PreprocessorRules;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // PrecedenceClass
@@ -24,7 +25,8 @@ bool PrecedenceClass::Contains(String symb)
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Formal grammar parser parser
+// Formal grammar parser grammar parser
+// aka the formal parser for the grammar of the formal grammar parser
 
 OperationType StringNameToOperationType(String Name)
 {
@@ -56,7 +58,6 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::IsGreaterThanOrEqualTo;
     else if(Name=="IsLessThanOrEqualTo")
         return OperationType::IsLessThanOrEqualTo;
-
 
     else if(Name=="Evaluate")
         return OperationType::Evaluate;
@@ -96,7 +97,7 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::NoOperationType;
     
     LogIt(LogSeverityType::Sev2_Important, "StringNameToOperationType", Msg("possibly unimplemented enum type %s", Name));
-    return OperationType::Ref;
+    return OperationType::NoOperationType;
 }
 
 
@@ -215,7 +216,7 @@ void AddGrammarRule(TokenList& tokens)
     static PrecedenceClass higherpclass;
     static PrecedenceClass lowerpclass;
 
-    if(tokens.at(0)->Content == "@")
+    if(tokens.at(0)->Content == g_ContextStartSymbol)
     {
         name = tokens.at(1)->Content;
         symbol = tokens.at(2)->Content;
@@ -226,43 +227,109 @@ void AddGrammarRule(TokenList& tokens)
     }
     else if(tokens.at(0)->Content == ">")
     {
+        if(name.empty())
+        {
+            LogIt(LogSeverityType::Sev3_Critical, "AddGrammarRule", "expected context declaration before precedence override");
+            return;
+        }
+
         higherpclass = GetOverridePrecedenceClass(tokens);
     }
     else if(tokens.at(0)->Content == "<")
     {
+        if(name.empty())
+        {
+            LogIt(LogSeverityType::Sev3_Critical, "AddGrammarRule", "expected context declaration before precedence override");
+            return;
+        }
+
         lowerpclass = GetOverridePrecedenceClass(tokens);
     }
     else if(tokens.at(0)->Type == TokenType::Reference)
     {
+        if(name.empty())
+        {
+            LogIt(LogSeverityType::Sev3_Critical, "AddGrammarRule", "expected context declaration before pattern");
+            return;
+        }
+
         AddGrammarRuleInternal(tokens, name, symbol, parseMethod, higherpclass, lowerpclass);
     }
 }
 
+void AddPreprocessorRule(TokenList& tokens)
+{
+    static String becomes;
+
+    if(tokens[0]->Content == g_ContextStartSymbol)
+    {
+        if(tokens.size() != 2)
+        {
+            LogIt(LogSeverityType::Sev3_Critical, "AddPreprocessorRule", "context declaration (@) line has wrong # of args");
+            return;
+        }
+
+        becomes = tokens[1]->Content;
+    }
+    else
+    {
+        if(becomes.empty())
+        {
+            LogIt(LogSeverityType::Sev3_Critical, "AddPreprocessorRule", "pattern reached before context declaration (@)");
+            return;
+        }
+
+        std::vector<String> pattern;
+        for(auto token: tokens)
+        {
+            pattern.push_back(token->Content);
+        }
+        PreprocessorRule rule = { becomes, pattern };
+        PreprocessorRules.push_back(rule);
+    }
+}
+
+void ResetGrammar()
+{
+    Grammar.clear();
+    Grammar.reserve(128);
+
+    PrecedenceRules.clear();
+    
+    ProductionVariables.clear();
+    ProductionVariables.reserve(32);
+    ProductionVariables.push_back("Ref");
+
+    PreprocessorRules.clear();
+    PreprocessorRules.reserve(16);
+}
+
 void CompileGrammar()
 {
+    ResetGrammar();
+
     std::fstream file;
     file.open("./assets/grammar.txt", std::ios::in);
 
-
-    // state: +1 upon every occurance of '###'
+    // state: +1 upon every line with first non-whitespace char being ';'
     //  0: skip all lines
-    //  1: read grammar rules 
-    //  2: read precedences
-    //  other: skip all lines
+    //  1: read preprocessor rules
+    //  2: read grammar rules 
+    //  3: read precedences
+    //  4+: skip all lines
     int state = 0;
 
     String line;
     while(std::getline(file, line))
     {
-        /// TODO: we don't need to lex every line we should skip the comments
+        /// TODO: we should't have to lex the line every time
         TokenList tokens = LexLine(line);
         if(tokens.empty())
         {
-            DeleteTokenList(tokens);
             continue;
         }
 
-        if(tokens.at(0)->Content == "#")
+        if(tokens.at(0)->Content == ";")
         {
             DeleteTokenList(tokens);
             state++;
@@ -272,18 +339,22 @@ void CompileGrammar()
         switch(state)
         {
             case 1:
-            AddGrammarRule(tokens);
-            DeleteTokenList(tokens);
-            continue;
+            AddPreprocessorRule(tokens);
+            break;
+
             case 2:
+            AddGrammarRule(tokens);
+            break;;
+
+            case 3:
             AddPrecedenceClass(tokens);
-            DeleteTokenList(tokens);
             break;
 
             default:
-            DeleteTokenList(tokens);
-            continue;
+            break;
         }
+
+        DeleteTokenList(tokens);
     }
 
     AssignRulePrecedences();

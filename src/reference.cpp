@@ -119,6 +119,13 @@ bool IsPrimitiveObject(Reference* ref)
     return false;
 }
 
+bool IsPrimitiveObject(Object* obj)
+{
+    auto objClass = obj->Class;
+    if(objClass == BooleanClass || objClass == StringClass || objClass == DecimalClass || objClass == IntegerClass)
+        return true;
+    return false;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Get/Create primitive object References (private)

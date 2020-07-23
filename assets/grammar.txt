@@ -1,5 +1,5 @@
 Documentation: 
-    Everything before the first line with leading character '#' is ignored
+    Everything before the first line with leading character ';' is ignored
 
     The first section defines grammars rules. Individual tokens are separated
     by spaces, and all whitespace is ignored.
@@ -41,20 +41,66 @@ Precedence:
 
 
 ------------------------------------------------------------------------------------------------------------------------
-# Grammar begins here
+;;; Preprocessing
+@ <=
+is leq to
+is leq
+leq 
+leq to
+is less than or equal to
 
-@ NoOperationType highest Rewrite
-IS_GEQ -> is geq
-IS_LEQ -> is leq
+@ >=
+is geq to
+is geq
+geq
+geq to
+is greater than or equal to
 
+@ ==
+equals
+is equal
+is equal to
+is
+
+@ !=
+does not equal
+not equal
+not equal to
+not equals
+is not
+
+@ !
+not
+
+@ a
+an
+
+@ &&
+and
+
+@ ||
+or
+
+@ here
+inherits
+
+@ say
+print
+
+@ .
+'s
+
+@ else
+otherwise
+ow
+
+;;; Grammar begins here
 
 @ IsEqual == Reduce
 Expr -> Expr == Expr
-Expr -> Expr is Expr
 
 @ IsNotEqual != Reduce
 Expr -> Expr != Expr
-Expr -> Expr is not Expr
 
 
 @ IsGreaterThan > Reduce
@@ -65,16 +111,13 @@ Expr -> Expr < Expr
 
 @ IsGreaterThanOrEqualTo >= Reduce
 Expr -> Expr >= Expr
-Expr -> Expr IS_GEQ Expr
 
 
 @ IsLessThanOrEqualTo <= Reduce
 Expr -> Expr <= Expr
-Expr -> Expr IS_LEQ Expr
 
 @ Class class Reduce
 Class -> a Ref 
-Class -> an Ref 
 
 @ Class class Retain
 Class -> Class ():
@@ -92,9 +135,8 @@ Expr -> new Ref
 @ ScopeResolution . Reduce
 > (
 < to
+SRef -> Expr . Ref
 SRef -> SRef . Ref
-SRef -> SRef 's Ref
-
 SRef -> Ref
 
 
@@ -117,28 +159,24 @@ Expr -> Expr / Expr
 
 @ And && Reduce
 Expr -> Expr && Expr
-Expr -> Expr and Expr
 
 @ Or || Reduce
 Expr -> Expr || Expr
-Expr -> Expr or Expr
 
 @ Not ! Retain
 Expr -> ! Expr
-Expr -> not Expr
 
 
 @ Ask lowest Reduce
 Expr -> ask Expr
 
 @ Print lowest Reduce
-Line -> print Expr
+Line -> say Expr
 
 
 
 @ EvaluateHere ! Reduce
 Expr -> here Expr
-Expr -> inherits Expr
 
 @ Evaluate ( ScopedEval
 > :
@@ -212,20 +250,26 @@ Line -> Expr
 
 
 
-# Operator Precedence
+;;; Operator Precedence
 in new class to highest
 (
-[ . 's
+[ .
 !
 * /
 + -
 < > <= >=
-== != is
-&& and
-|| or
+== !=
+&&
+||
 =
 ,
 ) :
 lowest 
 
-### End 
+
+
+
+;;; End 
+
+
+

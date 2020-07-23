@@ -73,6 +73,26 @@ void ObjectValueDestructor(Object* obj)
     }
 }
 
+void ObjectValueDestructor(ObjectClass klass, void* val)
+{
+    if(klass == IntegerClass)
+    {
+        delete static_cast<int*>(val);
+    }
+    else if(klass == DecimalClass)
+    {
+        delete static_cast<double*>(val);
+    }
+    else if(klass == BooleanClass)
+    {
+        delete static_cast<bool*>(val);
+    }
+    else if(klass == StringClass)
+    {
+        delete static_cast<std::string*>(val);
+    }
+}
+
 void ObjectDestructor(Object* obj)
 {
     ScopeDestructor(obj->Attributes);
