@@ -6,9 +6,11 @@
 static ProgramConfiguration* Config = nullptr;
 static Setting* CurrentState = nullptr;
 
+// Returns true if a flag is matched
 bool MatchesFlag(String token, Setting** matchedSetting)
 {
-    if(token.length() < 1)
+	// If there is no text (shouldn't happen) OR this is not a flag, discard
+    if(token.length() < 1 || token.at(0) != '-')
     {
         return false;
     }
@@ -47,7 +49,7 @@ void ParseCommandArgs(int argc, char* argv[], ProgramConfiguration* config)
         
         Setting* newSetting = nullptr;
         if(MatchesFlag(arg, &newSetting))
-        {            
+        {
             if(CurrentState->Action(CurrentSettingOptions))
             {
                 inFlag = true;
