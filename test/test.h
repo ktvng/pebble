@@ -13,6 +13,8 @@
 #include "parse.h"
 #include "flattener.h"
 #include "vm.h"
+#include "dis.h"
+#include "grammar.h"
 
 extern std::string testBuffer;
 

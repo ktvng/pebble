@@ -14,6 +14,7 @@ struct CodeLine;
 struct Program;
 struct Reference;
 struct ByteCodeInstruction;
+struct CFGRule;
 
 class Object;
 class Method;
@@ -21,6 +22,8 @@ class Method;
 class Executable;
 class Block;
 class Operation;
+
+class PrecedenceClass;
 
 typedef std::string String;
 typedef std::string ObjectClass;
