@@ -409,7 +409,16 @@ void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference
 void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference)
 {
     auto firstOperand = op->Operands[0];
-    FlattenOperationScopeResolutionWithDereference(firstOperand);
+    if(firstOperand->Type == OperationType::ScopeResolution)
+    {
+        FlattenOperationScopeResolutionWithDereference(firstOperand);
+    }
+    else
+    {
+        /// must be an expression
+        FlattenOperation(firstOperand);
+    }
+    
 
     auto secondOperand = op->Operands[1];
     bool isRef = false;

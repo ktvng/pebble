@@ -268,6 +268,14 @@ inline bool NthBit(uint8_t data, int n)
     return (data & (BitFlag << n)) >> n;
 }
 
+extArg_t IndexAfterNextJump()
+{
+    extArg_t i = InstructionReg;
+    for(; i<ByteCodeProgram.size() && 
+        (ByteCodeProgram[i].Op != IndexOfInstruction(BCI_Jump)); i++);
+    return i+1;
+}
+
 /// fills in <= >= using the comparisions already made
 inline void FillInRestOfComparisons()
 {
@@ -687,7 +695,6 @@ void BCI_Copy(extArg_t arg)
     auto obj = PopTOS<Object>();
     auto objCopy = InternalObjectConstructor(obj->Class, obj->Value);
     objCopy->BlockStartInstructionId = obj->BlockStartInstructionId;
-    
     /// TODO: maybe take this out?
     for(auto ref: obj->Attributes->ReferencesIndex)
     {
@@ -710,8 +717,7 @@ void BCI_DefType(extArg_t arg)
     auto typeName = *PopTOS<String>();
     auto obj = InternalObjectConstructor(typeName, nullptr);
 
-    /// TODO: make this a new method to explain/add documentation
-    obj->BlockStartInstructionId = InstructionReg + NOPSafetyDomainSize() + 3;
+    obj->BlockStartInstructionId = IndexAfterNextJump();
 
     PushTOS<Object>(obj);
 }
@@ -815,7 +821,7 @@ void BCI_DefMethod(extArg_t arg)
     /// expects a block
     /// TODO: verify block
     /// TODO: currently assumes NOPS (AND) and Assign after
-    obj->BlockStartInstructionId = InstructionReg + NOPSafetyDomainSize() + 3;
+    obj->BlockStartInstructionId = IndexAfterNextJump();
 
     PushTOS<Object>(obj);
 }
@@ -883,7 +889,15 @@ void BCI_Return(extArg_t arg)
     }
     else
     {
-        PushTOS(SelfReg);
+        if(CallerReg != &NothingObject)
+        {
+            PushTOS(CallerReg);
+        }
+        else
+        {
+            PushTOS(SelfReg);
+
+        }
     }
 
     InstructionReg = jumpBackTo;

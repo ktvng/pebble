@@ -212,7 +212,7 @@ void DoByteCodeProgram()
     while(InstructionReg < ByteCodeProgram.size())
     {
         auto ins = ByteCodeProgram[InstructionReg];
-        LogItDebug(ToString(ins));
+        LogItDebug(Msg("%i: %s", (int)InstructionReg, ToString(ins)));
         if(IsNOP(ins))
         {
             InstructionReg++;
