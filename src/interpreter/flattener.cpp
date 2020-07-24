@@ -569,6 +569,7 @@ inline void FlattenOperationGeneric(Operation* op)
         opId = IndexOfInstruction(BCI_Not);
         break;
 
+        // used for when OperationType::Is is treated as assign
         case OperationType::Is:
         case OperationType::IsEqual:
         opId = IndexOfInstruction(BCI_Equals);

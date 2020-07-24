@@ -102,23 +102,33 @@ ow
 
 @ IsEqual == Reduce
 Expr -> Expr == Expr
+Expr -> Expr == SRef
+Expr -> SRef == Expr
 
 @ IsNotEqual != Reduce
 Expr -> Expr != Expr
-
+Expr -> Expr != SRef
+Expr -> SRef != Expr
 
 @ IsGreaterThan > Reduce
 Expr -> Expr > Expr
+Expr -> Expr > SRef
+Expr -> SRef > Expr
 
-@ IsLessThan > Reduce
+@ IsLessThan < Reduce
 Expr -> Expr < Expr
+Expr -> Expr < SRef
+Expr -> SRef < Expr
 
 @ IsGreaterThanOrEqualTo >= Reduce
 Expr -> Expr >= Expr
-
+Expr -> Expr >= SRef
+Expr -> SRef >= Expr
 
 @ IsLessThanOrEqualTo <= Reduce
 Expr -> Expr <= Expr
+Expr -> Expr <= SRef
+Expr -> SRef <= Expr
 
 @ Class class Reduce
 Class -> a Ref 
@@ -126,10 +136,6 @@ Class -> a Ref
 @ Class class Retain
 Class -> Class ():
 Class -> Class :
-
-@ NoOperationType ! Retain
-> = is
-Expr -> SRef
 
 
 @ New new Reduce
@@ -149,22 +155,33 @@ Line -> return Expr
 
 @ Add + Reduce
 Expr -> Expr + Expr
+Expr -> Expr + SRef
+Expr -> SRef + Expr
 
 @ Subtract - Reduce
 Expr -> Expr - Expr
+Expr -> Expr - SRef
+Expr -> SRef - Expr
 
 @ Multiply * Reduce
 Expr -> Expr * Expr
+Expr -> Expr * SRef
+Expr -> SRef * Expr
 
 @ Divide / Reduce
 Expr -> Expr / Expr
-
+Expr -> Expr / SRef
+Expr -> SRef / Expr
 
 @ And && Reduce
 Expr -> Expr && Expr
+Expr -> Expr && SRef
+Expr -> SRef && Expr
 
 @ Or || Reduce
 Expr -> Expr || Expr
+Expr -> Expr || SRef
+Expr -> SRef || Expr
 
 @ Not ! Retain
 Expr -> ! Expr
@@ -226,6 +243,9 @@ Line -> Ref ( Tuple ) :
 Line -> Ref ( Expr ) :
 Line -> Ref ( ) :
 
+@ IsEqual == Reduce
+Expr -> Expr is Expr
+
 @ Is is Reduce
 Expr -> SRef is Expr
 
@@ -234,8 +254,7 @@ Line -> SRef = Expr
 Line -> SRef = ( Tuple )
 
 
-@ NoOperationType ( Retain
-Expr -> ( Expr )
+
 
 
 @ Tuple , Merge
@@ -245,7 +264,14 @@ Tuple -> Tuple , Expr
 Tuple -> Expr , Expr
 
 
-@ LineRef lowest Retain
+@ NoOperationType ( Retain
+Expr -> ( Expr )
+
+@ NoOperationType ! Retain
+> = is
+Expr -> SRef
+
+@ NoOperationType lowest Retain
 Line -> consider Expr
 Line -> take Expr
 Line -> Expr
@@ -275,55 +301,3 @@ lowest
 
 
 ;;; End 
-
-
-
-a Rock():
-    Name
-    Shape
-    Weight = "heavy"
-    Color = "grey"
-    Type = "rock"
-
-    Drop():
-        ask "we shall drop from how high?"
-        say "the " + Type + " dropped from " + that + " high"
-
-    Throw():
-        Velocity = Something
-        ask "we shall throw with how much force?"
-        if it is "a lot" and Weight is "heavy"
-            Velocity = 8
-        else if it is "a lot" and Weight is "light"
-            Velocity = 6
-        else
-            Velocity = 4
-        
-        return self
-
-
-a Pebble:
-    inherits Rock()
-    Weight = "light"
-    Type = "pebble"
-
-    With(Name, Shape):
-        caller.Name = Name
-        caller.Shape = Shape
-
-MyPebble = Pebble().With("Hello", "round")
-
-consider MyPebble
-say "my pebble is " + it's Shape + ", " + it's Color + ", and " + it's Weight
-if MyPebble.Drop().Weight == "heavy"
-    say "oh no dropping MyPebble hurt!"
-else
-    say "whew, MyPebble's not a rock but a " + MyPebble's Type
-
-consider MyPebble.Throw()'s Velocity
-if it is 4
-    say "I can take this"
-else if it is 8
-    say "maybe this is too much?"
-else
-    say "I'm not sure what the velocity is"
