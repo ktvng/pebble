@@ -77,18 +77,24 @@ print X
 ```
 contains two sections of code. 
 
+## Call Binding (under construction)
+Calls can be associated with a scope, a section, or both. The act of association is defined as call binding. (Type binding is currently in the design phase and will be introduced fully to effect a type system) This can be done by the following operators
+
+### Transfer binding operator
+The `=` symbol denotes the transfer binding operator. It has the usage `<Call1> = <Call2>` and transfers whatever bindings are associated with `<Call2>` to `<Call1>`. 
+
+### Section binding operator
+The `:` symbol binds a section to call. It has the usage `<Call>:` and it binds the next section to `<Call>`. Note that `<Call>` may be an anonymous call
+
+### Scope binding operator
+The `()` symbol binds an new scope with optional parameters. It has the usage `<Call>()`, `<Call>(args)` where `(args)`. Note that `<Call>` may be an anonymous call. 
+
+### Type binding operator
+The `a` symbol defines a new type. It has the usage `a <Call>` and it binds the type with name `<Call>` to the scope bound to `<Call>`
 
 ## Narratives
-Using these three core primitives, different narratives can be constructed that support either imperative, object oriented, or functional (WIP) paradigms. Understand how to construct narratives first requires a general understanding of three operators, the `a` (typedef), `:` (sectionbinding), and `()` (scopebinding).
+Using these three core primitives, different narratives can be constructed that support either imperative, object oriented, or functional (WIP) paradigms. Understanding how to construct narratives first requires a general understanding of call binding and its three associated operators, the `a` (typebinding), `:` (sectionbinding), and `()` (scopebinding).
 
-### Typedef operator
-The `a` operator defines a new type. It has the usage `a <Call>` and it creates scope type of the same name as `<Call>`.
-
-### SectionBinding operator
-The `:` operator binds a section to call. It has the usage `<Call>:` (with no args) or `<Call>(<args>):` (with args) and it binds the next section to `<Call>`
-
-### ScopeBinding operator
-The `()` operator creates a new scope with optional parameters. It has the usage `<Call>(<args>)` or `(<args>)`. The latter creates a new scope with `<args>` being call parameters. The former does this and binds the scope to `<Call>`. In general, when a call is bound to a scope, it will evaluate its bound section, unless it is also being bound to a new section by the clause.
 ```python
 # evaluates the bound section of Call
 Call()
@@ -156,3 +162,117 @@ print MyPebble.Color
 ```
 In this example, the `inherits` operator specifies that the section bound to `Rock` should be called in the current scope. Thus `Pebble` inherits the section bound to `Rock` which is exactly the section of code which defines its attributes.
 
+## Standard operators
+Pebble supports the standard suite of programming language operations with a few exceptions that have not been implemented yet (mod, bitwise operations). These also have single and multi token aliases to improve readability. The up to date list is located in `./assets/grammar.txt` under the preprocessor rules section. All documentation on that file is self contained. Reproduced below is roughly an image of that file last updated `7/24/20`. 
+
+```
+# Format:
+# @ <operator>
+# <token in alias1> <token in alias1> ...
+# <token in alias2> ...
+
+@ <=
+is leq to
+is leq
+leq 
+leq to
+is less than or equal to
+
+@ >=
+is geq to
+is geq
+geq
+geq to
+is greater than or equal to
+
+@ ==
+equals
+is equal
+is equal to
+is
+
+@ !=
+does not equal
+not equal
+not equal to
+not equals
+is not
+
+@ !
+not
+
+@ a
+an
+
+@ &&
+and
+
+@ ||
+or
+
+@ here
+inherits
+
+# system call to write to std::cout
+@ say
+print
+
+@ .
+'s
+
+@ else
+otherwise
+ow
+```
+
+Additionally, to query for user input, use the `ask` keyword.
+```python
+ask "what day is today?"
+# what day is today?
+# <wait for user input>
+```
+
+## Special operators
+Some operators are unique to Pebble. These are documented below
+
+### Is
+The `is` operator is an overloaded operator which exhibits conditional functionality and is similar to both `=` (assignment) and `==` (equality testing). Its usage is:
+*`<Call> is <Expr>`
+*`<Expr> is <Expr>`
+
+In the first case, if `<Call> == Nothing`, i.e it is yet unbound, then `<Call>` is bound to `<Expr>` and the `is` keyword functions equivalently to the assignment operator `=`. If `<Call>` has already been bound to a scope/section, then the `is` keyword functions as the equality testing operator `==` and the statement returns a boolean truth value.
+
+In the second case `is` functions as the `==` operator.
+
+Example:
+```python
+X is 4
+print X
+# 4
+
+X is 7
+print X
+# 4
+
+print X is 7
+# true
+
+if X is 4
+    print "X is not 7"
+# X is not 7
+```
+
+### Here
+The `here` operator executes a bound section without changing scope. Its usage is `here <Call>()`. The section bound to `<Call>` is executed using the local scope, instead of the scope bound to `<Call>`.
+
+Example
+```python
+CreateVariable():
+    X = 4
+    Y = 7
+
+here CreateVariable()
+print X + Y
+# 11
+
+```
