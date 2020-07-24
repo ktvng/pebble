@@ -20,10 +20,19 @@
 
 #include "dfa.h"
 
-void ChangeLogType(std::vector<SettingOption> options)
+bool Usage(std::vector<SettingOption> options)
+{
+    // If this was derived at build time, that would be fantastic
+    // TODO - generate from Settings table and use null flags as non-flag [] args
+    std::cerr << "Usage pebble: [--help] [--log sev0|sev1|sev2|sev3] [program.pebl]" << std::endl;
+
+    exit(2);
+}
+
+bool ChangeLogType(std::vector<SettingOption> options)
 {
     if(options.size() < 1)
-        return;
+        return true;
 
     SettingOption option = options[0];
     if(option == "sev0")
@@ -42,15 +51,28 @@ void ChangeLogType(std::vector<SettingOption> options)
     {
         LogAtLevel = LogSeverityType::Sev3_Critical;
     }
+    
+    return true;
 }
 
 ProgramConfiguration Config
 {
+    {
+        /* 
+            This is the .pebl file to ingest. 
+            The flag string will be filled retro-actively with the program name, if any. 
+            Must be the 0'th Setting. 
+            Note: making Flag a vector rather than string could allow multiple files/args
+        */
+        "Pebl File", "program.pebl", nullptr
+    },
+    {
+        "Usage", "--help", Usage
+    },
     { 
         "Log Setting", "--log", ChangeLogType
-    }
+    },
 };
-
 
 // Logging
 LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
@@ -61,7 +83,7 @@ bool g_useBytecodeRuntime = true;
 
 int main(int argc, char* argv[])
 {
-    ParseCommandArgs(argc, argv, Config);
+    ParseCommandArgs(argc, argv, &Config);
 
     bool ShouldPrintInitialCompileResult = true; 
     bool ShouldPrintProgramExecutionFinalResult = true;
@@ -73,8 +95,8 @@ int main(int argc, char* argv[])
     // compile program
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
 
-    auto prog = ParseProgram("./program.pebl");
-    if(FatalCompileError)
+    auto prog = ParseProgram(Config.at(0).Flag);
+    if(FatalCompileError || prog == nullptr)
         return 1;
 
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
@@ -143,3 +165,4 @@ int main(int argc, char* argv[])
     LogItDebug("end reached.", "main");
     return 0;
 }
+
