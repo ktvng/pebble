@@ -1,46 +1,130 @@
 Documentation: 
-    Everything before the first line with leading character ';' is ignored
+    Each line where the first non-whitespace character is ';' increments the
+    parser mode:
+        0: Ignore all lines as comments
+        1: Parse preprocessor rules
+        2: Parse grammar rules
+        3: Parse precedence rules
+        4+: Ignore all lines as comments
 
-    The first section defines grammars rules. Individual tokens are separated
-    by spaces, and all whitespace is ignored.
 
-    The first line should be formatted
-        @ [RuleName] [PrecedenceOperation] [CollapseMethod]
+    Preface Definitions:
+        A context is a block of lines (ignoring whitespace) which contains rules
+        that utilize shared attributes. A context will begin with the context 
+        annotation. This is a line whose first non-whitespace character is '@'. 
+        
+        The context annotation specifies the share attributes for Individual
+        rules which comprise the context. Rules in the context are specified by
+        space separated tokens, and each rule occupies its own line.
 
-    where:
-        [RuleName] is the name of the rule and should correspond to the atomic 
-            operation (OperationTypes) expressed by the rule. 
+        A precedence class consists of a list of symbols which belong to that
+        class. When the parse stack matches the pattern of a grammar rule, the
+        parser will lookahead one token and compare the precedence of that
+        token (it's associated operation) with the precedence of matched rule.
+        A lookahead token with higher precedence will override the rule match.
+            For more information you can read the C++ precedence classes docs.
 
-        [PrecedenceOperation] is the operation which defines the precedence 
-            class of the rule
 
-        [CollapseMethod] defines how to merge the output of the rule back into 
-            the parent operation
+    Notes:
+        Because the tokenizer used on this file is the Pebble tokenizer, certain
+        restrictions may apply. These are fully documented in the Pebble
+        tokenizer docs but a brief and incomplete list of important
+        considerations is provided here.
+            - '#' characters denote comments and should not appear in rules
 
-    Optional precendence override:
-    Following the declaration line, there are the option precedence override lines.
-    There lines must begin with either '<' or '>' and contain a list of whitespace
-    separated operator tokens. 
 
-    Tokens listed after '>' will be treated as having higher precedence than the current
-    rule while tokens listed after '<' will be treated as having lower precedence
+    Mode 1:
+        This mode contains contexts which describe the rules for the grammar 
+        preprocessor. After a line of raw text is tokenized, the preprocessor 
+        is run to convert certain token patterns into single tokens which 
+        specify atomic operations. In effect, this allows for operations to have
+        single or multi token aliases.
 
-    Following these optional lines, the actual production rules can be listed. There
-    may be multiple production rules which corresopnd to the same declaration and
-    override lines.
+        The context annotation must be of this form:
 
-    The second line should be formatted
-        [ProductionRule] -> ...
+            @ [simpleTokenContent]
 
-    Note: All production rules should begin with an uppercase
-    Note: Grammar rules are matched in the order they are listed. Matching is greedy.
+        where:
+            [simpleTokenContent]:   the content of the token which will replace
+                                    a matched patterns
+        
+        Following the annotation each line specifies a pattern which if matched,
+        will be replaced by the a single token with content [simpleTokenContent]
 
-Precedence:
-    The second section defines precedence classes listed from high to low.
+
+    Mode 2:
+        This mode contains the grammar rules. These are CFG production rules
+        which specify how to convert the preprocessed list of tokens into a 
+        abstract syntax tree. 
+
+        The context annotation for this section should be of the following form:
+
+            @ [operationType] [precedenceSymbol] [reversalMethod]
+        
+        where:
+            [operationType]:    the string representation of the OperationType 
+                                enum located in `abstract.h` which describes
+                                the Type of the AST node (an Operation object)
+                                which context rules collapse into
+            
+            [precedenceSymbol]: the symbol used in this operation which will 
+                                specify the precedence class for this operation
+
+            [reversalMethod]"   the specific method which is invoked to collapse
+                                the pattern back into the production rule
+
+        and after this there are the optional precedence override lines which
+        take a whitespace separated list of precedence symbols
+            > [precedenceSymbol] ...
+            < [precedenceSymbol] ...
+
+        where:
+            [precedenceSymbol]: is a member of a precedence class defined in 
+                                section 3
+
+        '>' indicates that the precedence symbol which follow it are of higher 
+            precedence
+
+        '<' indicates the reverse
+
+        The reader may be confused as to why the higher precedence override
+        symbol appears to be the less than symbol. The reason behind this design
+        choice, beyond being completely arbitrary, is that the '>' symbol looks
+        like a right facing arrow, and thus appears to indicate that the current
+        matching rule should be skipped and the parser should read the next
+        token.
+
+        Finally, the specific rules in this mode should be structured as CFG
+        production rules.
+
+            [productionRule] -> [patternText] ...
+
+        where:
+            [productionRule]:   is the name of a CFG production rule and by
+                                convention (and possibly necessity) capitalized
+            
+            [patternText]:      is a string of either simple characters
+                                which represent an operation, or itself a
+                                productionRule
+
+        Note:   
+            All references are tokenized as 'Ref'
+
+        Grammar rules are matched in the order that they are listed. This will 
+        in some edge cases impact which rules are matched and should be taken
+        into consideration when adding/modifying rules.
+
+
+    Mode 3:
+        This section contains the precedence classes. There are not contexts.
+        Instead, non-empty line contains a whitespace separated list of symbols
+        that comprise a given precedence class. The classes in this section are
+        listed from highest precedence to lowest precedence.
+
     
 
-
 ------------------------------------------------------------------------------------------------------------------------
+
 ;;; Preprocessing
 @ <=
 is leq to
@@ -60,7 +144,6 @@ is greater than or equal to
 equals
 is equal
 is equal to
-is
 
 @ !=
 does not equal
@@ -94,27 +177,41 @@ print
 otherwise
 ow
 
+
+
+
+
 ;;; Grammar begins here
 
 @ IsEqual == Reduce
 Expr -> Expr == Expr
+Expr -> Expr == SRef
+Expr -> SRef == Expr
 
 @ IsNotEqual != Reduce
 Expr -> Expr != Expr
-
+Expr -> Expr != SRef
+Expr -> SRef != Expr
 
 @ IsGreaterThan > Reduce
 Expr -> Expr > Expr
+Expr -> Expr > SRef
+Expr -> SRef > Expr
 
-@ IsLessThan > Reduce
+@ IsLessThan < Reduce
 Expr -> Expr < Expr
+Expr -> Expr < SRef
+Expr -> SRef < Expr
 
 @ IsGreaterThanOrEqualTo >= Reduce
 Expr -> Expr >= Expr
-
+Expr -> Expr >= SRef
+Expr -> SRef >= Expr
 
 @ IsLessThanOrEqualTo <= Reduce
 Expr -> Expr <= Expr
+Expr -> Expr <= SRef
+Expr -> SRef <= Expr
 
 @ Class class Reduce
 Class -> a Ref 
@@ -123,10 +220,6 @@ Class -> a Ref
 Class -> Class ():
 Class -> Class :
 
-@ NoOperationType ! Retain
-> =
-Expr -> SRef
-
 
 @ New new Reduce
 Expr -> new Ref
@@ -134,7 +227,6 @@ Expr -> new Ref
 
 @ ScopeResolution . Reduce
 > (
-< to
 SRef -> Expr . Ref
 SRef -> SRef . Ref
 SRef -> Ref
@@ -146,22 +238,33 @@ Line -> return Expr
 
 @ Add + Reduce
 Expr -> Expr + Expr
+Expr -> Expr + SRef
+Expr -> SRef + Expr
 
 @ Subtract - Reduce
 Expr -> Expr - Expr
+Expr -> Expr - SRef
+Expr -> SRef - Expr
 
 @ Multiply * Reduce
 Expr -> Expr * Expr
+Expr -> Expr * SRef
+Expr -> SRef * Expr
 
 @ Divide / Reduce
 Expr -> Expr / Expr
-
+Expr -> Expr / SRef
+Expr -> SRef / Expr
 
 @ And && Reduce
 Expr -> Expr && Expr
+Expr -> Expr && SRef
+Expr -> SRef && Expr
 
 @ Or || Reduce
 Expr -> Expr || Expr
+Expr -> Expr || SRef
+Expr -> SRef || Expr
 
 @ Not ! Retain
 Expr -> ! Expr
@@ -223,14 +326,18 @@ Line -> Ref ( Tuple ) :
 Line -> Ref ( Expr ) :
 Line -> Ref ( ) :
 
+@ IsEqual == Reduce
+Expr -> Expr is Expr
+
+@ Is is Reduce
+Expr -> SRef is Expr
 
 @ Assign = Reduce
 Line -> SRef = Expr
 Line -> SRef = ( Tuple )
 
 
-@ NoOperationType ( Retain
-Expr -> ( Expr )
+
 
 
 @ Tuple , Merge
@@ -240,7 +347,14 @@ Tuple -> Tuple , Expr
 Tuple -> Expr , Expr
 
 
-@ LineRef lowest Retain
+@ NoOperationType ( Retain
+Expr -> ( Expr )
+
+@ NoOperationType ! Retain
+> = is
+Expr -> SRef
+
+@ NoOperationType lowest Retain
 Line -> consider Expr
 Line -> take Expr
 Line -> Expr
@@ -251,17 +365,17 @@ Line -> Expr
 
 
 ;;; Operator Precedence
-in new class to highest
+in new class highest
 (
 [ .
 !
 * /
 + -
 < > <= >=
-== !=
+== != 
 &&
 ||
-=
+= is
 ,
 ) :
 lowest 
@@ -270,6 +384,3 @@ lowest
 
 
 ;;; End 
-
-
-

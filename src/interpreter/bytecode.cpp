@@ -124,7 +124,9 @@ BCI_Method BCI_Instructions[] = {
     BCI_Dup,
     BCI_EndLine,
 
-    BCI_Swap
+    BCI_Swap,
+    BCI_JumpNothing,
+    BCI_DropTOS,
 };
 
 
@@ -179,6 +181,12 @@ inline Reference* FindInScopeChain(Scope* scope, String& refName)
         }
     }
     return nullptr;
+}
+
+inline void InternalJumpTo(extArg_t ins)
+{
+    InstructionReg = ins;
+    JumpStatusReg = 1;
 }
 
 /// returns the Scope of [ref]
@@ -677,15 +685,13 @@ void BCI_JumpFalse(extArg_t arg)
     auto obj = PopTOS<Object>();
     if(!GetBoolValue(*obj))
     {
-        InstructionReg = arg;
-        JumpStatusReg = 1;
+        InternalJumpTo(arg);
     }
 }
 
 void BCI_Jump(extArg_t arg)
 {
-    InstructionReg = arg;
-    JumpStatusReg = 1;
+    InternalJumpTo(arg);
 }
 
 /// assumes TOS is an object
@@ -838,14 +844,13 @@ void BCI_Eval(extArg_t arg)
     LogDiagnostics(methodObj);
     LogDiagnostics(callerObj);
 
-    extArg_t jumpTo = methodObj->BlockStartInstructionId;
+    extArg_t jumpIns= methodObj->BlockStartInstructionId;
     AddParamsToMethodScope(methodObj, paramsList);
 
     /// TODO: figure out caller id
     EnterNewCallFrame(0, callerObj, methodObj);
     
-    InstructionReg = jumpTo;
-    JumpStatusReg = 1;
+    InternalJumpTo(jumpIns);
 }
 
 /// arg is number of parameters
@@ -856,14 +861,13 @@ void BCI_EvalHere(extArg_t arg)
     auto paramsList = GetParameters(arg);
     auto methodObj = PopTOS<Object>();
 
-    extArg_t jumpTo = methodObj->BlockStartInstructionId;
+    extArg_t jumpIns= methodObj->BlockStartInstructionId;
     AddParamsToMethodScope(SelfReg, paramsList);
 
     /// TODO: figure out caller id
     EnterNewCallFrame(0, CallerReg, SelfReg);
     
-    InstructionReg = jumpTo;
-    JumpStatusReg = 1;
+    InternalJumpTo(jumpIns);
 }
 
 /// arg is bool flag on whether or not to return a specific object
@@ -986,9 +990,27 @@ void BCI_EndLine(extArg_t arg)
 /// swaps TOS with TOS1
 void BCI_Swap(extArg_t arg)
 {
-    void* TOS = PopTOS<void*>();
-    void* TOS1 = PopTOS<void*>();
+    void* TOS = PopTOS<void>();
+    void* TOS1 = PopTOS<void>();
 
     PushTOS<void>(TOS);
     PushTOS<void>(TOS1);
+}
+
+/// assumes TOS is an object
+/// pops TOS and jumps if obj == Nothing
+void BCI_JumpNothing(extArg_t arg)
+{
+    auto TOS = PopTOS<Object>();
+    if(TOS == &NothingObject)
+    {
+        InternalJumpTo(arg);
+    }
+}
+
+/// assumes TOS exists
+/// pops TOS 
+void BCI_DropTOS(extArg_t arg)
+{
+    PopTOS<void>();
 }

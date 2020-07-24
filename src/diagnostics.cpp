@@ -528,6 +528,9 @@ String ToString(const OperationType& type)
         case OperationType::IsNotEqual:
         return "IsNotEqual";
 
+        case OperationType::Is:
+        return "Is";
+
         default:
         LogIt(LogSeverityType::Sev2_Important, "ToString", "unimplemented OperationType");
         return "unimplemented";
