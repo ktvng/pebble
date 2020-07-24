@@ -45,7 +45,9 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::Or;
     else if(Name=="Not")
         return OperationType::Not;
-
+        
+    else if(Name=="Is")
+        return OperationType::Is;
     else if(Name=="IsEqual")
         return OperationType::IsEqual;
     else if(Name=="IsNotEqual")

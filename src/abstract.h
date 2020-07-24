@@ -48,6 +48,7 @@ enum LogSeverityType
 enum OperationType
 {
     Assign,                         // change what a Reference points to
+    Is,
     IsEqual,                        // returns Reference to BooleanClass result of ==
     IsNotEqual,                     // returns Reference to BooleanClass result of !=
     IsLessThan,                     // returns Reference to BooleanClass result of <

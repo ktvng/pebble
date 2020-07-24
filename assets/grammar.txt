@@ -41,6 +41,7 @@ Precedence:
 
 
 ------------------------------------------------------------------------------------------------------------------------
+
 ;;; Preprocessing
 @ <=
 is leq to
@@ -60,7 +61,6 @@ is greater than or equal to
 equals
 is equal
 is equal to
-is
 
 @ !=
 does not equal
@@ -94,6 +94,10 @@ print
 otherwise
 ow
 
+
+
+
+
 ;;; Grammar begins here
 
 @ IsEqual == Reduce
@@ -124,7 +128,7 @@ Class -> Class ():
 Class -> Class :
 
 @ NoOperationType ! Retain
-> =
+> = is
 Expr -> SRef
 
 
@@ -134,7 +138,6 @@ Expr -> new Ref
 
 @ ScopeResolution . Reduce
 > (
-< to
 SRef -> Expr . Ref
 SRef -> SRef . Ref
 SRef -> Ref
@@ -223,6 +226,8 @@ Line -> Ref ( Tuple ) :
 Line -> Ref ( Expr ) :
 Line -> Ref ( ) :
 
+@ Is is Reduce
+Expr -> SRef is Expr
 
 @ Assign = Reduce
 Line -> SRef = Expr
@@ -251,17 +256,17 @@ Line -> Expr
 
 
 ;;; Operator Precedence
-in new class to highest
+in new class highest
 (
 [ .
 !
 * /
 + -
 < > <= >=
-== !=
+== != 
 &&
 ||
-=
+= is
 ,
 ) :
 lowest 
@@ -273,3 +278,52 @@ lowest
 
 
 
+a Rock():
+    Name
+    Shape
+    Weight = "heavy"
+    Color = "grey"
+    Type = "rock"
+
+    Drop():
+        ask "we shall drop from how high?"
+        say "the " + Type + " dropped from " + that + " high"
+
+    Throw():
+        Velocity = Something
+        ask "we shall throw with how much force?"
+        if it is "a lot" and Weight is "heavy"
+            Velocity = 8
+        else if it is "a lot" and Weight is "light"
+            Velocity = 6
+        else
+            Velocity = 4
+        
+        return self
+
+
+a Pebble:
+    inherits Rock()
+    Weight = "light"
+    Type = "pebble"
+
+    With(Name, Shape):
+        caller.Name = Name
+        caller.Shape = Shape
+
+MyPebble = Pebble().With("Hello", "round")
+
+consider MyPebble
+say "my pebble is " + it's Shape + ", " + it's Color + ", and " + it's Weight
+if MyPebble.Drop().Weight == "heavy"
+    say "oh no dropping MyPebble hurt!"
+else
+    say "whew, MyPebble's not a rock but a " + MyPebble's Type
+
+consider MyPebble.Throw()'s Velocity
+if it is 4
+    say "I can take this"
+else if it is 8
+    say "maybe this is too much?"
+else
+    say "I'm not sure what the velocity is"
