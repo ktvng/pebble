@@ -78,12 +78,6 @@ inline std::vector<Scope>& LocalScopeStack()
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode program
-struct ByteCodeInstruction
-{
-    uint8_t Op;
-    uint8_t Arg;
-};
-
 extern std::vector<ByteCodeInstruction> ByteCodeProgram;
 
 
@@ -98,10 +92,8 @@ extern Object SomethingObject;
 // Methods
 
 void DoByteCodeProgram();
-void LogProgramInstructions();
-String ToString(ByteCodeInstruction& ins);
 void AddRuntimeObject(Object* obj);
 void AddRuntimeReference(Reference* ref);
-
+Object* FindExistingObject(ObjectClass cls, void* value);
 
 #endif

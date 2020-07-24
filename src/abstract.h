@@ -13,6 +13,8 @@ struct Scope;
 struct CodeLine;
 struct Program;
 struct Reference;
+struct ByteCodeInstruction;
+struct CFGRule;
 
 class Object;
 class Method;
@@ -20,6 +22,8 @@ class Method;
 class Executable;
 class Block;
 class Operation;
+
+class PrecedenceClass;
 
 typedef std::string String;
 typedef std::string ObjectClass;
@@ -60,6 +64,7 @@ enum OperationType
     Or,                             // returns Reference to result of ||
     Not,                            // returns Reference to result of !
     Evaluate,                       // returns Reference to result of method call
+    EvaluateHere,
     Print,                          // prints a Ref to the screen
     Ask,
     
@@ -77,6 +82,8 @@ enum OperationType
     New,
     ScopeResolution,
     Class,
+
+    NoOperationType,
 };
 
 enum class SystemMessageType

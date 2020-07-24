@@ -483,6 +483,9 @@ String ToString(const OperationType& type)
         case OperationType::Evaluate:
         return "Evaluate";
 
+        case OperationType::EvaluateHere:
+        return "EvaluateHere";
+
         case OperationType::Divide:
         return "Divide";
 
@@ -526,6 +529,7 @@ String ToString(const OperationType& type)
         return "IsNotEqual";
 
         default:
+        LogIt(LogSeverityType::Sev2_Important, "ToString", "unimplemented OperationType");
         return "unimplemented";
     }
 }

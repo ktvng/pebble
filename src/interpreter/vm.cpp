@@ -2,6 +2,7 @@
 
 #include "bytecode.h"
 #include "errormsg.h"
+#include "dis.h"
 
 #include "object.h"
 #include "scope.h"
@@ -53,6 +54,7 @@ int JumpStatusReg;
 /// 4: >
 /// 5: <=
 /// 6: >=
+/// 7: true if all comparisons valid, false if only == valid
 uint8_t CmpReg = CmpRegDefaultValue;
 
 /// stores the result of the last line of code and is updated by the BCI_Endline 
@@ -210,7 +212,7 @@ void DoByteCodeProgram()
     while(InstructionReg < ByteCodeProgram.size())
     {
         auto ins = ByteCodeProgram[InstructionReg];
-        LogItDebug(ToString(ins));
+        LogItDebug(Msg("%i: %s", (int)InstructionReg, ToString(ins)));
         if(IsNOP(ins))
         {
             InstructionReg++;
@@ -264,165 +266,50 @@ void AddRuntimeReference(Reference* ref)
     RuntimeReferences.push_back(ref);
 }
 
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Diagnostics
-
-/// returns a string represntation of an instruction [ins]
-String ToString(ByteCodeInstruction& ins)
+bool ValuesMatch(ObjectClass cls, void* value, Object* obj)
 {
-    String str;
-    String decodedArg;
-
-    if(ins.Op == IndexOfInstruction(BCI_LoadRefName))
+    if(cls != obj->Class)
     {
-        str += "#BCI_LoadRefName";
-        decodedArg = ReferenceNames[ins.Arg];
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_LoadPrimitive))
-    {
-        str += "#BCI_LoadPrimitive";
-        decodedArg = GetStringValue(*ConstPrimitives[ins.Arg]);
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Dereference))
-    {
-        str += "#BCI_Dereference";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Assign)) 
-    {
-        str += "#BCI_Assign";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Add))
-    {
-        str += "#BCI_Add";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Subtract))
-    {
-        str += "#BCI_Subtract";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Multiply))
-    {
-        str += "#BCI_Multiply";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Divide))
-    {
-        str += "#BCI_Divide";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_SysCall))
-    {
-        str += "#BCI_SysCall";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_And))
-    {
-        str += "#BCI_And";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Or))
-    {
-        str += "#BCI_Or";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Not))
-    {
-        str += "#BCI_Not";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Cmp))
-    {
-        str += "#BCI_Cmp";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_LoadCmp))
-    {
-        str += "#BCI_LoadCmp";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_JumpFalse))
-    {
-        str += "#BCI_JumpFalse";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Jump))
-    {
-        str += "#BCI_Jump";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Copy))
-    {
-        str += "#BCI_Copy";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_ResolveDirect))
-    {
-        str += "#BCI_ResolveDirect";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_ResolveScoped))
-    {
-        str += "#BCI_ResolveScoped";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_DefMethod))
-    {
-        str += "#BCI_DefMethod";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Eval))
-    {
-        str += "#BCI_Eval";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Return))
-    {
-        str += "#BCI_Return";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_EnterLocal))
-    {
-        str += "#BCI_EnterLocal";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_LeaveLocal))
-    {
-        str += "#BCI_LeaveLocal";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Extend))
-    {
-        str += "#BCI_Extend";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_NOP))
-    {
-        str += "#BCI_NOP";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Dup))
-    {
-        str += "#BCI_Dup";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_EndLine))
-    {
-        str += "#BCI_EndLine";
-    }
-    else
-    {
-        str += "#?????????" + std::to_string(ins.Op);
-    }
-    
-    while(str.size() < 22)
-    {
-        str += " ";
+        return false;
     }
 
-    str += "\t" + std::to_string(ins.Arg) + "\t" + decodedArg + "\n";
-    return str;
+    if(cls == StringClass)
+    {
+        return *static_cast<String*>(value) == *static_cast<String*>(obj->Value);
+    }
+    else if(cls == IntegerClass)
+    {
+        return *static_cast<int*>(value) == *static_cast<int*>(obj->Value); 
+    }
+    else if(cls == DecimalClass)
+    {
+        return *static_cast<double*>(value) == *static_cast<double*>(obj->Value); 
+    }
+    else if(cls == BooleanClass)
+    {
+        return *static_cast<bool*>(value) == *static_cast<bool*>(obj->Value); 
+    }
+
+    return false;    
 }
 
-/// returns a string representation of a [bciProgram] which is a list of ByteCodeInstructions
-String ToString(std::vector<ByteCodeInstruction>& bciProgram)
+Object* FindExistingObject(ObjectClass cls, void* value)
 {
-    String str = "";
-    int i=0;
-    for(auto& ins: bciProgram)
+    for(auto obj: ConstPrimitives)
     {
-        str += std::to_string(i++) + "\t" + ToString(ins);
+        if(ValuesMatch(cls, value, obj))
+        {
+            return obj;
+        }
     }
 
-    return str;
-}
-
-/// logs the references and instructions of ByteCodeProgram
-void LogProgramInstructions()
-{
-    String refNames = "References list\n";
-    for(size_t i=0; i<ReferenceNames.size(); i++)
+    for(auto obj: RuntimeObjects)
     {
-        refNames +=  Msg("%i:\t %s\n", i, ReferenceNames[i]);
+        if(IsPrimitiveObject(obj) && ValuesMatch(cls, value, obj))
+        {
+            return obj;
+        }
     }
-    LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", refNames);
-    LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", Msg("\n%s", ToString(ByteCodeProgram)));
+
+    return nullptr;
 }

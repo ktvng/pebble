@@ -66,8 +66,10 @@ void ExitScope(bool andDestroy)
 void AddReferenceToCurrentScope(Reference* ref)
 {
     if(CurrentScope() == nullptr)
-        LogItDebug("current scope is not set", "AddReferenceToCurrentScope");
-    LogItDebug("added reference to current scope", "AddReferenceToCurrentScope");
+    {
+        LogIt(LogSeverityType::Sev2_Important, "AddReferenceToCurrentScope", "current scope is not set");
+        return;
+    }
     CurrentScope()->ReferencesIndex.push_back(ref);
 }
 

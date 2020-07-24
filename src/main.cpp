@@ -15,6 +15,10 @@
 #include "vm.h"
 #include "flattener.h"
 #include "scope.h"
+#include "dis.h"
+#include "grammar.h"
+
+#include "dfa.h"
 
 bool Usage(std::vector<SettingOption> options)
 {

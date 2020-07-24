@@ -106,5 +106,7 @@ bool IsNullReference(const Reference* ref);
 /// true if [ref]->To is a primitive object
 bool IsPrimitiveObject(Reference* ref);
 
+/// true if [obj] is a primitive object
+bool IsPrimitiveObject(Object* obj);
 
 #endif

@@ -48,6 +48,8 @@ int* ObjectValueConstructor(int value);
 double* ObjectValueConstructor(double value);
 bool* ObjectValueConstructor(bool value);
 String* ObjectValueConstructor(String value);
+void ObjectValueDestructor(ObjectClass klass, void* val);
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ObjectClasses

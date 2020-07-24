@@ -1,0 +1,10 @@
+W():
+    X = 3
+
+H():
+    here W()
+    Y = 4
+    return 1
+
+
+print here H() + X + Y
