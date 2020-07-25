@@ -18,6 +18,7 @@ struct Reference
     Object* To = nullptr;
 };
 
+Reference* ReferenceConstructor(String refName, Object* obj);
 void ReferenceDestructor(Reference* ref);
 
 // ---------------------------------------------------------------------------------------------------------------------

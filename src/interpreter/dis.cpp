@@ -22,7 +22,7 @@ String ToString(ByteCodeInstruction& ins)
     else if(ins.Op == IndexOfInstruction(BCI_LoadPrimitive))
     {
         str += "#BCI_LoadPrimitive";
-        decodedArg = GetStringValue(*ConstPrimitives[ins.Arg]);
+        decodedArg = GetStringValue(ConstPrimitives[ins.Arg]);
     }
     else if(ins.Op == IndexOfInstruction(BCI_Dereference))
     {

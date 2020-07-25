@@ -73,7 +73,7 @@ Operation* RefOperation(Token* refToken)
     }
     else
     {
-        ref->Name += ref->To->Class + GetStringValue(*ref->To);
+        ref->Name += ref->To->Class + GetStringValue(ref->To);
     }
 
     Operation* op = OperationConstructor(OperationType::Ref, ref);

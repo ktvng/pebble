@@ -333,8 +333,8 @@ Expr -> Expr is Expr
 Expr -> SRef is Expr
 
 @ Assign = Reduce
-Line -> SRef = Expr
-Line -> SRef = ( Tuple )
+Expr -> SRef = Expr
+Expr -> SRef = ( Tuple )
 
 
 

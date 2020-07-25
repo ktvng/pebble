@@ -189,7 +189,7 @@ Reference* OperationIsLessThan(Reference* value, std::vector<Reference*>& operan
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {
-        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) < GetDecimalValue(*ObjectOf(rRef));
+        comparisonIs = GetDecimalValue(ObjectOf(lRef)) < GetDecimalValue(ObjectOf(rRef));
     }
 
     return ReferenceFor(c_temporaryReferenceName, comparisonIs);
@@ -203,7 +203,7 @@ Reference* OperationIsGreaterThan(Reference* value, std::vector<Reference*>& ope
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {
-        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) > GetDecimalValue(*ObjectOf(rRef));
+        comparisonIs = GetDecimalValue(ObjectOf(lRef)) > GetDecimalValue(ObjectOf(rRef));
     }
 
     return ReferenceFor(c_temporaryReferenceName, comparisonIs);
@@ -217,7 +217,7 @@ Reference* OperationIsLessThanOrEqualTo(Reference* value, std::vector<Reference*
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {
-        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) <= GetDecimalValue(*ObjectOf(rRef));
+        comparisonIs = GetDecimalValue(ObjectOf(lRef)) <= GetDecimalValue(ObjectOf(rRef));
     }
 
     return ReferenceFor(c_temporaryReferenceName, comparisonIs);
@@ -231,7 +231,7 @@ Reference* OperationIsGreaterThanOrEqualTo(Reference* value, std::vector<Referen
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {
-        comparisonIs = GetDecimalValue(*ObjectOf(lRef)) >= GetDecimalValue(*ObjectOf(rRef));
+        comparisonIs = GetDecimalValue(ObjectOf(lRef)) >= GetDecimalValue(ObjectOf(rRef));
     }
     
     return ReferenceFor(c_temporaryReferenceName, comparisonIs);
@@ -243,7 +243,7 @@ Reference* OperationOr(Reference* value, std::vector<Reference*>& operands)
     Reference* lRef = ResolveFirst(operands);
     Reference* rRef = ResolveSecond(operands);
 
-    bool b = GetBoolValue(*ObjectOf(lRef)) || GetBoolValue(*ObjectOf(rRef));
+    bool b = GetBoolValue(ObjectOf(lRef)) || GetBoolValue(ObjectOf(rRef));
     return ReferenceFor(c_temporaryReferenceName, b);
 }
 
@@ -251,7 +251,7 @@ Reference* OperationNot(Reference* value, std::vector<Reference*>& operands)
 {
     Reference* ref = ResolveFirst(operands);
 
-    bool b = !GetBoolValue(*ObjectOf(ref));
+    bool b = !GetBoolValue(ObjectOf(ref));
     return ReferenceFor(c_temporaryReferenceName, b);
 }
 
@@ -296,8 +296,8 @@ Reference* OperationPrint(Reference* value, std::vector<Reference*>& operands)
     Reference* ref = ResolveFirst(operands);
 
     if(g_outputOn)
-        std::cout << GetStringValue(*ObjectOf(ref)) << "\n";
-    ProgramOutput.append(GetStringValue(*ObjectOf(ref)) + "\n");
+        std::cout << GetStringValue(ObjectOf(ref)) << "\n";
+    ProgramOutput.append(GetStringValue(ObjectOf(ref)) + "\n");
 
     auto returnRef = ReferenceFor(c_temporaryReferenceName, ObjectOf(ref));
     if(IsNullReference(ref))
@@ -317,15 +317,15 @@ Reference* OperationAdd(Reference* value, std::vector<Reference*>& operands)
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
+        ObjectClass type = GetPrecedenceClass(ObjectOf(lRef), ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*ObjectOf(lRef)) + GetIntValue(*ObjectOf(rRef));
+            int value = GetIntValue(ObjectOf(lRef)) + GetIntValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*ObjectOf(lRef)) + GetDecimalValue(*ObjectOf(rRef));
+            double value = GetDecimalValue(ObjectOf(lRef)) + GetDecimalValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else
@@ -339,7 +339,7 @@ Reference* OperationAdd(Reference* value, std::vector<Reference*>& operands)
     // allow for string addition by concatenation. this promotes all other objects to strings
     else if(IsString(lRef) || IsString(rRef))
     {
-        String s = GetStringValue(*ObjectOf(lRef)) + GetStringValue(*ObjectOf(rRef));
+        String s = GetStringValue(ObjectOf(lRef)) + GetStringValue(ObjectOf(rRef));
         resultRef = ReferenceFor(c_temporaryReferenceName, s);
 
         return resultRef;
@@ -360,7 +360,7 @@ Reference* OperationAnd(Reference* value, std::vector<Reference*>& operands)
     Reference* lRef = ResolveFirst(operands);
     Reference* rRef = ResolveSecond(operands);
 
-    bool b = GetBoolValue(*ObjectOf(lRef)) && GetBoolValue(*ObjectOf(rRef));
+    bool b = GetBoolValue(ObjectOf(lRef)) && GetBoolValue(ObjectOf(rRef));
     return ReferenceFor(c_temporaryReferenceName, b);
 }
 
@@ -374,15 +374,15 @@ Reference* OperationSubtract(Reference* value, std::vector<Reference*>& operands
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
+        ObjectClass type = GetPrecedenceClass(ObjectOf(lRef), ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*ObjectOf(lRef)) - GetIntValue(*ObjectOf(rRef));
+            int value = GetIntValue(ObjectOf(lRef)) - GetIntValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*ObjectOf(lRef)) - GetDecimalValue(*ObjectOf(rRef));
+            double value = GetDecimalValue(ObjectOf(lRef)) - GetDecimalValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else
@@ -423,15 +423,15 @@ Reference* OperationMultiply(Reference* value, std::vector<Reference*>& operands
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
+        ObjectClass type = GetPrecedenceClass(ObjectOf(lRef), ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*ObjectOf(lRef)) * GetIntValue(*ObjectOf(rRef));
+            int value = GetIntValue(ObjectOf(lRef)) * GetIntValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*ObjectOf(lRef)) * GetDecimalValue(*ObjectOf(rRef));
+            double value = GetDecimalValue(ObjectOf(lRef)) * GetDecimalValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else
@@ -460,15 +460,15 @@ Reference* OperationDivide(Reference* value, std::vector<Reference*>& operands)
 
     if(IsNumeric(lRef) && IsNumeric(rRef))
     {  
-        ObjectClass type = GetPrecedenceClass(*ObjectOf(lRef), *ObjectOf(rRef));
+        ObjectClass type = GetPrecedenceClass(ObjectOf(lRef), ObjectOf(rRef));
         if(type == IntegerClass)
         {
-            int value = GetIntValue(*ObjectOf(lRef)) / GetIntValue(*ObjectOf(rRef));
+            int value = GetIntValue(ObjectOf(lRef)) / GetIntValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else if(type == DecimalClass)
         {
-            double value = GetDecimalValue(*ObjectOf(lRef)) / GetDecimalValue(*ObjectOf(rRef));
+            double value = GetDecimalValue(ObjectOf(lRef)) / GetDecimalValue(ObjectOf(rRef));
             resultRef = ReferenceFor(c_temporaryReferenceName, value);
         }
         else

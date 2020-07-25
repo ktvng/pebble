@@ -77,7 +77,7 @@ void UpdatePreviousResult(Reference** result, Reference** previousResult)
 Reference* HandleControlFlowIf(Operation* op, size_t& execLine)
 {
     Reference* ifExpressionResult = DoOperation(op);
-    bool ifIsTrue = GetBoolValue(*ObjectOf(ifExpressionResult));
+    bool ifIsTrue = GetBoolValue(ObjectOf(ifExpressionResult));
     if(op->Type == OperationType::If && !ifIsTrue)
     {
         execLine++;
@@ -89,7 +89,7 @@ Reference* HandleControlFlowIf(Operation* op, size_t& execLine)
 Reference* HandleControlFlowWhile(Operation* op, size_t& execLine, Block* codeBlock)
 {
     Reference* whileExpression = DoOperation(op);
-    bool condition = GetBoolValue(*ObjectOf(whileExpression));
+    bool condition = GetBoolValue(ObjectOf(whileExpression));
     if(op->Type == OperationType::While && !condition)
     {
         execLine++;

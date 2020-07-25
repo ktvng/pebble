@@ -22,6 +22,7 @@ class Object
     Method* Action;
     Scope* DefinitionScope;
 
+    /// used for bytecode representation
     extArg_t BlockStartInstructionId;
     ParameterList ByteCodeParamsAsMethod;
 };
@@ -36,18 +37,18 @@ class Method
     ParameterList ParameterNames;
 };
 
-Reference* ReferenceConstructor(String refName, Object* obj);
 
 Object* ObjectConstructor(ObjectClass cls, void* value);
 Object* ObjectConstructor();
-Object* NullObject();
-
 void ObjectDestructor(Object* obj);
+
+Object* NullObject();
 
 int* ObjectValueConstructor(int value);
 double* ObjectValueConstructor(double value);
 bool* ObjectValueConstructor(bool value);
 String* ObjectValueConstructor(String value);
+
 void ObjectValueDestructor(ObjectClass klass, void* val);
 
 
@@ -112,7 +113,7 @@ Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);
 // ---------------------------------------------------------------------------------------------------------------------
 // Object type handling
 
-ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2);
+ObjectClass GetPrecedenceClass(const Object* obj1, const Object* obj2);
 bool IsNumeric(const Reference* ref);
 bool IsString(const Reference* ref);
 bool IsCallable(const Reference* ref);
@@ -122,9 +123,9 @@ bool IsCallable(const Object* obj);
 // ---------------------------------------------------------------------------------------------------------------------
 // Value for primitive objects
 
-std::string GetStringValue(const Object& obj);
-int GetIntValue(const Object& obj);
-double GetDecimalValue(const Object& obj);
-bool GetBoolValue(const Object& obj);
+std::string GetStringValue(const Object* obj);
+int GetIntValue(const Object* obj);
+double GetDecimalValue(const Object* obj);
+bool GetBoolValue(const Object* obj);
 
 #endif

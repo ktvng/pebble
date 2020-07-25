@@ -17,15 +17,6 @@ Reference* ReferenceConstructor()
     return ref;
 }
 
-Reference* ReferenceConstructor(String refName, Object* obj)
-{
-    Reference* ref = new Reference; 
-    ref->Name = refName;
-    ref->To = obj;
-
-    return ref;
-}
-
 Object* ObjectConstructor()
 {
     Object* obj = new Object;
@@ -374,94 +365,94 @@ Reference* CreateNullReference()
 
 
 
-ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2)
+ObjectClass GetPrecedenceClass(const Object* obj1, const Object* obj2)
 {
-    if(obj1.Class == DecimalClass || obj2.Class == DecimalClass)
+    if(obj1->Class == DecimalClass || obj2->Class == DecimalClass)
         return DecimalClass;
     return IntegerClass;
 }
 
 
 
-String GetStringValue(const Object& obj)
+String GetStringValue(const Object* obj)
 {
-    if(obj.Class == IntegerClass)
+    if(obj->Class == IntegerClass)
     {
-        return std::to_string(*static_cast<int*>(obj.Value));
+        return std::to_string(*static_cast<int*>(obj->Value));
     }
-    else if(obj.Class == DecimalClass)
+    else if(obj->Class == DecimalClass)
     {
-        return std::to_string(*static_cast<double*>(obj.Value));
+        return std::to_string(*static_cast<double*>(obj->Value));
     }
-    else if(obj.Class == BooleanClass)
+    else if(obj->Class == BooleanClass)
     {
-        if(*static_cast<bool*>(obj.Value))
+        if(*static_cast<bool*>(obj->Value))
         {
             return "true";
         }
         return "false";
     }
-    else if(obj.Class == StringClass)
+    else if(obj->Class == StringClass)
     {
-        return *static_cast<String*>(obj.Value);
+        return *static_cast<String*>(obj->Value);
     }
-    else if(obj.Class == NullClass)
+    else if(obj->Class == NullClass)
     {
         return "Nothing";
     }
-    else if(obj.Class == BaseClass)
+    else if(obj->Class == BaseClass)
     {
         return "Object";
     }
-    else if(obj.Class == SomethingClass)
+    else if(obj->Class == SomethingClass)
     {
         return "Something";
     }
-    else if(obj.Class == MethodClass)
+    else if(obj->Class == MethodClass)
     {
         return "Method";
     }
     else
     {
-        return "<" + obj.Class + ">";
+        return "<" + obj->Class + ">";
     }
 }
 
-int GetIntValue(const Object& obj)
+int GetIntValue(const Object* obj)
 {
-    if(obj.Class != IntegerClass)
+    if(obj->Class != IntegerClass)
     {
         LogIt(LogSeverityType::Sev1_Notify, "GetIntValue", "only implemented for IntegerClass");
         return 0;
     }
-    return *static_cast<int*>(obj.Value);
+    return *static_cast<int*>(obj->Value);
 }
 
-double GetDecimalValue(const Object& obj)
+double GetDecimalValue(const Object* obj)
 {
-    if(obj.Class == DecimalClass)
+    if(obj->Class == DecimalClass)
     {
-        return *static_cast<double*>(obj.Value);
+        return *static_cast<double*>(obj->Value);
     }
-    if(obj.Class == IntegerClass)
+    if(obj->Class == IntegerClass)
     {
-        return static_cast<double>(*static_cast<int*>(obj.Value));
+        return static_cast<double>(*static_cast<int*>(obj->Value));
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetDecimalValue", "only implemented for Integer and Decimal classes");
     return 0;
 }
 
-bool GetBoolValue(const Object& obj)
+bool GetBoolValue(const Object* obj)
 {
-    if(obj.Class == BooleanClass)
+    if(obj->Class == BooleanClass)
     {
-        return *static_cast<bool*>(obj.Value);
+        return *static_cast<bool*>(obj->Value);
     }
-    else if (obj.Class == IntegerClass)
+    else if (obj->Class == IntegerClass)
     {
-        return static_cast<bool>(*static_cast<int*>(obj.Value));
+        return static_cast<bool>(*static_cast<int*>(obj->Value));
     }
-    else if(obj.Class == NullClass)
+    else if(obj->Class == NullClass)
     {
         return false;
     }
@@ -503,4 +494,3 @@ Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken)
 {
     return CreateReferenceToNewObject(nameToken->Content, valueToken);
 }
-

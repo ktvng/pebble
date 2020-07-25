@@ -12,6 +12,14 @@
 // ---------------------------------------------------------------------------------------------------------------------
 // TODO:
 
+Reference* ReferenceConstructor(String refName, Object* obj)
+{
+    Reference* ref = new Reference; 
+    ref->Name = refName;
+    ref->To = obj;
+
+    return ref;
+}
 
 void ReferenceDestructor(Reference* ref)
 {
@@ -137,7 +145,7 @@ Reference* ReferenceForPrimitive(int value, String name)
     for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
         Object* obj = map.IndexedObject;
-        if(obj->Class == IntegerClass && GetIntValue(*obj) == value)
+        if(obj->Class == IntegerClass && GetIntValue(obj) == value)
             return CreateReference(name, obj);
     }
     return CreateReferenceToNewObject(name, IntegerClass, value);
@@ -150,7 +158,7 @@ Reference* ReferenceForPrimitive(double value, String name)
     for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
         Object* obj = map.IndexedObject;
-        if(obj->Class == DecimalClass && GetDecimalValue(*obj) == value)
+        if(obj->Class == DecimalClass && GetDecimalValue(obj) == value)
             return CreateReference(name, obj);
     }
     return CreateReferenceToNewObject(name, DecimalClass, value);
@@ -163,7 +171,7 @@ Reference* ReferenceForPrimitive(bool value, String name)
     for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
         Object* obj = map.IndexedObject;
-        if(obj->Class == BooleanClass && GetBoolValue(*obj) == value)
+        if(obj->Class == BooleanClass && GetBoolValue(obj) == value)
             return CreateReference(name, obj);
     }
     return CreateReferenceToNewObject(name, BooleanClass, value);
@@ -176,7 +184,7 @@ Reference* ReferenceForPrimitive(String value, String name)
     for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
     {
         Object* obj = map.IndexedObject;
-        if(obj->Class == StringClass && GetStringValue(*obj) == value)
+        if(obj->Class == StringClass && GetStringValue(obj) == value)
             return CreateReference(name, obj);
     }
     return CreateReferenceToNewObject(name, StringClass, value);

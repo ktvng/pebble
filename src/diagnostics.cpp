@@ -359,7 +359,7 @@ String ToString(const Object& obj)
         StringForAttrbute("Class", obj.Class);
 
     objString += IndentLevel(1) +
-        StringForAttrbute("Value", GetStringValue(obj));
+        StringForAttrbute("Value", GetStringValue(&obj));
 
     objString += IndentLevel(1) +
         StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes->ReferencesIndex, "Reference"), 1));
@@ -565,7 +565,7 @@ String ToString(const Operation& op, int level)
                         Msg("Ref <Reference> %s to %s %s", 
                             op.Value->Name, 
                             ObjectOf(op.Value)->Class,
-                            GetStringValue(*ObjectOf(op.Value))));
+                            GetStringValue(ObjectOf(op.Value))));
             }
 
         else
@@ -589,7 +589,7 @@ String ToString(const Operation& op, int level)
                 "<Reference> %s to %s %s",
                 op.Value->Name, 
                 ObjectOf(op.Value)->Class,
-                GetStringValue(*ObjectOf(op.Value)
+                GetStringValue(ObjectOf(op.Value)
                 )));
     }
 

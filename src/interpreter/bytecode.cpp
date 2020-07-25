@@ -296,8 +296,8 @@ inline void FillInRestOfComparisons()
 /// sets CmpReg to the result of comparing [lhs] and [rhs] as integers
 inline void CompareIntegers(Object* lhs, Object* rhs)
 {
-    int lVal = GetIntValue(*lhs);
-    int rVal = GetIntValue(*rhs);
+    int lVal = GetIntValue(lhs);
+    int rVal = GetIntValue(rhs);
 
     if(lVal < rVal)
     {
@@ -318,8 +318,8 @@ inline void CompareIntegers(Object* lhs, Object* rhs)
 /// sets CmpReg to the result of comparing [lhs] and [rhs] as decimals
 inline void CompareDecimals(Object* lhs, Object* rhs)
 {
-    double lVal = GetDecimalValue(*lhs);
-    double rVal = GetDecimalValue(*rhs);
+    double lVal = GetDecimalValue(lhs);
+    double rVal = GetDecimalValue(rhs);
 
     if(lVal < rVal)
     {
@@ -438,19 +438,19 @@ void BCI_Add(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int i = GetIntValue(*lObj) + GetIntValue(*rObj);
+        int i = GetIntValue(lObj) + GetIntValue(rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double d = GetIntValue(*lObj) + GetIntValue(*rObj);
+        double d = GetIntValue(lObj) + GetIntValue(rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
     }
     else if(BothAre(lObj, rObj, StringClass))
     {
-        String s = GetStringValue(*lObj) + GetStringValue(*rObj);
+        String s = GetStringValue(lObj) + GetStringValue(rObj);
         String* ans = ObjectValueConstructor(s);
         obj = InternalObjectConstructor(StringClass, ans);
     }
@@ -471,13 +471,13 @@ void BCI_Subtract(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int i = GetIntValue(*lObj) - GetIntValue(*rObj);
+        int i = GetIntValue(lObj) - GetIntValue(rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double d = GetIntValue(*lObj) - GetIntValue(*rObj);
+        double d = GetIntValue(lObj) - GetIntValue(rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
     }
@@ -498,13 +498,13 @@ void BCI_Multiply(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int i = GetIntValue(*lObj) * GetIntValue(*rObj);
+        int i = GetIntValue(lObj) * GetIntValue(rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double d = GetIntValue(*lObj) * GetIntValue(*rObj);
+        double d = GetIntValue(lObj) * GetIntValue(rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
     }
@@ -525,13 +525,13 @@ void BCI_Divide(extArg_t arg)
     Object* obj = nullptr;
     if(BothAre(lObj, rObj, IntegerClass))
     {
-        int i = GetIntValue(*lObj) / GetIntValue(*rObj);
+        int i = GetIntValue(lObj) / GetIntValue(rObj);
         int* ans = ObjectValueConstructor(i);
         obj = InternalObjectConstructor(IntegerClass, ans);
     }
     else if(BothAre(lObj, rObj, DecimalClass))
     {
-        double d = GetIntValue(*lObj) / GetIntValue(*rObj);
+        double d = GetIntValue(lObj) / GetIntValue(rObj);
         double* ans = ObjectValueConstructor(d);
         obj = InternalObjectConstructor(DecimalClass, ans);
     }
@@ -552,7 +552,7 @@ void BCI_SysCall(extArg_t arg)
     {
         case 0:
         {
-            String msg = GetStringValue(*PeekTOS<Object>()) + "\n";
+            String msg = GetStringValue(PeekTOS<Object>()) + "\n";
             ProgramOutput += msg;
             if(g_outputOn)
             {
@@ -581,7 +581,7 @@ void BCI_And(extArg_t arg)
     auto rObj = PopTOS<Object>();
     auto lObj = PopTOS<Object>();
 
-    bool b = GetBoolValue(*lObj) && GetBoolValue(*rObj);
+    bool b = GetBoolValue(lObj) && GetBoolValue(rObj);
     bool* ans = ObjectValueConstructor(b);
     Object* obj = InternalObjectConstructor(BooleanClass, ans);
 
@@ -593,7 +593,7 @@ void BCI_Or(extArg_t arg)
     auto rObj = PopTOS<Object>();
     auto lObj = PopTOS<Object>();
 
-    bool b = GetBoolValue(*lObj) || GetBoolValue(*rObj);
+    bool b = GetBoolValue(lObj) || GetBoolValue(rObj);
     bool* ans = ObjectValueConstructor(b);
     Object* obj = InternalObjectConstructor(BooleanClass, ans);
 
@@ -604,7 +604,7 @@ void BCI_Not(extArg_t arg)
 {
     auto obj = PopTOS<Object>();
 
-    bool b =!GetBoolValue(*obj);
+    bool b =!GetBoolValue(obj);
     bool* ans = ObjectValueConstructor(b);
     Object* newObj = InternalObjectConstructor(BooleanClass, ans);
 
@@ -683,7 +683,7 @@ void BCI_LoadCmp(extArg_t arg)
 void BCI_JumpFalse(extArg_t arg)
 {
     auto obj = PopTOS<Object>();
-    if(!GetBoolValue(*obj))
+    if(!GetBoolValue(obj))
     {
         InternalJumpTo(arg);
     }
