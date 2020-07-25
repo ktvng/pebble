@@ -23,7 +23,7 @@ struct ParseToken
     ParseToken* Prev = nullptr;
 }; 
 
-
+extern std::vector<Object*> ConstantPrimitiveObjects;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods

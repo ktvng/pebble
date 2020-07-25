@@ -198,6 +198,12 @@ void GracefullyExit()
         ObjectDestructor(obj);
     }
 
+    /// start at 3 to ignore Something, Nothing, and Object entities
+    for(size_t i=3; i< ConstPrimitives.size(); i++)
+    {
+        ObjectDestructor(ConstPrimitives[i]);
+    }
+    
     ScopeDestructor(ProgramReg);
     ScopeDestructor(SomethingObject.Attributes);
     ScopeDestructor(NothingObject.Attributes);

@@ -7,14 +7,6 @@
 // ---------------------------------------------------------------------------------------------------------------------
 // Struct definitions
 
-/// used to keep track of objects and their references
-struct ObjectReferenceMap
-{
-    Object* IndexedObject;
-    std::vector<Reference*> References;
-};
-
-
 /// represents the result of tokenizing a line with additional metadata
 /// [Tokens] are the tokens resulting from processing an effective line of code
 /// [LineNumber] is the line of code which was processed
@@ -35,7 +27,6 @@ struct Program
     std::vector<CodeLine> Lines;
     Scope* GlobalScope;
     Block* Main;
-    std::vector<ObjectReferenceMap> ObjectsIndex;
     Reference* That;
 };
 
@@ -80,7 +71,6 @@ extern Program* PROGRAM;
 // ---------------------------------------------------------------------------------------------------------------------
 // Method declarations
 
-Block* BlockConstructor();
 void ProgramDestructor(Program* p);
 
 Operation* ParseLine(TokenList& tokens);

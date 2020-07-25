@@ -10,7 +10,6 @@
 #include "operation.h"
 #include "reference.h"
 #include "parse.h"
-#include "execute.h"
 #include "commandargs.h"
 #include "vm.h"
 #include "flattener.h"

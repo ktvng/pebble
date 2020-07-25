@@ -37,50 +37,7 @@ inline const std::string c_operationReferenceName = "!primitive:";
 inline const std::string c_nullStubName = "Nothing";
 
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Dereferencing 
 
-void RemoveReferenceFromObjectIndex(Reference* ref);
-
-/// removes all mentions of [ref] in the current scope and in the ObjectIndex and destroys [ref]
-void Dereference(Reference* ref);
-
-/// dereferences all References* in [referencesList]
-void DereferenceAll(std::vector<Reference*> referenceList);
-
-
-/// changes [ref]->To into [to] and updates all dependencies
-void ReassignReference(Reference* ref, Object* to);
-
-/// changes [ref->To] into the NullObject and updates all dependencies
-void AssignToNull(Reference* ref);
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Getting references
-
-// for arrays and general objects
-Reference* ReferenceFor(String refName, ObjectClass objClass, void* value);
-
-// for primtiives
-Reference* ReferenceFor(String refName, int value);
-Reference* ReferenceFor(String refName, bool value);
-Reference* ReferenceFor(String refName, double value);
-Reference* ReferenceFor(String refName, String value);
-
-// for existing object
-Reference* ReferenceFor(String refName, Object* refable);
-Reference* ReferenceFor(String refName);
-Reference* ReferenceForInImmediateScope(String refName, Scope* scope);
-
-// for null
-Reference* NullReference(String refName = c_temporaryReferenceName);
-
-// reference from tokens
-Reference* ReferenceForPrimitive(Token* token, String name);
-Reference* ReferenceFor(Token* token, String refName = c_temporaryReferenceName);
-
-Reference* GetReference(String refName);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // ReferenceStubs
@@ -98,9 +55,6 @@ bool IsTemporaryReference(Reference* ref);
 // ---------------------------------------------------------------------------------------------------------------------
 // Reference info
 
-/// true if [ref]->To is an object
-bool IsObject(Reference* ref);
-
 /// true if [ref]->To is the NullObject
 bool IsNullReference(const Reference* ref);
 
@@ -109,5 +63,7 @@ bool IsPrimitiveObject(Reference* ref);
 
 /// true if [obj] is a primitive object
 bool IsPrimitiveObject(Object* obj);
+
+
 
 #endif

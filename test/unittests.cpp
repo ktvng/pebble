@@ -4,7 +4,6 @@
 #include "parse.h"
 #include "token.h"
 #include "diagnostics.h"
-#include "execute.h"
 #include "main.h"
 #include "object.h"
 #include "operation.h"

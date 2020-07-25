@@ -28,21 +28,6 @@ bool g_noisyReport = false;
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers
 
-int ObjectIndexSize(Program* p)
-{
-    return p->ObjectsIndex.size();
-}
-
-int ReferencesInIndex(Program* p)
-{
-    int i=0;
-    for(auto entry: p->ObjectsIndex)
-    {
-        i+= entry.References.size();
-    }
-    return i;
-}
-
 void ResetRun()
 {
     std::map<std::string, int>::iterator it;

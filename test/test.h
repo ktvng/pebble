@@ -9,7 +9,6 @@
 #include "abstract.h"
 #include "diagnostics.h"
 #include "program.h"
-#include "execute.h"
 #include "parse.h"
 #include "flattener.h"
 #include "vm.h"
@@ -142,7 +141,7 @@ inline void Execute()
         }
         else
         {
-            DoProgram(programToRun);
+            // DoProgram(programToRun);
             ProgramDestructor(programToRun);
         }
     }

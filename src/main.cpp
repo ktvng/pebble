@@ -10,7 +10,6 @@
 #include "operation.h"
 #include "reference.h"
 #include "parse.h"
-#include "execute.h"
 #include "commandargs.h"
 #include "vm.h"
 #include "flattener.h"
@@ -55,6 +54,24 @@ bool ChangeLogType(std::vector<SettingOption> options)
     return true;
 }
 
+bool ChangeRuntime(std::vector<SettingOption> options)
+{
+    if(options.size() < 1)
+        return true;
+
+    SettingOption option = options[0];
+    if(option == "ast")
+    {
+        g_useBytecodeRuntime = false;
+    }
+    else if(option == "bc")
+    {
+        g_useBytecodeRuntime = true;
+    }
+
+    return true;
+}
+
 ProgramConfiguration Config
 {
     {
@@ -72,6 +89,9 @@ ProgramConfiguration Config
     { 
         "Log Setting", "--log", ChangeLogType
     },
+    {
+        "Runtime version", "--runtime", ChangeRuntime
+    }
 };
 
 // Logging
@@ -105,10 +125,10 @@ int main(int argc, char* argv[])
     {
         EnterProgram(prog);
         LogDiagnostics(PROGRAM->Main, "initial program parse structure", "main");
-        for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-        {
-            LogDiagnostics(map, "initial object reference state", "main");
-        }
+        // for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
+        // {
+        //     LogDiagnostics(map, "initial object reference state", "main");
+        // }
     }
 
     if(g_useBytecodeRuntime)
@@ -118,9 +138,6 @@ int main(int argc, char* argv[])
     }
 
     // run program
-    SetConsoleColor(ConsoleColor::LightBlue);
-    std::cout << "################################################################################\n";
-    SetConsoleColor(ConsoleColor::White);
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
     auto start = std::chrono::high_resolution_clock::now();
     
@@ -130,25 +147,26 @@ int main(int argc, char* argv[])
     }   
     else
     {
-        DoProgram(prog);
+        // DoProgram(prog);
     }
     
     auto end = std::chrono::high_resolution_clock::now();
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
-    SetConsoleColor(ConsoleColor::LightBlue);
-    std::cout << "################################################################################\n";
-    SetConsoleColor(ConsoleColor::White);
 
     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
-    std::cout << time_span.count() << std::endl;
+    
+    if(LogAtLevel == LogSeverityType::Sev0_Debug)
+    {
+        std::cout << time_span.count() << std::endl;
+    }
 
     if(ShouldPrintProgramExecutionFinalResult && !g_useBytecodeRuntime)
     {
         EnterProgram(prog);
-        for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-        {
-            LogDiagnostics(map, "final object reference state", "main");
-        }
+        // for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
+        // {
+        //     LogDiagnostics(map, "final object reference state", "main");
+        // }
     }
 
     /// clean up traditional

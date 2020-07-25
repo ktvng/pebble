@@ -19,61 +19,8 @@ Scope* ScopeConstructor(Scope* inheritedScope)
     return s;
 }
 
-void WipeScope(Scope* scope)
-{
-    for(auto ref: scope->ReferencesIndex)
-    {
-        RemoveReferenceFromObjectIndex(ref);
-        ReferenceDestructor(ref);
-    }
-    ScopeDestructor(scope);
-}
-
 void ScopeDestructor(Scope* scope)
 {
     delete scope;
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Scopestack
-
-using namespace utils;
-
-/// stack which contains the hierarchy of scopes building up to the current Scope of execution
-static Stack<Scope*> ScopeStack;
-
-/// returns the current scope
-Scope* CurrentScope()
-{
-    return ScopeStack.Peek();
-}
-
-/// enters a new scope
-void EnterScope(Scope* newScope)
-{
-    ScopeStack.Push(newScope);
-}
-
-/// exit the current scope and return to the previous scope (i.e. the scope before entering this one)
-void ExitScope(bool andDestroy)
-{
-    auto scope = ScopeStack.Pop();
-    if(andDestroy)
-        ScopeDestructor(scope);
-}
-
-/// add [ref] to current scope
-void AddReferenceToCurrentScope(Reference* ref)
-{
-    if(CurrentScope() == nullptr)
-    {
-        LogIt(LogSeverityType::Sev2_Important, "AddReferenceToCurrentScope", "current scope is not set");
-        return;
-    }
-    CurrentScope()->ReferencesIndex.push_back(ref);
-}
-
-bool ScopeStackIsEmpty()
-{
-    return ScopeStack.Size() == 0;
-}

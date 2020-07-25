@@ -81,36 +81,6 @@ Object* ObjectOf(const Reference* ref);
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Create references and associated (primitive) object
-
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value);
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value);
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value);
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value);
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value);
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Create references to existing Object
-
-Reference* CreateReference(String name, Object* obj);
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Create reference to NullObject (Nothing)
-
-Reference* CreateNullReference();
-Reference* CreateNullReference(String name);
-Object* NullObject();
-
-
-// ---------------------------------------------------------------------------------------------------------------------
-// Create reference from Token 
-
-Reference* CreateReferenceToNewObject(String name, Token* valueToken);
-Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken);
-
-
-// ---------------------------------------------------------------------------------------------------------------------
 // Object type handling
 
 ObjectClass GetPrecedenceClass(const Object* obj1, const Object* obj2);
@@ -127,5 +97,10 @@ std::string GetStringValue(const Object* obj);
 int GetIntValue(const Object* obj);
 double GetDecimalValue(const Object* obj);
 bool GetBoolValue(const Object* obj);
+
+bool ListContainsPrimitiveObject(std::vector<Object*> list, double value, Object** foundObject);
+bool ListContainsPrimitiveObject(std::vector<Object*> list, int value, Object** foundObject);
+bool ListContainsPrimitiveObject(std::vector<Object*> list, bool value, Object** foundObject);
+bool ListContainsPrimitiveObject(std::vector<Object*> list, String& value, Object** foundObject);
 
 #endif

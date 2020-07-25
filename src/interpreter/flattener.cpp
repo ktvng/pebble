@@ -8,6 +8,7 @@
 #include "reference.h"
 #include "operation.h"
 #include "diagnostics.h"
+#include "executable.h"
 
 
 #include "vm.h"
