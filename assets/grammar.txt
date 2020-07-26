@@ -217,7 +217,7 @@ Expr -> SRef <= Expr
 Class -> a Ref 
 
 @ Class class Retain
-Class -> Class ():
+Class -> Class ( ) :
 Class -> Class :
 
 
