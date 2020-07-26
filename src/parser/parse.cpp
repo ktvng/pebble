@@ -563,3 +563,9 @@ Operation* ExpressionParser(TokenList& rawline)
 
     return ast;
 }
+
+void InitParser()
+{
+    ConstantPrimitiveObjects.clear();
+    ConstantPrimitiveObjects.reserve(64);
+}

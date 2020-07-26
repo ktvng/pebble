@@ -64,6 +64,7 @@ bool IsPrimitiveObject(Reference* ref);
 /// true if [obj] is a primitive object
 bool IsPrimitiveObject(Object* obj);
 
+bool NameMatchesReference(String name, Reference* ref);
 
 
 #endif

@@ -29,8 +29,9 @@ struct Scope
 /// create a new scope with [inheritedScope]
 Scope* ScopeConstructor(Scope* inheritedScope);
 
-
 /// destroys the [scope]
 void ScopeDestructor(Scope* scope);
+
+void AddReferenceToScope(Reference* ref, Scope* scope);
 
 #endif

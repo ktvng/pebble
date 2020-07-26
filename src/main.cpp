@@ -16,6 +16,7 @@
 #include "scope.h"
 #include "dis.h"
 #include "grammar.h"
+#include "astvm.h"
 
 #include "dfa.h"
 
@@ -125,10 +126,6 @@ int main(int argc, char* argv[])
     {
         EnterProgram(prog);
         LogDiagnostics(PROGRAM->Main, "initial program parse structure", "main");
-        // for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-        // {
-        //     LogDiagnostics(map, "initial object reference state", "main");
-        // }
     }
 
     if(g_useBytecodeRuntime)
@@ -147,7 +144,7 @@ int main(int argc, char* argv[])
     }   
     else
     {
-        // DoProgram(prog);
+        DoProgram(prog);
     }
     
     auto end = std::chrono::high_resolution_clock::now();

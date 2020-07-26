@@ -74,30 +74,11 @@ void Reset()
     CompileMsgCount = 0;
 }
 
-void EnterProgram(Program* p)
-{
-    PROGRAM = p;
-}
-
-void ExitProgram()
-{
-    PROGRAM = nullptr;
-}
-
 Program* ProgramConstructor()
 {
     Program* p = new Program;
     p->GlobalScope = ScopeConstructor(nullptr);
     p->GlobalScope->IsDurable = true;
-
-    // EnterProgram(p);
-    // EnterScope(p->GlobalScope);
-    // {
-    //     Reference* ref = CreateReferenceToNewObject("Object", BaseClass, nullptr);
-    //     AddReferenceToCurrentScope(ref);
-    // }
-    // ExitScope();
-    // ExitProgram();
 
     return p;
 }
@@ -494,8 +475,9 @@ Block* ParseBlock(
 
 Program* ParseProgram(const std::string filepath)
 {
+    InitParser();
+    
     Program* p = ProgramConstructor();
-    EnterProgram(p);
 
     std::fstream file;
     file.open(filepath, std::ios::in);
@@ -525,24 +507,11 @@ Program* ParseProgram(const std::string filepath)
     Block* b = ParseBlock(p->Lines.begin(), p->Lines.end(), p->GlobalScope);
     p->Main = b;
 
-    ExitProgram();
     return p;
 }
 
 void ProgramDestructor(Program* p)
 {
-    // for(size_t i=0; i<p->ObjectsIndex.size(); i++)
-    // {
-    //     auto& map = p->ObjectsIndex[i];
-    //     for(auto ref: map.References)
-    //     {
-    //         ReferenceDestructor(ref);
-    //     }
-    //     if(map.IndexedObject == NullObject())
-    //         continue;
-    //     ObjectDestructor(map.IndexedObject);
-    // }
-
     ScopeDestructor(p->GlobalScope);
 
     for(auto codeLine: p->Lines)

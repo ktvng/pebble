@@ -30,8 +30,6 @@ struct Program
     Reference* That;
 };
 
-void EnterProgram(Program* p);
-void ExitProgram();
 
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -1,8 +1,6 @@
 #include "scope.h"
 
-#include "diagnostics.h"
 #include "reference.h"
-#include "utils.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Constructors
@@ -24,3 +22,7 @@ void ScopeDestructor(Scope* scope)
     delete scope;
 }
 
+void AddReferenceToScope(Reference* ref, Scope* scope)
+{
+    scope->ReferencesIndex.push_back(ref);
+}

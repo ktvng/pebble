@@ -402,16 +402,16 @@ String ToString(const Reference* ref)
 String ToString(const ObjectReferenceMap& map)
 {
     String mapString = "<ObjectReferenceMap>\n";
-    // mapString += IndentLevel(1) + 
-    //     StringForAttrbute("Object", IndentStringToLevel(ToString(*map.IndexedObject),1));
+    mapString += IndentLevel(1) + 
+        StringForAttrbute("Object", IndentStringToLevel(ToString(*map.IndexedObject),1));
 
-    // mapString += IndentLevel(1) + StringForAttrbute("Reference", "<List<Reference*>");
-    // for(size_t i=0; i<map.References.size(); i++)
-    // {
-    //     mapString += IndentLevel(2) + 
-    //         StringForAttrbute(std::to_string(i), map.References.at(i)->Name 
-    //         + Msg(" @ %p", map.References.at(i)));
-    // }
+    mapString += IndentLevel(1) + StringForAttrbute("Reference", "<List<Reference*>");
+    for(size_t i=0; i<map.References.size(); i++)
+    {
+        mapString += IndentLevel(2) + 
+            StringForAttrbute(std::to_string(i), map.References.at(i)->Name 
+            + Msg(" @ %p", map.References.at(i)));
+    }
 
     return mapString;
 }
