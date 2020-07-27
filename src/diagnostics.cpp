@@ -21,6 +21,7 @@
 #include "scope.h"
 #include "astvm.h"
 #include "executable.h"
+#include "call.h"
 
 
 #ifdef _WIN32 
@@ -334,6 +335,27 @@ String ToString(const String& str)
     return str;
 }
 
+String ToString(const Call* call)
+{
+    String callString = "<Call>\n";
+    
+    if(call->Name != nullptr)
+        callString += IndentLevel(1) +
+            StringForAttrbute("Name", *call->Name);
+
+    callString += IndentLevel(1) +
+        StringForAttrbute("BoundType", call->BoundType);
+    
+    callString += IndentLevel(1) +
+        StringForAttrbute("BoundSection", std::to_string(call->BoundSection));
+
+    if(call->Value != nullptr)
+        callString += IndentLevel(1) +
+            StringForAttrbute("Value", StringValueOf(call));
+
+    return callString;
+}
+
 // Diagnostic printing
 
 String ToString(const Method* method)
@@ -503,9 +525,6 @@ String ToString(const OperationType& type)
         case OperationType::New:
         return "New";
 
-        case OperationType::Class:
-        return "Class";
-
         case OperationType::Tuple:
         return "Tuple";
 
@@ -532,6 +551,12 @@ String ToString(const OperationType& type)
 
         case OperationType::Is:
         return "Is";
+
+        case OperationType::DoTypeBinding:
+        return "DoTypeBinding";
+
+        case OperationType::NoOperationType:
+        return "NoOperationType";
 
         default:
         LogIt(LogSeverityType::Sev2_Important, "ToString", "unimplemented OperationType");
@@ -706,6 +731,11 @@ void LogDiagnostics(const TokenList* tokenList, String message, String method)
 void LogDiagnostics(const ObjectReferenceMap& map, String message, String method)
 {
     DebugDumpObjectToLog(DisplayString(map), message, method);
+}
+
+void LogDiagnostics(const Call* call, String message, String method)
+{
+    DebugDumpObjectToLog(DisplayString(call), message, method);
 }
 
 #endif

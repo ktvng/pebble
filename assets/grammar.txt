@@ -213,12 +213,8 @@ Expr -> Expr <= Expr
 Expr -> Expr <= SRef
 Expr -> SRef <= Expr
 
-@ Class class Reduce
-Class -> a Ref 
-
-@ Class class Retain
-Class -> Class ( ) :
-Class -> Class :
+@ DoTypeBinding a Reduce
+Expr -> a Ref 
 
 
 @ New new Reduce
@@ -291,10 +287,6 @@ Expr -> Expr . Ref ( )
 Expr -> Expr . Ref ( Expr )
 Expr -> Expr . Ref ( Tuple )
 
-Expr -> Class . Ref ( )
-Expr -> Class . Ref ( Expr )
-Expr -> Class . Ref ( Tuple )
-
 @ Evaluate ( UnscopedEval
 > :
 Expr -> Ref ( )
@@ -325,6 +317,10 @@ Line -> for each Ref in Expr
 Line -> Ref ( Tuple ) :
 Line -> Ref ( Expr ) :
 Line -> Ref ( ) :
+
+Line -> Expr ( Tuple ) :
+Line -> Expr ( Expr ) :
+Line -> Expr ( ) :
 
 @ IsEqual == Reduce
 Expr -> Expr is Expr
@@ -365,7 +361,7 @@ Line -> Expr
 
 
 ;;; Operator Precedence
-in new class highest
+in new a highest
 (
 [ .
 !

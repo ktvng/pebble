@@ -151,8 +151,9 @@ Reference* HandleControlFlow(Operation* op, size_t& execLine, Block* block)
         case OperationType::If:
         return HandleControlFlowIf(op, execLine);
 
-        case OperationType::Class:
-        return HandleControlFlowClass(op, execLine, block);
+        /// TODO: handle classes
+        // case OperationType::Class:
+        // return HandleControlFlowClass(op, execLine, block);
 
         case OperationType::While:
         return HandleControlFlowWhile(op, execLine, block);
@@ -263,7 +264,7 @@ void DeleteObjectsIndex()
         }
         if(map.IndexedObject == NullObject())
             continue;
-        ObjectDestructor(map.IndexedObject);
+        DeleteObject(map.IndexedObject);
     }
 }
 

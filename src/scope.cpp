@@ -1,6 +1,9 @@
 #include "scope.h"
 
 #include "reference.h"
+#include "call.h"
+#include "diagnostics.h"
+#include <iostream>
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Constructors
@@ -25,4 +28,21 @@ void ScopeDestructor(Scope* scope)
 void AddReferenceToScope(Reference* ref, Scope* scope)
 {
     scope->ReferencesIndex.push_back(ref);
+}
+
+Scope* CopyScope(Scope* scp)
+{
+    Scope* scpCopy = ScopeConstructor(scp->InheritedScope);
+
+    for(auto call: scp->CallsIndex)
+    {
+        Call* callCopy = CallConstructor(call->Name);
+        BindScope(callCopy, call->BoundScope);
+        BindSection(callCopy, call->BoundSection);
+        BindType(callCopy, call->BoundType);
+    }
+
+    scpCopy->CallParameters = scp->CallParameters;
+
+    return scpCopy;
 }

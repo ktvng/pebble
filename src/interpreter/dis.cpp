@@ -2,8 +2,8 @@
 
 #include "bytecode.h"
 #include "vm.h"
-#include "object.h"
 #include "diagnostics.h"
+#include "call.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Diagnostics
@@ -14,19 +14,15 @@ String ToString(ByteCodeInstruction& ins)
     String str;
     String decodedArg;
 
-    if(ins.Op == IndexOfInstruction(BCI_LoadRefName))
+    if(ins.Op == IndexOfInstruction(BCI_LoadCallName))
     {
-        str += "#BCI_LoadRefName";
-        decodedArg = ReferenceNames[ins.Arg];
+        str += "#BCI_LoadCallName";
+        decodedArg = CallNames[ins.Arg];
     }
     else if(ins.Op == IndexOfInstruction(BCI_LoadPrimitive))
     {
         str += "#BCI_LoadPrimitive";
-        decodedArg = GetStringValue(ConstPrimitives[ins.Arg]);
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Dereference))
-    {
-        str += "#BCI_Dereference";
+        decodedArg = StringValueOf(ConstPrimitives[ins.Arg]);
     }
     else if(ins.Op == IndexOfInstruction(BCI_Assign)) 
     {
@@ -104,9 +100,13 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_DefMethod";
     }
-    else if(ins.Op == IndexOfInstruction(BCI_DefType))
+    else if(ins.Op == IndexOfInstruction(BCI_BindSection))
     {
-        str += "#BCI_DefType";
+        str += "#BCI_BindSection";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_BindType))
+    {
+        str += "#BCI_BindType";
     }
     else if(ins.Op == IndexOfInstruction(BCI_Eval))
     {
@@ -186,11 +186,17 @@ String ToString(std::vector<ByteCodeInstruction>& bciProgram)
 /// logs the references and instructions of ByteCodeProgram
 void LogProgramInstructions()
 {
-    String refNames = "References list\n";
-    for(size_t i=0; i<ReferenceNames.size(); i++)
+    String refNames = "Call list\n";
+    for(size_t i=0; i<CallNames.size(); i++)
     {
-        refNames +=  Msg("%i:\t %s\n", i, ReferenceNames[i]);
+        refNames +=  Msg("%i:\t %s\n", i, CallNames[i]);
     }
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", refNames);
+
+    for(size_t i=0; i<ConstPrimitives.size(); i++)
+    {
+        LogDiagnostics(ConstPrimitives[i], "Constant Primitive");
+    }
+
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", Msg("\n%s", ToString(ByteCodeProgram)));
 }

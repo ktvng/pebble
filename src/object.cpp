@@ -77,6 +77,11 @@ void ObjectValueDestructor(ObjectClass klass, void* val)
 
 void ObjectDestructor(Object* obj)
 {
+    delete obj;
+}
+
+void DeleteObject(Object* obj)
+{
     ScopeDestructor(obj->Attributes);
     if(IsCallable(obj))
     {
@@ -86,7 +91,8 @@ void ObjectDestructor(Object* obj)
     {
         ObjectValueDestructor(obj);
     }
-    delete obj;
+    
+    ObjectDestructor(obj);
 }
 
 

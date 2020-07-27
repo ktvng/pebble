@@ -11,6 +11,7 @@
 #include "program.h"
 #include "main.h"
 #include "program.h"
+#include "call.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Scope Registers
@@ -19,10 +20,10 @@
 Scope* ProgramReg = nullptr;
 
 /// stores the caller object
-Object* CallerReg = nullptr;
+Call* CallerReg = nullptr;
 
 /// stores the self object;
-Object* SelfReg = nullptr;
+Call* SelfReg = nullptr;
 
 /// stores the local (possibly anonymous) scope
 /// in general this is equivalent to the scope of SelfReg, when in the base level of the program
@@ -59,7 +60,7 @@ uint8_t CmpReg = CmpRegDefaultValue;
 
 /// stores the result of the last line of code and is updated by the BCI_Endline 
 /// instruction
-Object* LastResultReg = nullptr;
+Call* LastResultReg = nullptr;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -73,16 +74,13 @@ std::vector<void*> MemoryStack;
 // Entity Arrays
 
 /// list of all reference names appearing in a program
-std::vector<String> ReferenceNames;
+std::vector<String> CallNames;
 
 /// list of all constant primitives appearing in a program
-std::vector<Object*> ConstPrimitives;
+std::vector<Call*> ConstPrimitives;
 
-/// list of all objects that are created during runtime which are not ConstPrimitives
-std::vector<Object*> RuntimeObjects;
-
-/// list of all references that are created during runtime
-std::vector<Reference*> RuntimeReferences;
+std::vector<Call*> RuntimeCalls;
+std::vector<Scope*> RuntimeScopes;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -101,35 +99,42 @@ std::vector<ByteCodeInstruction> ByteCodeProgram;
 // ---------------------------------------------------------------------------------------------------------------------
 // Statics
 
-/// the "Object" of Pebble programs
-Object GodObject
+Scope NothingScope;
+
+const String ObjectCallName = "Object";
+Call ObjectCall
 {
-    BaseClass,
+    &ObjectCallName,
+    ObjectType,
+    0,
     nullptr,
+
     nullptr,
-    nullptr,
-    nullptr
 };
 
-/// the "Nothing" object
-Object NothingObject
+const String SomethingCallName = "Something";
+Call SomethingCall
 {
-    NullClass,
+    &SomethingCallName,
+    SomethingType,
+    0,
+    &NothingScope,
+
     nullptr,
-    nullptr,
-    nullptr,
-    nullptr
 };
 
-/// the "Something" object
-Object SomethingObject
+const String NothingCallName = "Nothing";
+Call NothingCall
 {
-    SomethingClass,
+    &NothingCallName,
+    NullType,
+    0,
+    &NothingScope,
+
     nullptr,
-    nullptr,
-    nullptr,
-    nullptr
 };
+
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -138,18 +143,16 @@ Object SomethingObject
 /// initializes all registers and pushes the program CallFrame onto the CallStack
 void InitRuntime()
 {
-    GodObject.Attributes = ScopeConstructor(nullptr);
-    NothingObject.Attributes = ScopeConstructor(nullptr);
-    SomethingObject.Attributes = ScopeConstructor(nullptr);
+    BindScope(&ObjectCall, ScopeConstructor(nullptr));
 
     std::vector<Scope> localScopeStack;
     extArg_t programEnd = ByteCodeProgram.size();
 
-    RuntimeObjects.clear();
-    RuntimeObjects.reserve(256);
+    RuntimeCalls.clear();
+    RuntimeCalls.reserve(256);
 
-    RuntimeReferences.clear();
-    RuntimeReferences.reserve(256);
+    RuntimeScopes.clear();
+    RuntimeScopes.reserve(256);
 
     CallStack.clear();
     CallStack.reserve(256);
@@ -157,8 +160,8 @@ void InitRuntime()
     /// TODO: update arg 3 (caller ID);
     CallStack.push_back( {programEnd, 0, 0, localScopeStack });
 
-    CallerReg = &NothingObject;
-    SelfReg = &NothingObject;
+    CallerReg = &NothingCall;
+    SelfReg = &NothingCall;
 
     MemoryStack.clear();
     MemoryStack.reserve(256);
@@ -185,29 +188,59 @@ inline bool IsNOP(const ByteCodeInstruction& ins)
     return ins.Op == IndexOfInstruction(BCI_NOP);
 }
 
+std::vector<void*> DestroyedValues;
+
+bool HasBeenDestroyed(void* value)
+{
+    if(value == nullptr)
+        return true;
+
+    for(auto val: DestroyedValues)
+    {
+        if(val == value)
+        {
+            return true;
+        }
+    }
+
+    DestroyedValues.push_back(value);
+    return false;
+}
+
+void DeleteCall(Call* call)
+{
+    if(!HasBeenDestroyed(call->Value))
+    {
+        ObjectValueDestructor(call->BoundType, call->Value);
+    }
+
+    CallDestructor(call);
+}
+
 /// TODO: implement
 void GracefullyExit()
 {
-    for(auto ref: RuntimeReferences)
+    size_t size = RuntimeCalls.size() + ConstPrimitives.size();
+    DestroyedValues.clear();
+    DestroyedValues.reserve(size);
+    
+    for(auto call: RuntimeCalls)
     {
-        ReferenceDestructor(ref);
+        DeleteCall(call);
     }
 
-    for(auto obj: RuntimeObjects)
+    for(auto scope: RuntimeScopes)
     {
-        ObjectDestructor(obj);
+        ScopeDestructor(scope);
     }
 
-    /// start at 3 to ignore Something, Nothing, and Object entities
-    for(size_t i=3; i< ConstPrimitives.size(); i++)
+    for(size_t i=3; i<ConstPrimitives.size(); i++)
     {
-        ObjectDestructor(ConstPrimitives[i]);
+        DeleteCall(ConstPrimitives[i]);
     }
     
     ScopeDestructor(ProgramReg);
-    ScopeDestructor(SomethingObject.Attributes);
-    ScopeDestructor(NothingObject.Attributes);
-    ScopeDestructor(GodObject.Attributes);
+    ScopeDestructor(ObjectCall.BoundScope);
 }
 
 /// iterates and executes the instructions stored in BytecodeProgram
@@ -260,62 +293,12 @@ void DoByteCodeProgram()
     GracefullyExit();
 }
 
-/// add [obj] to RuntimeObjects
-void AddRuntimeObject(Object* obj)
+void AddRuntimeCall(Call* call)
 {
-    RuntimeObjects.push_back(obj);
+    RuntimeCalls.push_back(call);
 }
 
-/// add [ref] to RuntimeReferences
-void AddRuntimeReference(Reference* ref)
+void AddRuntimeScope(Scope* scope)
 {
-    RuntimeReferences.push_back(ref);
-}
-
-bool ValuesMatch(ObjectClass cls, void* value, Object* obj)
-{
-    if(cls != obj->Class)
-    {
-        return false;
-    }
-
-    if(cls == StringClass)
-    {
-        return *static_cast<String*>(value) == *static_cast<String*>(obj->Value);
-    }
-    else if(cls == IntegerClass)
-    {
-        return *static_cast<int*>(value) == *static_cast<int*>(obj->Value); 
-    }
-    else if(cls == DecimalClass)
-    {
-        return *static_cast<double*>(value) == *static_cast<double*>(obj->Value); 
-    }
-    else if(cls == BooleanClass)
-    {
-        return *static_cast<bool*>(value) == *static_cast<bool*>(obj->Value); 
-    }
-
-    return false;    
-}
-
-Object* FindExistingObject(ObjectClass cls, void* value)
-{
-    for(auto obj: ConstPrimitives)
-    {
-        if(ValuesMatch(cls, value, obj))
-        {
-            return obj;
-        }
-    }
-
-    for(auto obj: RuntimeObjects)
-    {
-        if(IsPrimitiveObject(obj) && ValuesMatch(cls, value, obj))
-        {
-            return obj;
-        }
-    }
-
-    return nullptr;
+    RuntimeScopes.push_back(scope);
 }

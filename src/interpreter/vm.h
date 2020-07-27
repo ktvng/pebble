@@ -12,10 +12,10 @@
 extern Scope* ProgramReg;
 
 /// stores the caller scope
-extern Object* CallerReg;
+extern Call* CallerReg;
 
 /// stores the topmost callframe scope
-extern Object* SelfReg;
+extern Call* SelfReg;
 
 /// stores the local (possibly anonymous) scope
 /// in general this is equivalent to SelfReg
@@ -37,7 +37,7 @@ extern int JumpStatusReg;
 extern uint8_t CmpReg;
 const uint8_t CmpRegDefaultValue = 0x3;
 
-extern Object* LastResultReg;
+extern Call* LastResultReg;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -47,12 +47,11 @@ extern std::vector<void*> MemoryStack;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Entity Arrays
-extern std::vector<String> ReferenceNames;
-extern std::vector<Object*> ConstPrimitives;
+extern std::vector<String> CallNames;
+extern std::vector<Call*> ConstPrimitives;
 
-extern std::vector<Object*> RuntimeObjects;
-extern std::vector<Reference*> RuntimeReferences;
-
+extern std::vector<Call*> RuntimeCalls;
+extern std::vector<Scope*> RuntimeScopes;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -62,7 +61,7 @@ struct CallFrame
     extArg_t MemoryStackStart;
     extArg_t Owner;
     std::vector<Scope> LocalScopeStack;
-    Object* LastResult;
+    Call* LastResult;
 };
 
 extern std::vector<CallFrame> CallStack;
@@ -83,17 +82,18 @@ extern std::vector<ByteCodeInstruction> ByteCodeProgram;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Statics
-extern Object GodObject;
-extern Object NothingObject;
-extern Object SomethingObject;
+
+extern Call NothingCall;
+extern Call ObjectCall;
+extern Call SomethingCall;
+extern Scope NothingScope;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods
 
 void DoByteCodeProgram();
-void AddRuntimeObject(Object* obj);
-void AddRuntimeReference(Reference* ref);
-Object* FindExistingObject(ObjectClass cls, void* value);
+void AddRuntimeCall(Call* call);
+void AddRuntimeScope(Scope* scope);
 
 #endif

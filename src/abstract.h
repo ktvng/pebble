@@ -15,6 +15,7 @@ struct Program;
 struct Reference;
 struct ByteCodeInstruction;
 struct CFGRule;
+struct Call;
 
 class Object;
 class Method;
@@ -86,7 +87,7 @@ enum OperationType
     
     New,
     ScopeResolution,
-    Class,
+    DoTypeBinding,
 
     NoOperationType,
 };

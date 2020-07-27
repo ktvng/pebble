@@ -20,6 +20,11 @@ struct Scope
     std::vector<Reference*> ReferencesIndex;
     Scope* InheritedScope;
     bool IsDurable;
+
+    /// new scope
+    std::vector<Call*> CallsIndex;
+    /// TODO: make this calls
+    std::vector<String*> CallParameters; 
 };
 
 
@@ -33,5 +38,7 @@ Scope* ScopeConstructor(Scope* inheritedScope);
 void ScopeDestructor(Scope* scope);
 
 void AddReferenceToScope(Reference* ref, Scope* scope);
+
+Scope* CopyScope(Scope* scp);
 
 #endif

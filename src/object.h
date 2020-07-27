@@ -41,6 +41,7 @@ class Method
 Object* ObjectConstructor(ObjectClass cls, void* value);
 Object* ObjectConstructor();
 void ObjectDestructor(Object* obj);
+void DeleteObject(Object* obj);
 
 Object* NullObject();
 

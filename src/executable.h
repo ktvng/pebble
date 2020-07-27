@@ -37,6 +37,7 @@ class Operation : public Executable
 
     /// used for bytecode
     int EntityIndex;
+    Call* CallValue;
 };
 
 /// a sequential list of atomic operations/Blocks is a block

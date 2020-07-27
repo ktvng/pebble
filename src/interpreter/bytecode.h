@@ -17,9 +17,8 @@ struct ByteCodeInstruction
 
 const inline int BCI_NumberOfInstructions = 34;
 
-void BCI_LoadRefName(extArg_t arg);
+void BCI_LoadCallName(extArg_t arg);
 void BCI_LoadPrimitive(extArg_t arg);
-void BCI_Dereference(extArg_t arg);
 
 void BCI_Assign(extArg_t arg);
 
@@ -43,12 +42,14 @@ void BCI_JumpFalse(extArg_t arg);
 void BCI_Jump(extArg_t arg);
 
 void BCI_Copy(extArg_t arg);
-void BCI_DefType(extArg_t arg);
+void BCI_BindType(extArg_t arg);
 
 void BCI_ResolveDirect(extArg_t arg);
 void BCI_ResolveScoped(extArg_t arg);
 
 void BCI_DefMethod(extArg_t arg);
+void BCI_BindSection(extArg_t arg);
+
 void BCI_EvalHere(extArg_t arg);
 void BCI_Eval(extArg_t arg);
 void BCI_Return(extArg_t arg);
@@ -69,9 +70,9 @@ extern BCI_Method BCI_Instructions[];
 
 int IndexOfInstruction(BCI_Method bci);
 
-inline bool RefNameIsKeyword(const String& refName)
+inline bool CallNameIsKeyword(const String* name)
 {
-    return refName == "caller" || refName == "self" || refName == "it" || refName == "that";
+    return *name == "caller" || *name == "self" || *name == "it" || *name == "that";
 }
 
 #endif
