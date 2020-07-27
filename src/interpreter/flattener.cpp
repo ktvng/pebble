@@ -22,6 +22,8 @@
 // 1. Add checking for reference assignment (should throw error) ie. 4 =5
 // 2. Allow scoped references to exist even for primitives, ie. A.5 ??? maybe
 
+static Operation* GlobalBlockOwner;
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Contants
 inline constexpr extArg_t GOD_OBJECT_ID = 0;
@@ -157,6 +159,7 @@ inline void AddInstructionsForDefMethodParameters(Operation* op, extArg_t& arg)
     }
     else
     {
+        /// TODO:
         /// assumes operand is a scope resolution
         uint8_t opId = IndexOfInstruction(BCI_LoadCallName);
         extArg_t callNameId = op->Operands[0]->EntityIndex;
@@ -504,7 +507,6 @@ inline void FlattenOperationComparison(Operation* op)
 /// syscall (print)
 /// while/if/elseif/else
 /// isequal
-/// assign
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -516,10 +518,6 @@ inline void FlattenOperationGeneric(Operation* op)
     extArg_t arg = noArg;
     switch(op->Type)
     {
-        case OperationType::Assign:
-        opId = IndexOfInstruction(BCI_Assign);
-        break;
-
         case OperationType::Add:
         opId = IndexOfInstruction(BCI_Add);
         break; 
@@ -579,7 +577,23 @@ inline void FlattenOperationGeneric(Operation* op)
 /// adds bytecode instructions for [op] with OperationType::Assign
 inline void FlattenOperationAssign(Operation* op)
 {
-    FlattenOperationScopeResolution(op->Operands[0]);
+    if(op->Operands[0]->Type == OperationType::ScopeResolution)
+    {
+        FlattenOperationScopeResolution(op->Operands[0]);
+    }
+    else if(op->Operands[0]->Type == OperationType::Ref)
+    {
+        uint8_t opId = IndexOfInstruction(BCI_LoadCallName);
+        extArg_t arg = op->Operands[0]->EntityIndex;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveDirect);
+        AddByteCodeInstruction(opId, noArg); 
+    }
+    else
+    {
+        FlattenOperation(op->Operands[0]);
+    }
     FlattenOperation(op->Operands[1]);
     uint8_t opId = IndexOfInstruction(BCI_Assign);
     AddByteCodeInstruction(opId, noArg);
@@ -608,20 +622,10 @@ inline void FlattenOperationDefineMethod(Operation* op)
     uint8_t opId;
     extArg_t arg;
     
-    /// name comes first because of assign order
-    Operation* methodNameRefOp = op->Operands[0];
-
-    bool isRef;
-    FlattenOperationRefDirect(methodNameRefOp, isRef);
-
-    opId = IndexOfInstruction(BCI_ResolveDirect);
-    AddByteCodeInstruction(opId, noArg);
-    
-    /// case for operands
     arg = noArg;
-    if(op->Operands.size() > 1)
+    if(op->Operands.size() > 0)
     {
-        AddInstructionsForDefMethodParameters(op->Operands[1], arg);
+        AddInstructionsForDefMethodParameters(op->Operands[0], arg);
     }
 
     opId = IndexOfInstruction(BCI_DefMethod);
@@ -830,6 +834,10 @@ void FlattenOperation(Operation* op)
     {
         FlattenOperationScopeResolution(op);
     }
+    else if(op->Type == OperationType::Assign)
+    {
+        FlattenOperationAssign(op);
+    }
     else if(op->Type == OperationType::Is)
     {
         FlattenOperationIs(op);
@@ -841,6 +849,7 @@ void FlattenOperation(Operation* op)
     else if(op->Type == OperationType::DefineMethod)
     {
         FlattenOperationDefineMethod(op);
+        GlobalBlockOwner = op;
     }
     else if(op->Type == OperationType::DoTypeBinding)
     {
@@ -938,11 +947,7 @@ inline void HandleDefineMethod(Block* block)
     opId = IndexOfInstruction(BCI_Jump);
     arg = NextInstructionId();
     RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
-
-    
-
-    opId = IndexOfInstruction(BCI_Assign);
-    AddByteCodeInstruction(opId, noArg);
+    AddEndLineInstruction();
 }
 
 /// add instructions enteri if and else-if clauses
@@ -1007,11 +1012,21 @@ inline void HandleFlatteningOperation(Operation* op, extArg_t& blockOwnerInstruc
     }
     
     blockOwnerInstructionStart = NextInstructionId();
+    GlobalBlockOwner = nullptr;
     FlattenOperation(op);
-    *blockOwner = op;
+    if(GlobalBlockOwner != nullptr)
+    {
+        *blockOwner = GlobalBlockOwner;
+    }
+    else
+    {
+        *blockOwner = op;
+    }
+    
+
     ByteCodeLineAssociation.push_back(NextInstructionId());
     
-    if(!IsConditionalJump(op) && op->Type != OperationType::Else && op->Type != OperationType::DefineMethod) 
+    if(!IsConditionalJump((*blockOwner)) && (*blockOwner)->Type != OperationType::Else && (*blockOwner)->Type != OperationType::DefineMethod) 
     {
         AddEndLineInstruction();
     }

@@ -18,7 +18,6 @@ void FlattenOperation(Operation* op);
 int NOPSafetyDomainSize();
 
 void FlattenOperationScopeResolution(Operation* op);
-void FlattenOperationScopeResolutionWithDereference(Operation* op);
 void FlattenOperationRefDirect(Operation* op, bool& isRef);
 
 #endif

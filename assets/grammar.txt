@@ -314,13 +314,14 @@ Line -> for each Ref in Expr
 
 
 @ DefineMethod : Custom
-Line -> Ref ( Tuple ) :
-Line -> Ref ( Expr ) :
-Line -> Ref ( ) :
+Lambda -> ( Tuple ) :
+Lambda -> ( Expr ) :
+Lambda -> ( ) :
 
-Line -> Expr ( Tuple ) :
-Line -> Expr ( Expr ) :
-Line -> Expr ( ) :
+@ Assign highest Reduce
+Line -> Expr Lambda
+Line -> SRef Lambda
+Line -> Ref Lambda
 
 @ IsEqual == Reduce
 Expr -> Expr is Expr

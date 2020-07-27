@@ -495,7 +495,10 @@ void BCI_Assign(extArg_t arg)
     lhs->Value = rhs->Value;
 
     /// TODO: Type check here
-    BindType(lhs, rhs->BoundType);
+    if(rhs->BoundType != NullType)
+    {
+        BindType(lhs, rhs->BoundType);
+    }
 
     PushTOS<Call>(lhs);
 }
@@ -875,7 +878,6 @@ void BCI_DefMethod(extArg_t arg)
     auto call = InternalCallConstructor();
     auto scope =  InternalScopeConstructor(nullptr);
     BindScope(call, scope);
-    BindType(call, MethodType);
 
     if(arg != 0)
     {
