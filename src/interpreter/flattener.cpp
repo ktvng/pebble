@@ -675,20 +675,6 @@ inline void FlattenOperationEvaluate(Operation* op)
         opId = IndexOfInstruction(BCI_ResolveDirect);
         AddByteCodeInstruction(opId, noArg);
     }
-    else if(callerOp->Type == OperationType::ScopeResolution)
-    {
-        FlattenOperationScopeResolution(callerOp);
-
-        opId = IndexOfInstruction(BCI_Dup);
-        AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_LoadCallName);
-        arg = methodOp->EntityIndex;
-        AddByteCodeInstruction(opId, arg);
-
-        opId = IndexOfInstruction(BCI_ResolveScoped);
-        AddByteCodeInstruction(opId, noArg);
-    }
     else
     {
         // case for expression 
@@ -740,7 +726,7 @@ inline void FlattenOperationEvaluateHere(Operation* op)
     }
     else
     {
-        FlattenOperationScopeResolution(callerOp);
+        FlattenOperation(callerOp);
 
         opId = IndexOfInstruction(BCI_LoadCallName);
         arg = methodOp->EntityIndex;

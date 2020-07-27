@@ -140,6 +140,12 @@ geq
 geq to
 is greater than or equal to
 
+@ >
+is greater than
+
+@ <
+is less than
+
 @ ==
 equals
 is equal
@@ -177,6 +183,8 @@ print
 otherwise
 ow
 
+@ it
+its
 
 
 
@@ -293,6 +301,9 @@ Expr -> Ref ( )
 Expr -> Ref ( Expr )
 Expr -> Ref ( Tuple )
 
+Expr -> Expr ( )
+Expr -> Expr ( Expr )
+Expr -> Expr ( Tuple )
 
 @ Else : Reduce
 > if
