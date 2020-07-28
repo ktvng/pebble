@@ -87,7 +87,7 @@ extern Call NothingCall;
 extern Call ObjectCall;
 extern Call SomethingCall;
 extern Scope NothingScope;
-
+extern const String NothingCallName;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods

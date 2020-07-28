@@ -668,16 +668,23 @@ inline void FlattenOperationEvaluate(Operation* op)
         arg = NOTHING_OBJECT_ID; 
         AddByteCodeInstruction(opId, arg);
 
-        opId = IndexOfInstruction(BCI_LoadCallName);
-        arg = methodOp->EntityIndex;
-        AddByteCodeInstruction(opId, arg);
+        if(methodOp->Type == OperationType::Ref)
+        {
+            opId = IndexOfInstruction(BCI_LoadCallName);
+            arg = methodOp->EntityIndex;
+            AddByteCodeInstruction(opId, arg);
 
-        opId = IndexOfInstruction(BCI_ResolveDirect);
-        AddByteCodeInstruction(opId, noArg);
+            opId = IndexOfInstruction(BCI_ResolveDirect);
+            AddByteCodeInstruction(opId, noArg);
+        }
+        else
+        {
+            FlattenOperation(methodOp);
+        }
     }
     else
     {
-        // case for expression 
+        // case for Expr.Ref()
         FlattenOperation(callerOp);
 
         opId = IndexOfInstruction(BCI_Dup);
@@ -1109,6 +1116,47 @@ bool EncounteredPrimitiveObject(Object* obj, size_t& atPosition)
     return false;
 }
 
+BindingType ObjectClassToType(Object* obj)
+{
+    if(obj->Class == IntegerClass)
+    {
+        return &IntegerType;
+    }
+    else if(obj->Class == DecimalClass)
+    {
+        return &DecimalType;
+    }
+    else if(obj->Class == BooleanClass)
+    {
+        return &BooleanType;
+    }
+    else if(obj->Class == StringClass)
+    {
+        return &StringType;
+    }
+    else if(obj->Class == NullClass)
+    {
+        return &NullType;
+    }
+    else if(obj->Class == BaseClass)
+    {
+        return &ObjectType;
+    }
+    else if(obj->Class == SomethingClass)
+    {
+        return &SomethingType;
+    }
+    else if(obj->Class == MethodClass)
+    {
+        return &MethodType;
+    }
+    else
+    {
+        return &NullType;
+    }
+
+}
+
 /// add a new entry to ConstPrimitives if needed
 /// assumes [op] is OperationType::Ref
 void IfNeededAddConstPrimitive(Operation* op)
@@ -1147,7 +1195,7 @@ void IfNeededAddConstPrimitive(Operation* op)
     call->Value = op->Value->To->Value;
     BindScope(call, &NothingScope);
     /// TODO: make this more robust
-    BindType(call, op->Value->To->Class);
+    BindType(call, ObjectClassToType(op->Value->To));
     ConstPrimitives.push_back(call);
 }
 

@@ -89,7 +89,7 @@ TEST_OBJS=$(TEST_SRCS:./test/src/%.cpp=./build/%.o.t)
 
 TestBuilder: ./test/testbuilder.cpp
 	$(CC) $(CCFLAGS) -o testbuilder.exe $<
-	./testbuilder.exe $(PARSER_SRCS) $(SRCS) $(INTERPRETER_SRCS) $(WALKER_OBJS)
+	./testbuilder.exe $(PARSER_SRCS) $(SRCS) $(INTERPRETER_SRCS) $(WALKER_SRCS)
 
 build/test.o: test/test.cpp test/test.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/test.o -c ./test/test.cpp

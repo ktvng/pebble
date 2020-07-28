@@ -35,7 +35,7 @@ Call* InternalCallConstructor(String* name=nullptr)
 {
     Call* call = CallConstructor(name);
     BindScope(call, &NothingScope);
-    BindType(call, NullType);
+    BindType(call, &NullType);
     AddRuntimeCall(call);
 
     return call;
@@ -495,7 +495,7 @@ void BCI_Assign(extArg_t arg)
     lhs->Value = rhs->Value;
 
     /// TODO: Type check here
-    if(rhs->BoundType != NullType)
+    if(rhs->BoundType != &NullType)
     {
         BindType(lhs, rhs->BoundType);
     }
@@ -511,20 +511,20 @@ void BCI_Add(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, IntegerType))
+    if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) + IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
     }
-    else if(BothAre(lCall, rCall, DecimalType))
+    else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) + DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
     }
-    else if(BothAre(lCall, rCall, StringType))
+    else if(BothAre(lCall, rCall, &StringType))
     {
         String ans = StringValueOf(lCall) + StringValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(StringType, ans);
+        call = InternalPrimitiveCallConstructor(&StringType, ans);
     }
     else
     {
@@ -541,15 +541,15 @@ void BCI_Subtract(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, IntegerType))
+    if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) - IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
     }
-    else if(BothAre(lCall, rCall, DecimalType))
+    else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) - DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
     }
     else
     {
@@ -566,15 +566,15 @@ void BCI_Multiply(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, IntegerType))
+    if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) * IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
     }
-    else if(BothAre(lCall, rCall, DecimalType))
+    else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) * DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
     }
     else
     {
@@ -591,15 +591,15 @@ void BCI_Divide(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, IntegerType))
+    if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) / IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
     }
-    else if(BothAre(lCall, rCall, DecimalType))
+    else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) / DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
     }
     else
     {
@@ -631,7 +631,7 @@ void BCI_SysCall(extArg_t arg)
         {
             String s;
             std::getline(std::cin, s);
-            auto call = InternalPrimitiveCallConstructor(StringType, s);
+            auto call = InternalPrimitiveCallConstructor(&StringType, s);
             PushTOS<Call>(call);
         }
         break;
@@ -647,7 +647,7 @@ void BCI_And(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     bool b = BooleanValueOf(lCall) && BooleanValueOf(rCall);
-    Call* call = InternalPrimitiveCallConstructor(BooleanType, b);
+    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
 
     PushTOS<Call>(call);
 }
@@ -658,7 +658,7 @@ void BCI_Or(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     bool b = BooleanValueOf(lCall) || BooleanValueOf(rCall);
-    Call* call = InternalPrimitiveCallConstructor(BooleanType, b);
+    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
 
     PushTOS<Call>(call);
 }
@@ -668,7 +668,7 @@ void BCI_Not(extArg_t arg)
     auto c = PopTOS<Call>();
 
     bool b = !BooleanValueOf(c);
-    Call* call = InternalPrimitiveCallConstructor(BooleanType, b);
+    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
 
     PushTOS<Call>(call);
 }
@@ -681,7 +681,7 @@ void BCI_NotEquals(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     bool b = !CallsAreEqual(rCall, lCall);
-    Call* call = InternalPrimitiveCallConstructor(BooleanType, b);
+    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
 
     PushTOS<Call>(call);
 }
@@ -694,7 +694,7 @@ void BCI_Equals(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     bool b = CallsAreEqual(rCall, lCall);
-    Call* call = InternalPrimitiveCallConstructor(BooleanType, b);
+    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
 
     PushTOS<Call>(call);
 }
@@ -708,11 +708,11 @@ void BCI_Cmp(extArg_t arg)
     auto lCall = PopTOS<Call>();
     
 
-    if(BothAre(lCall, rCall, IntegerType))
+    if(BothAre(lCall, rCall, &IntegerType))
     {
         CompareIntegers(lCall, rCall);
     }
-    else if(BothAre(lCall, rCall, DecimalType))
+    else if(BothAre(lCall, rCall, &DecimalType))
     {
         CompareDecimals(lCall, rCall);
     }
@@ -736,7 +736,7 @@ void BCI_LoadCmp(extArg_t arg)
         case 4: 
         case 5:
         case 6:
-        boolCall = InternalPrimitiveCallConstructor(BooleanType, NthBit(CmpReg, arg));
+        boolCall = InternalPrimitiveCallConstructor(&BooleanType, NthBit(CmpReg, arg));
         break;
 
         default:
@@ -788,7 +788,7 @@ void BCI_Copy(extArg_t arg)
 void BCI_BindType(extArg_t arg)
 {
     auto call = PeekTOS<Call>();
-    BindType(call, *call->Name);
+    BindType(call, call->Name);
 }
 
 /// assumes TOS is a String
@@ -1067,7 +1067,7 @@ void BCI_Swap(extArg_t arg)
 void BCI_JumpNothing(extArg_t arg)
 {
     auto TOS = PopTOS<Call>();
-    if(TOS->BoundScope == &NothingScope)
+    if(TOS->BoundType == &NullType)
     {
         InternalJumpTo(arg);
     }

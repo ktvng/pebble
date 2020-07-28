@@ -105,7 +105,7 @@ const String ObjectCallName = "Object";
 Call ObjectCall
 {
     &ObjectCallName,
-    ObjectType,
+    &ObjectType,
     0,
     nullptr,
 
@@ -116,7 +116,7 @@ const String SomethingCallName = "Something";
 Call SomethingCall
 {
     &SomethingCallName,
-    SomethingType,
+    &SomethingType,
     0,
     &NothingScope,
 
@@ -127,7 +127,7 @@ const String NothingCallName = "Nothing";
 Call NothingCall
 {
     &NothingCallName,
-    NullType,
+    &NullType,
     0,
     &NothingScope,
 
@@ -211,7 +211,7 @@ void DeleteCall(Call* call)
 {
     if(!HasBeenDestroyed(call->Value))
     {
-        ObjectValueDestructor(call->BoundType, call->Value);
+        ObjectValueDestructor(*call->BoundType, call->Value);
     }
 
     CallDestructor(call);

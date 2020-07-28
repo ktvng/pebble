@@ -344,7 +344,7 @@ String ToString(const Call* call)
             StringForAttrbute("Name", *call->Name);
 
     callString += IndentLevel(1) +
-        StringForAttrbute("BoundType", call->BoundType);
+        StringForAttrbute("BoundType", *call->BoundType);
     
     callString += IndentLevel(1) +
         StringForAttrbute("BoundSection", std::to_string(call->BoundSection));

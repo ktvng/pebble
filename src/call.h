@@ -3,19 +3,19 @@
 
 #include "abstract.h"
 
-typedef std::string BindingType;
+typedef const std::string* BindingType;
 
 
-inline const BindingType ObjectType = "Object";
-inline const BindingType IntegerType = "Integer";
-inline const BindingType DecimalType = "Decimal";
-inline const BindingType StringType = "String";
-inline const BindingType BooleanType = "Boolean";
-inline const BindingType NullType = "Nothing";
-inline const BindingType ArrayType = "Array";
-inline const BindingType TupleType = "Tuple";
-inline const BindingType SomethingType = "Something";
-inline const BindingType MethodType = "Method";
+inline const std::string ObjectType = "Object";
+inline const std::string IntegerType = "Integer";
+inline const std::string DecimalType = "Decimal";
+inline const std::string StringType = "String";
+inline const std::string BooleanType = "Boolean";
+inline const std::string NullType = "Nothing";
+inline const std::string ArrayType = "Array";
+inline const std::string TupleType = "Tuple";
+inline const std::string SomethingType = "Something";
+inline const std::string MethodType = "Method";
 
 
 struct Call

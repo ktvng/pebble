@@ -183,8 +183,6 @@ print
 otherwise
 ow
 
-@ it
-its
 
 
 
