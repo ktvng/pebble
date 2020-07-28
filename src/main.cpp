@@ -107,7 +107,6 @@ int main(int argc, char* argv[])
     ParseCommandArgs(argc, argv, &Config);
 
     bool ShouldPrintInitialCompileResult = true; 
-    bool ShouldPrintProgramExecutionFinalResult = true;
 
     PurgeLog();                         // cleans log between each run
     CompileGrammar();                   // compile grammar from grammar.txt
@@ -120,11 +119,11 @@ int main(int argc, char* argv[])
     if(FatalCompileError || prog == nullptr)
         return 1;
 
+    PROGRAM = prog;
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
 
     if(ShouldPrintInitialCompileResult)
     {
-        EnterProgram(prog);
         LogDiagnostics(PROGRAM->Main, "initial program parse structure", "main");
     }
 
@@ -155,15 +154,6 @@ int main(int argc, char* argv[])
     if(LogAtLevel == LogSeverityType::Sev0_Debug)
     {
         std::cout << time_span.count() << std::endl;
-    }
-
-    if(ShouldPrintProgramExecutionFinalResult && !g_useBytecodeRuntime)
-    {
-        EnterProgram(prog);
-        // for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-        // {
-        //     LogDiagnostics(map, "final object reference state", "main");
-        // }
     }
 
     /// clean up traditional

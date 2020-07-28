@@ -293,14 +293,14 @@ inline void AddCallToScope(Call* call, Scope* scp)
     scp->CallsIndex.push_back(call);
 }
 
-/// add a list of Objects [paramsList] to the scope of [callForMethod] in reverse order
+/// add a list of Objects [paramsList] to the scope of [methodCall] in reverse order
 /// used when evaluating a method
-inline void AddParamsToMethodScope(Call* callForMethod, std::vector<Call*> paramsList)
+inline void AddParamsToMethodScope(Call* methodCall, std::vector<Call*> paramsList)
 {
-    if(paramsList.size() != callForMethod->BoundScope->CallParameters.size())
+    if(paramsList.size() != methodCall->BoundScope->CallParameters.size())
     {
         ReportFatalError(SystemMessageType::Exception, 2, 
-            Msg("expected %i arguments but got %i", callForMethod->BoundScope->CallParameters.size(), paramsList.size()));
+            Msg("expected %i arguments but got %i", methodCall->BoundScope->CallParameters.size(), paramsList.size()));
     }
 
     if(paramsList.size() == 0)
@@ -308,9 +308,9 @@ inline void AddParamsToMethodScope(Call* callForMethod, std::vector<Call*> param
         return;
     }
 
-    for(size_t i =0; i<paramsList.size() && i<callForMethod->BoundScope->CallParameters.size(); i++)
+    for(size_t i =0; i<paramsList.size() && i<methodCall->BoundScope->CallParameters.size(); i++)
     {
-        auto call = InternalCallConstructor(callForMethod->BoundScope->CallParameters[i]);
+        auto call = InternalCallConstructor(methodCall->BoundScope->CallParameters[i]);
         auto callParam = paramsList[paramsList.size()-1-i];
         BindScope(call, callParam->BoundScope);
         BindSection(call, callParam->BoundSection);
@@ -318,7 +318,7 @@ inline void AddParamsToMethodScope(Call* callForMethod, std::vector<Call*> param
         BindType(call, callParam->BoundType);
         BindValue(call, callParam->Value);
 
-        AddCallToScope(call, ScopeOf(callForMethod));
+        AddCallToScope(call, ScopeOf(methodCall));
     }
 }
 
@@ -495,7 +495,7 @@ void BCI_Assign(extArg_t arg)
     lhs->Value = rhs->Value;
 
     /// TODO: Type check here
-    if(rhs->BoundType != &NullType)
+    if(rhs->BoundType != &NullType && lhs->BoundType == &NullType)
     {
         BindType(lhs, rhs->BoundType);
     }
@@ -773,12 +773,7 @@ void BCI_Copy(extArg_t arg)
     
     auto scp = InternalCopyScope(call->BoundScope);
     BindScope(callCopy, scp);
-
-    /// TODO: may need to copy parameters;
-    // for(auto str: call->ByteCodeParamsAsMethod)
-    // {
-    //     callCopy->ByteCodeParamsAsMethod.push_back(str);
-    // }
+    BindType(callCopy, call->BoundType);
 
     PushTOS<Call>(callCopy);
 }
@@ -824,7 +819,6 @@ void BCI_ResolveDirect(extArg_t arg)
         auto newCall = InternalCallConstructor(callName);
         AddCallToScope(newCall, LocalScopeReg);
         PushTOS<Call>(newCall);
-        LogDiagnostics(newCall);
     }
     else
     {
@@ -878,6 +872,7 @@ void BCI_DefMethod(extArg_t arg)
     auto call = InternalCallConstructor();
     auto scope =  InternalScopeConstructor(nullptr);
     BindScope(call, scope);
+    BindType(call, &MethodType);
 
     if(arg != 0)
     {
@@ -906,14 +901,14 @@ void BCI_BindSection(extArg_t arg)
 void BCI_Eval(extArg_t arg)
 {
     auto paramsList = GetParameters(arg);
-    auto callForMethod = PopTOS<Call>();
+    auto methodCall = PopTOS<Call>();
     auto caller = PopTOS<Call>();
 
-    extArg_t jumpIns= callForMethod->BoundSection;
-    AddParamsToMethodScope(callForMethod, paramsList);
+    extArg_t jumpIns= methodCall->BoundSection;
+    AddParamsToMethodScope(methodCall, paramsList);
 
     /// TODO: figure out caller id
-    EnterNewCallFrame(0, caller, callForMethod);
+    EnterNewCallFrame(0, caller, methodCall);
     
     InternalJumpTo(jumpIns);
 }
@@ -924,9 +919,9 @@ void BCI_Eval(extArg_t arg)
 void BCI_EvalHere(extArg_t arg)
 {
     auto paramsList = GetParameters(arg);
-    auto callForMethod = PopTOS<Call>();
+    auto methodCall = PopTOS<Call>();
 
-    extArg_t jumpIns= callForMethod->BoundSection;
+    extArg_t jumpIns= methodCall->BoundSection;
     AddParamsToMethodScope(SelfReg, paramsList);
 
     /// TODO: figure out caller id
@@ -958,14 +953,13 @@ void BCI_Return(extArg_t arg)
     }
     else
     {
-        if(CallerReg != &NothingCall)
+        if(CallerReg->BoundType != &NullType)
         {
             PushTOS(CallerReg);
         }
         else
         {
             PushTOS(SelfReg);
-
         }
     }
 

@@ -6,6 +6,7 @@
 #include "diagnostics.h"
 #include "program.h"
 #include "main.h"
+#include "program.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Error Handling
@@ -22,7 +23,7 @@ inline int GetLineNumberFromInstructionNumber(extArg_t instructionNumber)
 {
     extArg_t i = 0;
     for(; i< ByteCodeLineAssociation.size() && ByteCodeLineAssociation[i] < instructionNumber; i++);
-    return i;
+    return PROGRAM->Lines[i-1].LineNumber;
 }
 
 void IfNeededDisplayError()
