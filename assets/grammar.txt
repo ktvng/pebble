@@ -268,7 +268,7 @@ Expr -> Expr || Expr
 Expr -> Expr || SRef
 Expr -> SRef || Expr
 
-@ Not ! Retain
+@ Not ! Reduce
 Expr -> ! Expr
 
 
