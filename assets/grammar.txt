@@ -303,6 +303,9 @@ Expr -> Expr ( )
 Expr -> Expr ( Expr )
 Expr -> Expr ( Tuple )
 
+@ Array [ Reduce
+Expr -> Expr [ Expr ]
+
 @ Else : Reduce
 > if
 Line -> else
@@ -341,6 +344,7 @@ Expr -> SRef is Expr
 @ Assign = Reduce
 Expr -> SRef = Expr
 Expr -> SRef = ( Tuple )
+Expr -> Expr = Expr
 
 
 
@@ -358,6 +362,7 @@ Expr -> ( Expr )
 
 @ NoOperationType ! Retain
 > = is
+< [
 Expr -> SRef
 
 @ NoOperationType lowest Retain
@@ -383,7 +388,7 @@ in new a highest
 ||
 = is
 ,
-) :
+) ] :
 lowest 
 
 
