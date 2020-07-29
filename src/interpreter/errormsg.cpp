@@ -71,5 +71,9 @@ ByteCodeError ErrorClasses[] =
     {
         5,
         "array index must be Integer typed"
+    },
+    {
+        6,
+        "array index out of bounds"
     }
 };

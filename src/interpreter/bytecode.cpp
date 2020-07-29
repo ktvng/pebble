@@ -495,6 +495,7 @@ inline void HandleArrayInitialization(Call* caller, Call* size)
     }
 
     auto sizeCall = InternalCallConstructor(&SizeCallName);
+    BindType(sizeCall, &IntegerType);
     BindValue(sizeCall, ObjectValueConstructor(arraySize));
     AddCallToScope(sizeCall, ScopeOf(caller));
 
@@ -1055,7 +1056,16 @@ void BCI_Array(extArg_t arg)
         return;
     }
 
-    auto indexedCall = FindInScopeOnlyImmediate(ScopeOf(arrayCall), CallNamePointerFor(IntegerValueOf(indexCall)));
+    auto indexInt = IntegerValueOf(indexCall);
+    auto sizeInt = IntegerValueOf(sizeCall);
+
+    if(indexInt >= sizeInt)
+    {
+        ReportFatalError(SystemMessageType::Exception, 6, Msg("%i is out of bounds in %s of size %i", indexInt, *arrayCall->Name, sizeInt));
+        return;
+    }
+
+    auto indexedCall = FindInScopeOnlyImmediate(ScopeOf(arrayCall), CallNamePointerFor(indexInt));
     if(indexCall == nullptr)
     {
         LogIt(LogSeverityType::Sev3_Critical, "BCI_Array", "cannot find indexed call");
@@ -1146,7 +1156,6 @@ void BCI_Swap(extArg_t arg)
 void BCI_JumpNothing(extArg_t arg)
 {
     auto TOS = PopTOS<Call>();
-    LogDiagnostics(TOS);
     if(TOS->BoundType == &NullType)
     {
         InternalJumpTo(arg);
