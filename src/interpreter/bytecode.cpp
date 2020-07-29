@@ -495,7 +495,7 @@ void BCI_Assign(extArg_t arg)
     lhs->Value = rhs->Value;
 
     /// TODO: Type check here
-    if(rhs->BoundType != &NullType && lhs->BoundType == &NullType)
+    if(rhs->BoundType != &NullType || lhs->BoundType == &NullType)
     {
         BindType(lhs, rhs->BoundType);
     }
@@ -618,6 +618,7 @@ void BCI_SysCall(extArg_t arg)
     {
         case 0:
         {
+            LogDiagnostics(PeekTOS<Call>());
             String msg = StringValueOf(PeekTOS<Call>()) + "\n";
             ProgramOutput += msg;
             if(g_outputOn)
