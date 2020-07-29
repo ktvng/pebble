@@ -120,6 +120,10 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_Return";
     }
+    else if(ins.Op == IndexOfInstruction(BCI_Array))
+    {
+        str += "#BCI_Array";
+    }
     else if(ins.Op == IndexOfInstruction(BCI_EnterLocal))
     {
         str += "#BCI_EnterLocal";

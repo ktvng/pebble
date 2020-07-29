@@ -558,6 +558,9 @@ String ToString(const OperationType& type)
         case OperationType::NoOperationType:
         return "NoOperationType";
 
+        case OperationType::Array:
+        return "Array";
+
         default:
         LogIt(LogSeverityType::Sev2_Important, "ToString", "unimplemented OperationType");
         return "unimplemented";

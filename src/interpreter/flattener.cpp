@@ -26,9 +26,10 @@ static Operation* GlobalBlockOwner;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Contants
-inline constexpr extArg_t GOD_OBJECT_ID = 0;
-inline constexpr extArg_t SOMETHING_OBJECT_ID = 1;
-inline constexpr extArg_t NOTHING_OBJECT_ID = 2;
+inline constexpr extArg_t GOD_CALL_ID = 0;
+inline constexpr extArg_t SOMETHING_CALL_ID = 1;
+inline constexpr extArg_t NOTHING_CALL_ID = 2;
+inline constexpr extArg_t ARRAY_CALL_ID = 3;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -342,9 +343,10 @@ inline bool IsPartOfIfConditional(Operation *op)
 inline bool OperationRefIsPrimitive(Operation* op)
 {
     auto ref = op->Value;
+    /// TODO: add Integer et all
     if(IsReferenceStub(ref))
     {
-        return ref->Name == "Object" || ref->Name == "Something" || ref->Name == "Nothing";
+        return ref->Name == "Object" || ref->Name == "Something" || ref->Name == "Nothing" || ref->Name == "Array";
     }
 
     return true;
@@ -507,6 +509,7 @@ inline void FlattenOperationComparison(Operation* op)
 /// syscall (print)
 /// while/if/elseif/else
 /// isequal
+/// array
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -554,6 +557,10 @@ inline void FlattenOperationGeneric(Operation* op)
 
         case OperationType::IsNotEqual:
         opId = IndexOfInstruction(BCI_NotEquals);
+        break;
+
+        case OperationType::Array:
+        opId = IndexOfInstruction(BCI_Array);
         break;
 
         case OperationType::Print:
@@ -649,6 +656,29 @@ inline void FlattenOperationDoTypeBinding(Operation* op)
     AddByteCodeInstruction(opId, noArg);
 }
 
+inline void FlattenOperationEvaluateAsArrayInitialization(Operation* paramsOp)
+{
+    uint8_t opId;
+    extArg_t arg;
+
+
+    opId = IndexOfInstruction(BCI_LoadPrimitive);
+    arg = NOTHING_CALL_ID; 
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_LoadPrimitive);
+    arg = ARRAY_CALL_ID;
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_Copy);
+    AddByteCodeInstruction(opId, noArg);
+
+    AddInstructionsForEvaluateParameters(paramsOp, arg);
+
+    opId = IndexOfInstruction(BCI_Eval);
+    AddByteCodeInstruction(opId, 1);
+}
+
 /// adds bytecode instructions for [op] with OperationType::Evaluate
 inline void FlattenOperationEvaluate(Operation* op)
 {
@@ -660,12 +690,18 @@ inline void FlattenOperationEvaluate(Operation* op)
     uint8_t opId;
     extArg_t arg;
 
+    if(methodOp->EntityIndex == ARRAY_CALL_ID)
+    {
+        FlattenOperationEvaluateAsArrayInitialization(paramsOp);
+        return;
+    }
+
     /// TODO: make this nicer
     /// case with no caller
     if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
     {
         opId = IndexOfInstruction(BCI_LoadPrimitive);
-        arg = NOTHING_OBJECT_ID; 
+        arg = NOTHING_CALL_ID; 
         AddByteCodeInstruction(opId, arg);
 
         if(methodOp->Type == OperationType::Ref)
@@ -1134,18 +1170,6 @@ BindingType ObjectClassToType(Object* obj)
     {
         return &StringType;
     }
-    else if(obj->Class == NullClass)
-    {
-        return &NullType;
-    }
-    else if(obj->Class == BaseClass)
-    {
-        return &ObjectType;
-    }
-    else if(obj->Class == SomethingClass)
-    {
-        return &SomethingType;
-    }
     else if(obj->Class == MethodClass)
     {
         return &MethodType;
@@ -1154,7 +1178,6 @@ BindingType ObjectClassToType(Object* obj)
     {
         return &NullType;
     }
-
 }
 
 /// add a new entry to ConstPrimitives if needed
@@ -1179,16 +1202,21 @@ void IfNeededAddConstPrimitive(Operation* op)
         op->EntityIndex = 2;
         return;
     }
+    else if(op->Value->Name == "Array")
+    {
+        op->EntityIndex = 3;
+        return;
+    }
 
     size_t atPosition;
     if(EncounteredPrimitiveObject(obj, atPosition))
     {
-        op->EntityIndex = atPosition + 3;
+        op->EntityIndex = atPosition + UniversalPrimitiveCount;
         return;
     }
 
     /// TODO: this is because of the 3 calls hardcoded
-    op->EntityIndex = PrimitiveObjectsEncountered.size() + 3;
+    op->EntityIndex = PrimitiveObjectsEncountered.size() + UniversalPrimitiveCount;
     PrimitiveObjectsEncountered.push_back(obj);
     
     Call* call = CallConstructor();
@@ -1240,12 +1268,14 @@ void FirstPassBlock(Block* b)
     }
 }
 
+int UniversalPrimitiveCount = 4;
+
 /// resets the CallNames and ConstPrimtiives lists
 void InitEntityLists()
 {
     ConstPrimitives.clear();
     ConstPrimitives.reserve(64);
-    ConstPrimitives = { &ObjectCall, &SomethingCall, &NothingCall };
+    ConstPrimitives = { &ObjectCall, &SomethingCall, &NothingCall, &ArrayCall };
 
     CallNames.clear();
     CallNames.reserve(64);

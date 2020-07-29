@@ -86,8 +86,13 @@ extern std::vector<ByteCodeInstruction> ByteCodeProgram;
 extern Call NothingCall;
 extern Call ObjectCall;
 extern Call SomethingCall;
+extern Call ArrayCall;
 extern Scope NothingScope;
 extern const String NothingCallName;
+
+extern const String SizeCallName;
+String* CallNamePointerFor(int i);
+void IfNeededAddArrayIndexCalls(size_t n);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods

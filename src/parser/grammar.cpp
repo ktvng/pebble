@@ -97,6 +97,9 @@ OperationType StringNameToOperationType(String Name)
 
     else if(Name=="DoTypeBinding")
         return OperationType::DoTypeBinding;
+    else if(Name=="Array")
+        return OperationType::Array;
+
     else if(Name=="NoOperationType")
         return OperationType::NoOperationType;
     

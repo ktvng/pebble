@@ -25,13 +25,22 @@ Scope* InternalScopeConstructor(Scope* inheritedScope)
 
 Scope* InternalCopyScope(Scope* scopeToCopy)
 {
-    auto scope = CopyScope(scopeToCopy);
+    Scope* scope;
+    if(scopeToCopy == &NothingScope || scopeToCopy == nullptr)
+    {
+       scope = ScopeConstructor(nullptr);
+    }
+    else
+    {
+        scope = CopyScope(scopeToCopy);
+    }
+    
     AddRuntimeScope(scope);
 
     return scope;
 }
 
-Call* InternalCallConstructor(String* name=nullptr)
+Call* InternalCallConstructor(const String* name=nullptr)
 {
     Call* call = CallConstructor(name);
     BindScope(call, &NothingScope);
@@ -183,6 +192,8 @@ BCI_Method BCI_Instructions[] = {
     BCI_Eval,
     BCI_Return,
 
+    BCI_Array,
+
     BCI_EnterLocal,
     BCI_LeaveLocal,
 
@@ -224,7 +235,7 @@ inline T* PeekTOS()
 
 /// finds and returns a Reference with [callName] in [scope] without checking 
 /// the inherited scope
-inline Call* FindInScopeOnlyImmediate(Scope* scope, String* callName)
+inline Call* FindInScopeOnlyImmediate(Scope* scope, const String* callName)
 {
     for(auto call: scope->CallsIndex)
     {
@@ -236,7 +247,7 @@ inline Call* FindInScopeOnlyImmediate(Scope* scope, String* callName)
 
 /// finds and returns a Reference with [callName] in [scope] and checks
 /// the entire chain of inherited scope
-inline Call* FindInScopeChain(Scope* scope, String* callName)
+inline Call* FindInScopeChain(Scope* scope, const String* callName)
 {
     for(auto s = scope; s != nullptr; s = s->InheritedScope)
     {
@@ -458,6 +469,24 @@ inline bool CallsAreEqual(Call* call1, Call* call2)
         call1->BoundScope == call2->BoundScope &&
         call1->BoundSection == call2->BoundSection &&
         call1->Value == call2->Value;
+}
+
+
+inline void HandleArrayInitialization(Call* caller, Call* size)
+{
+    int arraySize = IntegerValueOf(size);
+    IfNeededAddArrayIndexCalls(arraySize);
+    for(int i=0; i<arraySize; i++)
+    {
+        auto callatIndex = InternalCallConstructor(CallNamePointerFor(i));
+        AddCallToScope(callatIndex, ScopeOf(caller));
+    }
+
+    auto sizeCall = InternalCallConstructor(&SizeCallName);
+    BindValue(sizeCall, ObjectValueConstructor(arraySize));
+    AddCallToScope(sizeCall, ScopeOf(caller));
+
+    PushTOS<Call>(caller);
 }
 
 
@@ -905,6 +934,12 @@ void BCI_Eval(extArg_t arg)
     auto methodCall = PopTOS<Call>();
     auto caller = PopTOS<Call>();
 
+    if(methodCall->BoundType == &ArrayType)
+    {
+        HandleArrayInitialization(methodCall, paramsList[0]);
+        return;
+    }
+
     if(methodCall->BoundSection == 0)
     {
         auto methodName = (methodCall->Name == nullptr ? "anonymous variable" : *methodCall->Name);
@@ -985,6 +1020,36 @@ void BCI_Return(extArg_t arg)
     AdjustLocalScopeReg();
 
     JumpStatusReg = 1;
+}
+
+/// assumes TOS is index and TOS1 is the parent call
+/// leaves the Call indexed as TOS
+void BCI_Array(extArg_t arg)
+{
+    auto indexCall = PopTOS<Call>();
+    auto arrayCall = PopTOS<Call>();
+
+    auto sizeCall = FindInScopeOnlyImmediate(ScopeOf(arrayCall), &SizeCallName);
+
+    if(indexCall->BoundType != &IntegerType)
+    {
+        ReportFatalError(SystemMessageType::Exception, 5, Msg("%s is not an integer", *indexCall->Name));
+        return;
+    }
+
+    if(sizeCall == nullptr)
+    {
+        ReportFatalError(SystemMessageType::Exception, 4, Msg("%s is not an array", *arrayCall->Name));
+        return;
+    }
+
+    auto indexedCall = FindInScopeOnlyImmediate(ScopeOf(arrayCall), CallNamePointerFor(IntegerValueOf(indexCall)));
+    if(indexCall == nullptr)
+    {
+        LogIt(LogSeverityType::Sev3_Critical, "BCI_Array", "cannot find indexed call");
+    }
+
+    PushTOS(indexedCall);
 }
 
 /// no assumptions

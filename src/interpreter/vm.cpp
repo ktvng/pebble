@@ -101,10 +101,9 @@ std::vector<ByteCodeInstruction> ByteCodeProgram;
 
 Scope NothingScope;
 
-const String ObjectCallName = "Object";
 Call ObjectCall
 {
-    &ObjectCallName,
+    &ObjectType,
     &ObjectType,
     0,
     nullptr,
@@ -112,10 +111,9 @@ Call ObjectCall
     nullptr,
 };
 
-const String SomethingCallName = "Something";
 Call SomethingCall
 {
-    &SomethingCallName,
+    &SomethingType,
     &SomethingType,
     0,
     &NothingScope,
@@ -123,10 +121,9 @@ Call SomethingCall
     nullptr,
 };
 
-const String NothingCallName = "Nothing";
 Call NothingCall
 {
-    &NothingCallName,
+    &NullType,
     &NullType,
     0,
     &NothingScope,
@@ -134,7 +131,34 @@ Call NothingCall
     nullptr,
 };
 
+Call ArrayCall
+{
+    &ArrayType,
+    &ArrayType,
+    0,
+    nullptr,
 
+    nullptr,
+};
+
+const String SizeCallName = "Size";
+std::vector<String> ArrayIndexCalls;
+
+String* CallNamePointerFor(int i)
+{
+    return &ArrayIndexCalls[i];
+}
+
+void IfNeededAddArrayIndexCalls(size_t n)
+{
+    if(n > ArrayIndexCalls.size())
+    {
+        for(size_t i=ArrayIndexCalls.size(); i<n; i++)
+        {
+            ArrayIndexCalls.push_back("?");
+        }
+    }
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------

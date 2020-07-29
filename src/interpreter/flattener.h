@@ -11,6 +11,8 @@ struct JumpContext
     bool HasUnresolvedJumpFalse;
 };
 
+extern int UniversalPrimitiveCount;
+
 void FlattenProgram(Program* p);
 void FlattenBlock(Block* block);
 void FlattenOperation(Operation* op);

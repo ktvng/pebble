@@ -15,7 +15,7 @@ struct ByteCodeInstruction
     uint8_t Arg;
 };
 
-const inline int BCI_NumberOfInstructions = 34;
+const inline int BCI_NumberOfInstructions = 35;
 
 void BCI_LoadCallName(extArg_t arg);
 void BCI_LoadPrimitive(extArg_t arg);
@@ -53,6 +53,8 @@ void BCI_BindSection(extArg_t arg);
 void BCI_EvalHere(extArg_t arg);
 void BCI_Eval(extArg_t arg);
 void BCI_Return(extArg_t arg);
+
+void BCI_Array(extArg_t arg);
 
 void BCI_EnterLocal(extArg_t arg);
 void BCI_LeaveLocal(extArg_t arg);

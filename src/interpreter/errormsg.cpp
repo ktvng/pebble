@@ -63,5 +63,13 @@ ByteCodeError ErrorClasses[] =
     {
         3,
         "variable is not callable"
+    },
+    {
+        4,
+        "variable is not indexable"
+    },
+    {
+        5,
+        "array index must be Integer typed"
     }
 };

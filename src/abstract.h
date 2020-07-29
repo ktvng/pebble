@@ -89,6 +89,8 @@ enum OperationType
     ScopeResolution,
     DoTypeBinding,
 
+    Array,
+
     NoOperationType,
 };
 
