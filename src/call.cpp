@@ -148,6 +148,7 @@ bool ValueMatchesPrimitiveCall(int value, Call* call)
 
 bool ValueMatchesPrimitiveCall(String& value, Call* call)
 {
+    LogDiagnostics(call);
     return CallIsType(call, &StringType) && *static_cast<String*>(call->Value) == value;
 }
 

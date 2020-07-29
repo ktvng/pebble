@@ -305,6 +305,7 @@ Expr -> Expr ( Tuple )
 
 @ Array [ Reduce
 Expr -> Expr [ Expr ]
+Expr -> SRef [ Expr ]
 
 @ Else : Reduce
 > if
@@ -335,11 +336,10 @@ Line -> Expr Lambda
 Line -> SRef Lambda
 Line -> Ref Lambda
 
-@ IsEqual == Reduce
-Expr -> Expr is Expr
-
 @ Is is Reduce
 Expr -> SRef is Expr
+Expr -> Expr is Expr
+
 
 @ Assign = Reduce
 Expr -> SRef = Expr

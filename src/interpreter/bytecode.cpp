@@ -78,6 +78,10 @@ Call* InternalPrimitiveCallConstructor(BindingType type, double value)
     {
         return foundCall;
     }
+    else if(ListContainsPrimitiveCall(ConstPrimitives, value, &foundCall))
+    {
+        return foundCall;
+    }
     else
     {
         Call* call = InternalCallConstructor();
@@ -96,6 +100,10 @@ Call* InternalPrimitiveCallConstructor(BindingType type, bool value)
     {
         return foundCall;
     }
+    else if(ListContainsPrimitiveCall(ConstPrimitives, value, &foundCall))
+    {
+        return foundCall;
+    }
     else
     {
         Call* call = InternalCallConstructor();
@@ -111,6 +119,10 @@ Call* InternalPrimitiveCallConstructor(BindingType type, String& value)
 {
     Call* foundCall = nullptr;
     if(ListContainsPrimitiveCall(RuntimeCalls, value, &foundCall))
+    {
+        return foundCall;
+    }
+    else if(ListContainsPrimitiveCall(ConstPrimitives, value, &foundCall))
     {
         return foundCall;
     }
@@ -647,7 +659,6 @@ void BCI_SysCall(extArg_t arg)
     {
         case 0:
         {
-            LogDiagnostics(PeekTOS<Call>());
             String msg = StringValueOf(PeekTOS<Call>()) + "\n";
             ProgramOutput += msg;
             if(g_outputOn)
@@ -661,6 +672,7 @@ void BCI_SysCall(extArg_t arg)
         {
             String s;
             std::getline(std::cin, s);
+            std::cout << s;
             auto call = InternalPrimitiveCallConstructor(&StringType, s);
             PushTOS<Call>(call);
         }
@@ -1134,6 +1146,7 @@ void BCI_Swap(extArg_t arg)
 void BCI_JumpNothing(extArg_t arg)
 {
     auto TOS = PopTOS<Call>();
+    LogDiagnostics(TOS);
     if(TOS->BoundType == &NullType)
     {
         InternalJumpTo(arg);

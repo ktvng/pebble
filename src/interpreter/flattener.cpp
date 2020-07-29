@@ -661,7 +661,6 @@ inline void FlattenOperationEvaluateAsArrayInitialization(Operation* paramsOp)
     uint8_t opId;
     extArg_t arg;
 
-
     opId = IndexOfInstruction(BCI_LoadPrimitive);
     arg = NOTHING_CALL_ID; 
     AddByteCodeInstruction(opId, arg);
@@ -689,6 +688,12 @@ inline void FlattenOperationEvaluate(Operation* op)
 
     uint8_t opId;
     extArg_t arg;
+
+    if(methodOp->Type == OperationType::DoTypeBinding && methodOp->Operands[0]->EntityIndex == ARRAY_CALL_ID)
+    {
+        FlattenOperationEvaluateAsArrayInitialization(paramsOp);
+        return;
+    }
 
     if(methodOp->EntityIndex == ARRAY_CALL_ID)
     {
@@ -834,7 +839,14 @@ inline void FlattenOperationIs(Operation* op)
 {
     uint8_t opId;
 
-    FlattenOperationScopeResolution(op->Operands[0]);
+    if(op->Operands[0]->Type == OperationType::ScopeResolution)
+    {
+        FlattenOperationScopeResolution(op->Operands[0]);
+    }
+    else
+    {
+        FlattenOperation(op->Operands[0]);
+    }
 
     extArg_t jumpStart = NextInstructionId();
     AddNOPS(NOPSafetyDomainSize());
