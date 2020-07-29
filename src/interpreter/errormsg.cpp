@@ -59,5 +59,9 @@ ByteCodeError ErrorClasses[] =
     {
         2,
         "method call arguments mismatch"
+    },
+    {
+        3,
+        "variable is not callable"
     }
 };

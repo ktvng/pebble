@@ -904,6 +904,13 @@ void BCI_Eval(extArg_t arg)
     auto methodCall = PopTOS<Call>();
     auto caller = PopTOS<Call>();
 
+    if(methodCall->BoundSection == 0)
+    {
+        auto methodName = (methodCall->Name == nullptr ? "anonymous variable" : *methodCall->Name);
+        ReportFatalError(SystemMessageType::Exception, 3, Msg("%s cannot be called", methodName));
+        return;
+    }
+
     extArg_t jumpIns= methodCall->BoundSection;
     AddParamsToMethodScope(methodCall, paramsList);
 
