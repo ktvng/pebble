@@ -34,7 +34,7 @@ Follow the following steps after you have installed Pebble to create the test bu
 ```
 $ make TestBuilder
 $ make pebble_testbuild.exe
-$ ./pebble_testbuild.exe --byte-code --ignore-custom
+$ ./pebble_testbuild.exe --ignore-custom --bytecode
 ```
 
 
