@@ -16,7 +16,7 @@
 #include "scope.h"
 
 /// program to execute
-Program* PROGRAM;
+Program *PROGRAM;
 
 /// override to use static grammar
 bool override = true;
@@ -41,7 +41,7 @@ int CompileMsgCount = 0;
 /// adds an error to the error buffer which will be printed when RuntimeErrorPrint is called
 void ReportRuntimeMsg(SystemMessageType type, String message)
 {
-    SystemMessage msg { message, type };
+    SystemMessage msg{message, type};
     RuntimeMsgBuffer.push_back(msg);
     RuntimeMsgFlag = true;
     RuntimeMsgCount++;
@@ -49,29 +49,27 @@ void ReportRuntimeMsg(SystemMessageType type, String message)
 
 void ReportCompileMsg(SystemMessageType type, String message)
 {
-    SystemMessage msg { message, type };
+    SystemMessage msg{message, type};
     CompileMsgBuffer.push_back(msg);
     CompileMsgFlag = true;
     CompileMsgCount++;
 }
-
-
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Constructors
 
 /// creates a new block with [inheritedScope]. all new scopes should be created from this
 /// constructor method
-Block* BlockConstructor()
+Block *BlockConstructor()
 {
-    Block* b = new Block;
+    Block *b = new Block;
     b->ExecType = ExecutableType::Block;
     b->Executables = {};
 
     return b;
 }
 
-void BlockDestructor(Block* b)
+void BlockDestructor(Block *b)
 {
     delete b;
 }
@@ -89,7 +87,7 @@ void Reset()
     CompileMsgCount = 0;
 }
 
-void EnterProgram(Program* p)
+void EnterProgram(Program *p)
 {
     PROGRAM = p;
 }
@@ -99,16 +97,16 @@ void ExitProgram()
     PROGRAM = nullptr;
 }
 
-Program* ProgramConstructor()
+Program *ProgramConstructor()
 {
-    Program* p = new Program;
+    Program *p = new Program;
     p->GlobalScope = ScopeConstructor(nullptr);
     p->GlobalScope->IsDurable = true;
 
     EnterProgram(p);
     EnterScope(p->GlobalScope);
     {
-        Reference* ref = CreateReferenceToNewObject("Object", BaseClass, nullptr);
+        Reference *ref = CreateReferenceToNewObject("Object", BaseClass, nullptr);
         AddReferenceToCurrentScope(ref);
     }
     ExitScope();
@@ -117,31 +115,27 @@ Program* ProgramConstructor()
     return p;
 }
 
-
-
-
-
-
 // ---------------------------------------------------------------------------------------------------------------------
 // ParseHelpers
 
-char LastNonWhitespaceChar(String& line)
+char LastNonWhitespaceChar(String &line)
 {
     int i = line.size();
-    while (i--, i >= 0 && line.at(i) == ' ');
+    while (i--, i >= 0 && line.at(i) == ' ')
+        ;
     return (i >= 0 ? line.at(i) : '\0');
 }
 
 String RemoveCommas(String line)
 {
     String returnString = "";
-    for(size_t i=0; i<line.size(); i++)
+    for (size_t i = 0; i < line.size(); i++)
     {
-        if(line.at(i) == ',')
+        if (line.at(i) == ',')
             continue;
         returnString += line.at(i);
     }
-    
+
     return returnString;
 }
 
@@ -154,9 +148,9 @@ bool TabStringIsSet()
 
 void SetTabString(String str)
 {
-    if(str.size() == 0)
+    if (str.size() == 0)
         return;
-    if(TabStringIsSet())
+    if (TabStringIsSet())
         return;
 
     g_tabString = str;
@@ -172,36 +166,37 @@ String DecideTabString(String line)
     String tabString;
     tabString.reserve(8);
 
-    for(size_t i =0; i < line.size() && IsTabCharacter(line.at(i)); i++)
+    for (size_t i = 0; i < line.size() && IsTabCharacter(line.at(i)); i++)
         tabString += line.at(i);
-    
+
     return tabString;
 }
 
 /// returns the level of the line or -1 if malformed
 int LevelOfLine(String line)
 {
-    if(line.size() == 0)
+    if (line.size() == 0)
         return -1;
-    if(!IsTabCharacter(line.at(0)))
+    if (!IsTabCharacter(line.at(0)))
         return 0;
 
     // if some spacing exists but the tabString is not set, the code is malformed
-    if(g_tabString.size() == 0)
+    if (g_tabString.size() == 0)
         return -1;
 
-    int level=0;
-    size_t i=0;
-    while(static_cast<size_t>(level) < line.size())
+    int level = 0;
+    size_t i = 0;
+    while (static_cast<size_t>(level) < line.size())
     {
-        for(size_t j=0; j<g_tabString.size() && i<line.size(); j++, i++)
+        for (size_t j = 0; j < g_tabString.size() && i < line.size(); j++, i++)
         {
-            if(g_tabString.at(j) != line.at(i)){
+            if (g_tabString.at(j) != line.at(i))
+            {
                 return -1;
             }
         }
         level++;
-        if(!IsTabCharacter(line.at(i)))
+        if (!IsTabCharacter(line.at(i)))
             return level;
     }
     return -1;
@@ -211,28 +206,32 @@ inline const std::string SpaceChars = " \n\t";
 
 bool CharIsWhiteSpace(char c)
 {
-    for(size_t i=0; i<SpaceChars.size(); i++)
+    for (size_t i = 0; i < SpaceChars.size(); i++)
     {
-        if(c == SpaceChars[i])
+        if (c == SpaceChars[i])
             return true;
     }
     return false;
 }
 
-bool LineIsWhitespace(std::string& line)
+bool LineIsWhitespace(std::string &line)
 {
-    for(size_t i =0; i<line.size(); i++)
+    for (size_t i = 0; i < line.size(); i++)
     {
-        if(!CharIsWhiteSpace(line[i]))
+        if (!CharIsWhiteSpace(line[i]))
             return false;
     }
     return true;
 }
 
+bool LineIsComment(std::string &line)
+{
+    return line[0] == '#' ? true : false;
+}
 
 /// returns a line of code and sets lineNumber to that of the next line and lineStart to
 /// the starting position of the returned line. commas allow for a line to be split
-std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart)
+std::string GetEffectiveLine(std::fstream &file, int &lineNumber, int &lineStart)
 {
     std::string fullLine = "";
     std::string newLine;
@@ -241,23 +240,26 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
     do
     {
         lineNumber++;
-        if(!std::getline(file, newLine))
+        if (!std::getline(file, newLine))
             break;
 
         /// skip lines of whitespace
-        if(LineIsWhitespace(newLine))
+        if (LineIsWhitespace(newLine))
             continue;
 
-        if(FirstTime)
+        if (LineIsComment(newLine))
+            continue;
+
+        if (FirstTime)
         {
             lineStart = lineNumber - 1;
             FirstTime = false;
         }
         fullLine += newLine;
 
-    } while (LineIsWhitespace(newLine) || LastNonWhitespaceChar(newLine) == ',');
+    } while (LineIsWhitespace(newLine) || LastNonWhitespaceChar(newLine) == ',' || LineIsComment(newLine));
 
-    if(!TabStringIsSet())
+    if (!TabStringIsSet())
         SetTabString(DecideTabString(newLine));
 
     return fullLine;
@@ -268,15 +270,15 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
 // Parsing
 
 /// parses an atomic operation into an Operation tree
-Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& tokens)
+Operation *ParseOutAtomic(PossibleOperationsList &typeProbabilities, TokenList &tokens)
 {
     OperationType opType;
     DecideOperationType(typeProbabilities, opType);
 
     LogItDebug(Msg("operation type is %s", ToString(opType)), "ParseOutAtomic");
     // these operands act on references!
-    Reference* refValue = nullptr;
-    if(opType == OperationType::Ref)
+    Reference *refValue = nullptr;
+    if (opType == OperationType::Ref)
     {
         DecideValueRef(tokens, &refValue);
     }
@@ -284,21 +286,21 @@ Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& 
     OperationsList operands;
     DecideOperands(opType, tokens, operands);
 
-    Operation* op = OperationConstructor(opType, operands, refValue);
+    Operation *op = OperationConstructor(opType, operands, refValue);
 
     return op;
 }
 
 // TODO: Implement
 /// parses a composite operation into an Operation tree
-Operation* ParseComposite(PossibleOperationsList& typeProbabilities, TokenList& tokens)
+Operation *ParseComposite(PossibleOperationsList &typeProbabilities, TokenList &tokens)
 {
-    Operation* op = ExpressionParser(tokens);
+    Operation *op = ExpressionParser(tokens);
     return op;
 }
 
 // TODO:
-Operation* ParseIf(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
+Operation *ParseIf(PossibleOperationsList &typeProbabilityes, TokenList &tokens)
 {
     // Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
 
@@ -308,13 +310,13 @@ Operation* ParseIf(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
 
     LogDiagnostics(newList, "printing token list after removing if stuff");
 
-    Operation* condition = ParseLine(newList);
-    Operation* op = OperationConstructor(OperationType::If, { condition });
+    Operation *condition = ParseLine(newList);
+    Operation *op = OperationConstructor(OperationType::If, {condition});
 
     return op;
 }
 
-Operation* ParseWhile(PossibleOperationsList& typeProbabilityes, TokenList& tokens)
+Operation *ParseWhile(PossibleOperationsList &typeProbabilityes, TokenList &tokens)
 {
     // Token* condition = NextTokenMatching(tokens, ObjectTokenTypes);
 
@@ -324,61 +326,76 @@ Operation* ParseWhile(PossibleOperationsList& typeProbabilityes, TokenList& toke
 
     LogDiagnostics(newList, "printing token list after removing if stuff");
 
-    Operation* condition = ParseLine(newList);
-    Operation* op = OperationConstructor(OperationType::While, { condition });
+    Operation *condition = ParseLine(newList);
+    Operation *op = OperationConstructor(OperationType::While, {condition});
 
     return op;
 }
 
 /// assigns [lineNumber] to be the LineNumber for each operation in the Operation tree of [op]
-void NumberOperation(Operation* op, int lineNumber)
+void NumberOperation(Operation *op, int lineNumber)
 {
     op->LineNumber = lineNumber;
-    for(Operation* operand: op->Operands)
+    for (Operation *operand : op->Operands)
     {
         NumberOperation(operand, lineNumber);
     }
 }
 
-// can use this if every plays 
-typedef Operation*(*LineTypeFunctions)(PossibleOperationsList&, TokenList&);
+// can use this if every plays
+typedef Operation *(*LineTypeFunctions)(PossibleOperationsList &, TokenList &);
 LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
 
 /// parses a line of code
-Operation* ParseLine(TokenList& tokens)
+Operation *ParseLine(TokenList &tokens)
 {
     PossibleOperationsList typeProbabilities;
     DecideOperationTypeProbabilities(typeProbabilities, tokens);
 
     LineType lineType;
     DecideLineType(typeProbabilities, tokens, lineType);
-    
+
     // fPtr
-    switch(lineType)
+    switch (lineType)
     {
-        case LineType::Atomic:
+    case LineType::Atomic:
         return ParseOutAtomic(typeProbabilities, tokens);
 
-        case LineType::Composite:
+    case LineType::Composite:
         return ParseComposite(typeProbabilities, tokens);
 
-        case LineType::IfLine:
+    case LineType::IfLine:
         return ParseIf(typeProbabilities, tokens);
 
-        case LineType::WhileLine:
+    case LineType::WhileLine:
         return ParseWhile(typeProbabilities, tokens);
 
-        default:
+    default:
         LogIt(LogSeverityType::Sev1_Notify, "ParseLine", "unimplemented in case");
         return nullptr;
     }
+}
+
+std::string RemoveComment(const std::string line)
+{
+    std::string lineNoComment;
+    size_t i = 0;
+    size_t end = line.find('#');
+    while (i < line.size() && i < end)
+    {
+        char val = line.at(i);
+        lineNoComment.push_back(val);
+        i++;
+    }
+    std::string pointerLine = lineNoComment;
+    return pointerLine;
 }
 
 int SizeOfBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::iterator end)
 {
     int blockLevel = it->Level;
     int blockSize = 0;
-    for(; it != end && it->Level >= blockLevel; it++) 
+    for (; it != end && it->Level >= blockLevel; it++)
         blockSize++;
 
     return blockSize;
@@ -391,7 +408,7 @@ bool IsChildBlock(std::vector<CodeLine>::iterator it, int previousLineLevel)
 
 void HandleCompileMessage(int lineNumber)
 {
-    if(CompileMsgFlag)
+    if (CompileMsgFlag)
     {
         CompileMsgPrint(lineNumber);
         CompileMsgFlag = false;
@@ -399,10 +416,10 @@ void HandleCompileMessage(int lineNumber)
 }
 
 void HandleDefineMethod(
-    std::vector<CodeLine>::iterator* it,
-    std::vector<CodeLine>::iterator* end,
-    Scope* blockInheritedScope,
-    Operation* op)
+    std::vector<CodeLine>::iterator *it,
+    std::vector<CodeLine>::iterator *end,
+    Scope *blockInheritedScope,
+    Operation *op)
 {
     // if(op->Type != OperationType::DefineMethod)
     //     return;
@@ -428,17 +445,17 @@ void HandleDefineMethod(
     // LogItDebug("exit method", "HandleDefineMethod");
 }
 
-Block* ParseBlock(
-    std::vector<CodeLine>::iterator it, 
+Block *ParseBlock(
+    std::vector<CodeLine>::iterator it,
     std::vector<CodeLine>::iterator end,
-    Scope* scope)
+    Scope *scope)
 {
-    Block* thisBlock = BlockConstructor();
-    
+    Block *thisBlock = BlockConstructor();
+
     LogItDebug("entered new block", "ParseBlock");
     bool scopeIsLocal = false;
 
-    if(scope == nullptr)
+    if (scope == nullptr)
     {
         scope = ScopeConstructor(CurrentScope());
         scopeIsLocal = true;
@@ -448,14 +465,14 @@ Block* ParseBlock(
     {
         int previousLineLevel = it->Level;
 
-        for(; it != end; it++)
+        for (; it != end; it++)
         {
-            if(IsChildBlock(it, previousLineLevel))
+            if (IsChildBlock(it, previousLineLevel))
             {
                 LogItDebug(Msg("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
                 int blockSize = SizeOfBlock(it, end);
-                Block* b = ParseBlock(it, it+blockSize);
-                if(FatalCompileError)
+                Block *b = ParseBlock(it, it + blockSize);
+                if (FatalCompileError)
                     return nullptr;
                 LogItDebug(Msg("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
 
@@ -467,17 +484,15 @@ Block* ParseBlock(
             else
             {
                 LogItDebug(Msg("starting compile line [%i]", it->LineNumber), "ParseBlock");
-                Operation* op = ParseLine(it->Tokens);
+                Operation *op = ParseLine(it->Tokens);
                 HandleCompileMessage(it->LineNumber);
-                if(FatalCompileError)
+                if (FatalCompileError)
                     return nullptr;
 
                 NumberOperation(op, it->LineNumber);
                 LogItDebug(Msg("finishes compile line [%i]", it->LineNumber), "ParseBlock");
 
                 HandleDefineMethod(&it, &end, CurrentScope(), op);
-
-
 
                 thisBlock->Executables.push_back(op);
             }
@@ -488,14 +503,14 @@ Block* ParseBlock(
     return thisBlock;
 }
 
-Program* ParseProgram(const std::string filepath)
+Program *ParseProgram(const std::string filepath)
 {
-    Program* p = ProgramConstructor();
+    Program *p = ProgramConstructor();
     EnterProgram(p);
 
     std::fstream file;
     file.open(filepath, std::ios::in);
-    if(!file.is_open())
+    if (!file.is_open())
     {
         std::cout << "\ncould not open file: " << filepath << std::endl;
         return nullptr;
@@ -505,54 +520,53 @@ Program* ParseProgram(const std::string filepath)
     int nextLinePos = 1;
     int lineStart = 1;
 
-    for(std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
+    for (std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
     {
-        TokenList tokens = LexLine(line);
+        std::string removed = RemoveComment(line);
+        TokenList tokens = LexLine(removed);
         lineLevel = LevelOfLine(line);
 
-        CodeLine ls = { tokens , lineStart, lineLevel };
+        CodeLine ls = {tokens, lineStart, lineLevel};
         p->Lines.push_back(ls);
-
     }
 
     // TODO: Allow different blocks
-    Block* b = ParseBlock(p->Lines.begin(), p->Lines.end(), p->GlobalScope);
+    Block *b = ParseBlock(p->Lines.begin(), p->Lines.end(), p->GlobalScope);
     p->Main = b;
 
     ExitProgram();
     return p;
 }
 
-void DeleteBlockRecursive(Block* b)
+void DeleteBlockRecursive(Block *b)
 {
-    for(auto exec: b->Executables)
+    for (auto exec : b->Executables)
     {
-        if(exec->ExecType == ExecutableType::Block)
-            DeleteBlockRecursive(static_cast<Block*>(exec));
+        if (exec->ExecType == ExecutableType::Block)
+            DeleteBlockRecursive(static_cast<Block *>(exec));
         else
-            DeleteOperationRecursive(static_cast<Operation*>(exec));
+            DeleteOperationRecursive(static_cast<Operation *>(exec));
     }
     BlockDestructor(b);
 }
 
-
-void ProgramDestructor(Program* p)
+void ProgramDestructor(Program *p)
 {
-    for(size_t i=0; i<p->ObjectsIndex.size(); i++)
+    for (size_t i = 0; i < p->ObjectsIndex.size(); i++)
     {
-        auto& map = p->ObjectsIndex[i];
-        for(auto ref: map.References)
+        auto &map = p->ObjectsIndex[i];
+        for (auto ref : map.References)
         {
             ReferenceDestructor(ref);
         }
-        if(map.IndexedObject == NullObject())
+        if (map.IndexedObject == NullObject())
             continue;
         ObjectDestructor(map.IndexedObject);
     }
 
     ScopeDestructor(p->GlobalScope);
 
-    for(auto codeLine: p->Lines)
+    for (auto codeLine : p->Lines)
     {
         DeleteTokenList(codeLine.Tokens);
     }

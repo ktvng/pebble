@@ -241,27 +241,19 @@ Token *GetToken(const std::string &line, size_t &position, int tokenNumber)
 
     return token;
 }
-
-std::string RemoveComment(const std::string &line)
-{
-    std::string lineNoComment;
-    size_t i = 0;
-    size_t end = line.find('#');
-    while (i < line.size() && i < end)
-    {
-        char val = line.at(i);
-        lineNoComment.push_back(val);
-        i++;
-    }
-    return lineNoComment;
-}
-
-// void RemoveCommentBetter(char *dest, const char *src)
+// we want to call this before lexLine runs (so in parseProgram)
+// std::string RemoveComment(const std::string &line)
 // {
-
-//     while ((*dest++ = *src++) != '#')
-//         ;
-//     *(dest - 1) = '\0';
+//     std::string lineNoComment;
+//     size_t i = 0;
+//     size_t end = line.find('#');
+//     while (i < line.size() && i < end)
+//     {
+//         char val = line.at(i);
+//         lineNoComment.push_back(val);
+//         i++;
+//     }
+//     return lineNoComment;
 // }
 
 TokenList LexLine(const std::string &line)
@@ -269,11 +261,11 @@ TokenList LexLine(const std::string &line)
     TokenList tokens;
     size_t linePosition = 0;
     int tokenNumber = 0;
-    std::string removed = RemoveComment(line);
-    std::cout << removed;
-    while (linePosition < removed.size())
+    // std::string removed = RemoveComment(line);
+    // std::cout << removed;
+    while (linePosition < line.size())
     {
-        Token *t = GetToken(removed, linePosition, tokenNumber);
+        Token *t = GetToken(line, linePosition, tokenNumber);
         // std::cout << t->Content;
         if (t == nullptr)
             continue;
