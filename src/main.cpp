@@ -96,7 +96,7 @@ ProgramConfiguration Config
 };
 
 // Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
+LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 bool g_outputOn = true;
 
 // Runtime
@@ -168,6 +168,10 @@ int main(int argc, char* argv[])
     
 
     LogItDebug("end reached.", "main");
+
+    String endStr;
+    std::cout << "Press (ENTER) to quit\n";
+    std::getline(std::cin, endStr);
     return 0;
 }
 

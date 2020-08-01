@@ -1,6 +1,6 @@
 SOURCE_DIR=./src
 BUILD_DIR=./build
-CCFLAGS=-g -pedantic -ansi -Wall -std=c++17
+CCFLAGS=-g -pedantic -ansi -Wall -std=c++17 -static
 INCLUDE_PATHS=-I./src/ -I./src/parser/ -I./src/interpreter -I./src/walker
 TEST_INCLUDE_PATH=-I./test/
 CC=g++
