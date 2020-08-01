@@ -152,7 +152,7 @@ void TestComments()
 
     IncludeStandardAssertSuite();
 
-    String correctOutput = "7";
+    String correctOutput = "30\n";
 
     Should("prevent anything to the right of a # from being parsed");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
