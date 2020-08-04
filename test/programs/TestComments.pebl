@@ -1,0 +1,5 @@
+#comment at beginning of file (no space)
+R = 6*4+1
+X = R + 5 # comment on same line as other code (space)
+say X 
+#comment at end of file (no space)

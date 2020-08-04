@@ -145,6 +145,21 @@ void TestMethodRecursion()
     Assert(ProgramOutput == correctOutput );
 }
 
+void TestComments()
+{
+    It("tests that comments are removed from files");
+
+    CompileAndExecuteProgram("TestComments");
+    
+    IncludeStandardAssertSuite();
+
+    String correctOutput = "30\n";
+
+    Should("not parse program comments marked by a #");
+    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
+    Assert(ProgramOutput == correctOutput );
+}
+
 void TestIfElseComplex()
 {
     It("correctly evaluates an if/else-if/else statement");

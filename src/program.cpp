@@ -145,6 +145,21 @@ String RemoveCommas(String line)
     return returnString;
 }
 
+std::string RemoveComment(const std::string line)
+{
+    std::string lineNoComment;
+    size_t i = 0;
+    size_t end = line.find('#');
+    while (i < line.size() && i < end)
+    {
+        char val = line.at(i);
+        lineNoComment.push_back(val);
+        i++;
+    }
+    std::string pointerLine = lineNoComment;
+    return pointerLine;
+}
+
 String g_tabString;
 
 bool TabStringIsSet()
@@ -229,6 +244,10 @@ bool LineIsWhitespace(std::string& line)
     return true;
 }
 
+bool LineIsComment(std::string &line)
+{
+    return line[0] == '#' ? true : false;
+}
 
 /// returns a line of code and sets lineNumber to that of the next line and lineStart to
 /// the starting position of the returned line. commas allow for a line to be split
@@ -248,6 +267,9 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
         if(LineIsWhitespace(newLine))
             continue;
 
+        if (LineIsComment(newLine))
+            continue;
+
         if(FirstTime)
         {
             lineStart = lineNumber - 1;
@@ -255,7 +277,8 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
         }
         fullLine += newLine;
 
-    } while (LineIsWhitespace(newLine) || LastNonWhitespaceChar(newLine) == ',');
+    } while (LineIsWhitespace(newLine) || LastNonWhitespaceChar(newLine) == ',' 
+        || LineIsComment(newLine));
 
     if(!TabStringIsSet())
         SetTabString(DecideTabString(newLine));
@@ -507,7 +530,8 @@ Program* ParseProgram(const std::string filepath)
 
     for(std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
     {
-        TokenList tokens = LexLine(line);
+        std::string removed = RemoveComment(line);
+        TokenList tokens = LexLine(removed);
         lineLevel = LevelOfLine(line);
 
         CodeLine ls = { tokens , lineStart, lineLevel };
