@@ -502,7 +502,31 @@ inline void HandleArrayInitialization(Call* caller, Call* size)
     PushTOS<Call>(caller);
 }
 
+inline void HandleObjectInitialization(Call* call)
+{
+    auto newObjectCall = InternalCallConstructor();
+    BindType(newObjectCall, &ObjectType);
+    BindScope(newObjectCall, InternalScopeConstructor(nullptr));
+    
+    PushTOS<Call>(newObjectCall);
+}
 
+inline bool IsPrimitiveType(const BindingType type)
+{
+    return type == &ArrayType || type == &ObjectType; 
+}
+
+void HandlePrimitiveTypeInstantiation(Call* primitiveCall, std::vector<Call*>& paramsList)
+{
+    if(primitiveCall->BoundType == &ArrayType)
+    {
+        HandleArrayInitialization(primitiveCall, paramsList[0]);
+    }
+    else if(primitiveCall->BoundType == &ObjectType)
+    {
+        HandleObjectInitialization(primitiveCall);
+    }
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -532,15 +556,23 @@ void BCI_Assign(extArg_t arg)
     auto rhs = PopTOS<Call>();
     auto lhs = PopTOS<Call>();
 
+    if(lhs->BoundType == &NullType)
+    {
+        BindType(lhs, rhs->BoundType);
+    }
+
+    if(lhs->BoundType != rhs->BoundType)
+    {
+        ReportFatalError(SystemMessageType::Exception, 7,
+            Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
+        return;
+    }
+
     BindSection(lhs, rhs->BoundSection);
     BindScope(lhs, rhs->BoundScope);
     lhs->Value = rhs->Value;
 
-    /// TODO: Type check here
-    if(rhs->BoundType != &NullType || lhs->BoundType == &NullType)
-    {
-        BindType(lhs, rhs->BoundType);
-    }
+
 
     PushTOS<Call>(lhs);
 }
@@ -810,15 +842,16 @@ void BCI_Jump(extArg_t arg)
 /// leaves object copy as TOS
 void BCI_Copy(extArg_t arg)
 {
-    auto call = PopTOS<Call>();
-    auto callCopy = InternalCallConstructor();
-    BindSection(callCopy, call->BoundSection);
+    // auto call = PopTOS<Call>();
+    // auto callCopy = InternalCallConstructor();
     
-    auto scp = InternalCopyScope(call->BoundScope);
-    BindScope(callCopy, scp);
-    BindType(callCopy, call->BoundType);
+    // auto scp = InternalCopyScope(call->BoundScope);
+    // BindScope(callCopy, scp);
+    // BindType(callCopy, call->BoundType);
+    // BindValue(callCopy, call->Value);
+    // BindSection(callCopy, call->BoundSection);
 
-    PushTOS<Call>(callCopy);
+    // PushTOS<Call>(callCopy);
 }
 
 /// assumes TOS is a Call
@@ -826,7 +859,25 @@ void BCI_Copy(extArg_t arg)
 void BCI_BindType(extArg_t arg)
 {
     auto call = PeekTOS<Call>();
-    BindType(call, call->Name);
+
+    if(call->Name != nullptr)
+    {
+    //     BindType(call, call->Name);
+    // }
+    // else
+    // {
+        auto call = PopTOS<Call>();
+        auto newCall = InternalCallConstructor();
+
+        LogDiagnostics(call);
+        BindType(newCall, call->Name);
+        BindValue(newCall, call->Value);
+        BindSection(newCall, call->BoundSection);
+        BindScope(newCall, call->BoundScope);
+
+        PushTOS(newCall);
+    }
+    
 }
 
 /// assumes TOS is a String
@@ -875,6 +926,13 @@ void BCI_ResolveDirect(extArg_t arg)
 void BCI_ResolveScoped(extArg_t arg)
 {
     auto callName = PopTOS<String>();
+
+    // all attributes of Nothing resolve to Nothing
+    if(PeekTOS<Call>()->BoundType == &NullType)
+    {
+        return;
+    }
+
     if(PeekTOS<Call>()->BoundScope == &NothingScope)
     {
         ReportError(SystemMessageType::Warning, 1, Msg("%s has no bound scope which cannot have attributes", PeekTOS<Call>()->Name));
@@ -947,9 +1005,15 @@ void BCI_Eval(extArg_t arg)
     auto methodCall = PopTOS<Call>();
     auto caller = PopTOS<Call>();
 
-    if(methodCall->BoundType == &ArrayType)
+    if(methodCall->BoundType == &NullType)
     {
-        HandleArrayInitialization(methodCall, paramsList[0]);
+        PushTOS<Call>(methodCall);
+        return;
+    }
+
+    if(IsPrimitiveType(methodCall->BoundType))
+    {
+        HandlePrimitiveTypeInstantiation(methodCall, paramsList);
         return;
     }
 
@@ -1153,6 +1217,7 @@ void BCI_Swap(extArg_t arg)
 
 /// assumes TOS is an object
 /// pops TOS and jumps if obj == Nothing
+/// TODO: rename to JumpUndefined
 void BCI_JumpNothing(extArg_t arg)
 {
     auto TOS = PopTOS<Call>();

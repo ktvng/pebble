@@ -38,7 +38,7 @@ struct ByteCodeError
 };
 
 extern ByteCodeError ErrorClasses[];
-void IfNeededDisplayError();
+void IfNeededDisplayError(Program* p);
 
 /// stores the running total number of byte code instructions obtained from
 /// all lines less that the value of the index

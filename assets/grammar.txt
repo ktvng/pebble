@@ -220,7 +220,9 @@ Expr -> Expr <= SRef
 Expr -> SRef <= Expr
 
 @ DoTypeBinding a Reduce
-Expr -> a Ref 
+Expr -> a Ref
+Expr -> a Expr
+Line -> a Line
 
 
 @ New new Reduce
@@ -307,21 +309,21 @@ Expr -> Expr ( Tuple )
 Expr -> Expr [ Expr ]
 Expr -> SRef [ Expr ]
 
-@ Else : Reduce
+@ Else lowest Reduce
 > if
 Line -> else
 
-@ ElseIf : Reduce
+@ ElseIf lowest Reduce
 Line -> else if Expr
 
-@ If : Reduce
+@ If lowest Reduce
 Line -> if Expr
 
 
-@ While : Reduce
+@ While lowest Reduce
 Line -> while Expr
 
-@ For : Reduce
+@ For lowest Reduce
 Line -> for each ( Ref in Expr )
 Line -> for each Ref in Expr 
 
@@ -330,6 +332,7 @@ Line -> for each Ref in Expr
 Lambda -> ( Tuple ) :
 Lambda -> ( Expr ) :
 Lambda -> ( ) :
+Lambda -> :
 
 @ Assign highest Reduce
 Line -> Expr Lambda
@@ -376,7 +379,7 @@ Line -> Expr
 
 
 ;;; Operator Precedence
-in new a highest
+in new : highest
 (
 [ .
 !
@@ -386,9 +389,9 @@ in new a highest
 == != 
 &&
 ||
-= is
+= is a
 ,
-) ] :
+) ]
 lowest 
 
 

@@ -24,13 +24,6 @@
 
 static Operation* GlobalBlockOwner;
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Contants
-inline constexpr extArg_t GOD_CALL_ID = 0;
-inline constexpr extArg_t SOMETHING_CALL_ID = 1;
-inline constexpr extArg_t NOTHING_CALL_ID = 2;
-inline constexpr extArg_t ARRAY_CALL_ID = 3;
-
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Helpers
@@ -200,8 +193,7 @@ inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
                 return;
             }
 
-            bool isRef = false;
-            FlattenOperationRefDirect(op, isRef);
+            FlattenOperationRefDirect(op);
         }
         arg = 1;
     }
@@ -353,7 +345,7 @@ inline bool OperationRefIsPrimitive(Operation* op)
 }
 
 /// flatten a OperationType::Ref [op] which may point to a primitive object
-void FlattenOperationRefDirect(Operation* op, bool& isRef)
+void FlattenOperationRefDirect(Operation* op)
 {
     uint8_t opId;
     extArg_t arg = op->EntityIndex;
@@ -361,14 +353,16 @@ void FlattenOperationRefDirect(Operation* op, bool& isRef)
     if(OperationRefIsPrimitive(op))
     {
         opId = IndexOfInstruction(BCI_LoadPrimitive);
-        isRef = false;
+        AddByteCodeInstruction(opId, arg);
     }
     else
     {
         opId = IndexOfInstruction(BCI_LoadCallName);
-        isRef = true;
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveDirect);
+        AddByteCodeInstruction(opId, noArg);
     }
-    AddByteCodeInstruction(opId, arg);
 }
 
 /// flattens an OperationType::Ref [op] which cannot be a primitive (it is scoped)
@@ -387,16 +381,7 @@ void FlattenOperationRefScoped(Operation* op, bool& isRef)
 void FlattenOperationScopeResolutionDirect(Operation* op)
 {
     auto firstOperand = op->Operands[0];
-    bool isRef = false;
-    FlattenOperationRefDirect(firstOperand, isRef);
-    
-    // primitives (isRef == false) are loaded directly and do not need to be
-    // resolved
-    if(isRef)
-    {
-        uint8_t opId = IndexOfInstruction(BCI_ResolveDirect);
-        AddByteCodeInstruction(opId, noArg);
-    }
+    FlattenOperationRefDirect(firstOperand);
 }
 
 /// flattens a OperationType::ScopeResolution [op] assuming it is scoped and has
@@ -413,7 +398,6 @@ void FlattenOperationScopeResolutionScoped(Operation* op)
         /// must be an expression
         FlattenOperation(firstOperand);
     }
-    
 
     auto secondOperand = op->Operands[1];
     bool isRef = false;
@@ -510,6 +494,7 @@ inline void FlattenOperationComparison(Operation* op)
 /// while/if/elseif/else
 /// isequal
 /// array
+/// dotypebinding new
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -547,6 +532,14 @@ inline void FlattenOperationGeneric(Operation* op)
 
         case OperationType::Not:
         opId = IndexOfInstruction(BCI_Not);
+        break;
+
+        case OperationType::DoTypeBinding:
+        opId = IndexOfInstruction(BCI_BindType);
+        break;
+
+        case OperationType::New:
+        opId = IndexOfInstruction(BCI_Copy);
         break;
 
         // used for when OperationType::Is is treated as assign
@@ -590,36 +583,15 @@ inline void FlattenOperationAssign(Operation* op)
     }
     else if(op->Operands[0]->Type == OperationType::Ref)
     {
-        uint8_t opId = IndexOfInstruction(BCI_LoadCallName);
-        extArg_t arg = op->Operands[0]->EntityIndex;
-        AddByteCodeInstruction(opId, arg);
-
-        opId = IndexOfInstruction(BCI_ResolveDirect);
-        AddByteCodeInstruction(opId, noArg); 
+        FlattenOperationRefDirect(op->Operands[0]);
     }
     else
     {
         FlattenOperation(op->Operands[0]);
     }
+
     FlattenOperation(op->Operands[1]);
     uint8_t opId = IndexOfInstruction(BCI_Assign);
-    AddByteCodeInstruction(opId, noArg);
-}
-
-/// adds bytecode instructions for [op] with OperationType::New
-inline void FlattenOperationNew(Operation* op)
-{
-    bool isRef;
-    FlattenOperationRefDirect(op->Operands[0], isRef);
-
-    uint8_t opId;
-    if(isRef)
-    {
-        opId = IndexOfInstruction(BCI_ResolveDirect);
-        AddByteCodeInstruction(opId, noArg);
-    }
-    
-    opId = IndexOfInstruction(BCI_Copy);
     AddByteCodeInstruction(opId, noArg);
 }
 
@@ -637,23 +609,6 @@ inline void FlattenOperationDefineMethod(Operation* op)
 
     opId = IndexOfInstruction(BCI_DefMethod);
     AddByteCodeInstruction(opId, arg);
-}
-
-inline void FlattenOperationDoTypeBinding(Operation* op)
-{
-    auto refOp = op->Operands[0];
-    uint8_t opId;
-    extArg_t arg;
-
-    opId = IndexOfInstruction(BCI_LoadCallName);
-    arg = refOp->EntityIndex;
-    AddByteCodeInstruction(opId, arg);
-
-    opId = IndexOfInstruction(BCI_ResolveDirect);
-    AddByteCodeInstruction(opId, noArg);
-
-    opId = IndexOfInstruction(BCI_BindType);
-    AddByteCodeInstruction(opId, noArg);
 }
 
 inline void FlattenOperationEvaluateAsArrayInitialization(Operation* paramsOp)
@@ -676,6 +631,26 @@ inline void FlattenOperationEvaluateAsArrayInitialization(Operation* paramsOp)
 
     opId = IndexOfInstruction(BCI_Eval);
     AddByteCodeInstruction(opId, 1);
+}
+
+inline void FlattenOperationNew(Operation* op)
+{
+    uint8_t opId;
+    extArg_t arg; 
+
+    opId = IndexOfInstruction(BCI_LoadPrimitive);
+    arg = NOTHING_CALL_ID; 
+    AddByteCodeInstruction(opId, arg);
+
+    FlattenOperation(op->Operands[0]);
+
+    /// methods are done on cloned objects
+    opId = IndexOfInstruction(BCI_Copy);
+    AddByteCodeInstruction(opId, noArg);
+    
+    opId = IndexOfInstruction(BCI_Eval);
+    arg = 0;
+    AddByteCodeInstruction(opId, arg);
 }
 
 /// adds bytecode instructions for [op] with OperationType::Evaluate
@@ -701,7 +676,6 @@ inline void FlattenOperationEvaluate(Operation* op)
         return;
     }
 
-    /// TODO: make this nicer
     /// case with no caller
     if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
     {
@@ -709,19 +683,7 @@ inline void FlattenOperationEvaluate(Operation* op)
         arg = NOTHING_CALL_ID; 
         AddByteCodeInstruction(opId, arg);
 
-        if(methodOp->Type == OperationType::Ref)
-        {
-            opId = IndexOfInstruction(BCI_LoadCallName);
-            arg = methodOp->EntityIndex;
-            AddByteCodeInstruction(opId, arg);
-
-            opId = IndexOfInstruction(BCI_ResolveDirect);
-            AddByteCodeInstruction(opId, noArg);
-        }
-        else
-        {
-            FlattenOperation(methodOp);
-        }
+        FlattenOperation(methodOp);
     }
     else
     {
@@ -825,7 +787,7 @@ inline void FlattenOperationAsk(Operation* op)
     {
         FlattenOperation(op->Operands[0]);
         arg = 0;
-        AddByteCodeInstruction(opId, arg);
+        AddByteCodeInstruction(opId, noArg);
 
         AddEndLineInstruction();
     }
@@ -863,6 +825,12 @@ inline void FlattenOperationIs(Operation* op)
 
     FlattenOperationAssign(op);
 
+    opId = IndexOfInstruction(BCI_DropTOS);
+    AddByteCodeInstruction(opId, noArg);
+
+    opId = IndexOfInstruction(BCI_LoadCmp);
+    AddByteCodeInstruction(opId, 1); // 1 for true
+
     opId = IndexOfInstruction(BCI_Jump);
     jumpTo = NextInstructionId();
     RewriteByteCodeInstruction(opId, jumpTo, jump2Start);
@@ -875,6 +843,10 @@ void FlattenOperation(Operation* op)
     {
         FlattenOperationScopeResolution(op);
     }
+    else if(op->Type == OperationType::Ref)
+    {
+        FlattenOperationRefDirect(op);
+    }
     else if(op->Type == OperationType::Assign)
     {
         FlattenOperationAssign(op);
@@ -883,18 +855,10 @@ void FlattenOperation(Operation* op)
     {
         FlattenOperationIs(op);
     }
-    else if(op->Type == OperationType::New)
-    {
-        FlattenOperationNew(op);
-    }
     else if(op->Type == OperationType::DefineMethod)
     {
         FlattenOperationDefineMethod(op);
         GlobalBlockOwner = op;
-    }
-    else if(op->Type == OperationType::DoTypeBinding)
-    {
-        FlattenOperationDoTypeBinding(op);
     }
     else if(op->Type == OperationType::Evaluate)
     {
@@ -915,6 +879,10 @@ void FlattenOperation(Operation* op)
     else if(op->Type == OperationType::Ask)
     {
         FlattenOperationAsk(op);
+    }
+    else if(op->Type == OperationType::New)
+    {
+        FlattenOperationNew(op);
     }
     else
     {

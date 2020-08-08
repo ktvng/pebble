@@ -97,7 +97,7 @@ void IfNeededAddArrayIndexCalls(size_t n);
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods
 
-void DoByteCodeProgram();
+int DoByteCodeProgram(Program* p);
 void AddRuntimeCall(Call* call);
 void AddRuntimeScope(Scope* scope);
 

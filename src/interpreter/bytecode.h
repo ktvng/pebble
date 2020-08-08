@@ -9,12 +9,6 @@ const uint8_t BitFlag = 0x1;
 
 typedef void (*BCI_Method)(extArg_t);
 
-struct ByteCodeInstruction
-{
-    uint8_t Op;
-    uint8_t Arg;
-};
-
 const inline int BCI_NumberOfInstructions = 35;
 
 void BCI_LoadCallName(extArg_t arg);

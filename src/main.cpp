@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
     
     if(g_useBytecodeRuntime)
     {
-        DoByteCodeProgram();
+        DoByteCodeProgram(prog);
     }   
     else
     {

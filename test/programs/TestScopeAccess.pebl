@@ -10,9 +10,9 @@ Method():
     A = 4
 print A
 
-Method():
+Method2():
     B = 12
-Method()
+Method2()
 print B
 
 MethodWithAccess():

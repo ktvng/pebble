@@ -61,22 +61,6 @@ String StringValueOf(const Call* call)
     {
         return *static_cast<String*>(call->Value);
     }
-    else if(call->BoundType == &NullType)
-    {
-        return "Nothing";
-    }
-    else if(call->BoundType == &ObjectType)
-    {
-        return "Object";
-    }
-    else if(call->BoundType == &SomethingType)
-    {
-        return "Something";
-    }
-    else if(call->BoundType == &MethodType)
-    {
-        return "<Method>";
-    }
     else
     {
         return "<" + *call->BoundType + ">";

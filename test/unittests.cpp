@@ -123,7 +123,7 @@ void TestScopeAccess()
     CompileAndExecuteProgram("TestScopeAccess");
     Valgrind();
 
-    String correctOutput = "Nothing\nNothing\nNothing\nNothing\n10\n";
+    String correctOutput = "<Nothing>\n<Nothing>\n<Nothing>\n<Nothing>\n10\n";
 
     Should("not allow accessing variables outside declared scope");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);

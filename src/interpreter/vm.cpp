@@ -3,6 +3,7 @@
 #include "bytecode.h"
 #include "errormsg.h"
 #include "dis.h"
+#include "flattener.h"
 
 #include "object.h"
 #include "scope.h"
@@ -241,7 +242,6 @@ void DeleteCall(Call* call)
     CallDestructor(call);
 }
 
-/// TODO: implement
 void GracefullyExit()
 {
     size_t size = RuntimeCalls.size() + ConstPrimitives.size();
@@ -258,17 +258,17 @@ void GracefullyExit()
         ScopeDestructor(scope);
     }
 
-    for(size_t i=3; i<ConstPrimitives.size(); i++)
+    for(size_t i=PRIMITIVE_CALLS; i<ConstPrimitives.size(); i++)
     {
         DeleteCall(ConstPrimitives[i]);
     }
-    
+
     ScopeDestructor(ProgramReg);
     ScopeDestructor(ObjectCall.BoundScope);
 }
 
 /// iterates and executes the instructions stored in BytecodeProgram
-void DoByteCodeProgram()
+int DoByteCodeProgram(Program* p)
 {
     InitRuntime();
 
@@ -293,11 +293,11 @@ void DoByteCodeProgram()
             BCI_Instructions[ins.Op](ins.Arg);
         }
 
-        IfNeededDisplayError();
+        IfNeededDisplayError(p);
         if(FatalErrorOccured)
         {
             GracefullyExit();
-            return;
+            return 1;
         }
 
         if(!JumpStatusReg)
@@ -315,6 +315,7 @@ void DoByteCodeProgram()
         std::cout << "\nmem#" << MemoryStack.size() << "\n";
     }
     GracefullyExit();
+    return 0;
 }
 
 void AddRuntimeCall(Call* call)

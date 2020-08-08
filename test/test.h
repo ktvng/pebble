@@ -136,7 +136,7 @@ inline void Execute()
         if(g_useBytecodeRuntime)
         {
             FlattenProgram(programToRun);
-            DoByteCodeProgram();
+            DoByteCodeProgram(programToRun);
             ProgramDestructor(programToRun);
         }
         else
