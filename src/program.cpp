@@ -330,6 +330,26 @@ Operation* ParseWhile(PossibleOperationsList& typeProbabilityes, TokenList& toke
     return op;
 }
 
+/// Checks for errors programmers may make and given better suggestions (TODO: make message )
+void CheckForLineErrors(TokenList* tokensPtr)
+{
+    for(size_t i = 0; i < tokensPtr->size() - 1; i++)
+    {
+        if(tokensPtr->at(i)->Type == TokenType::Simple && tokensPtr->at(i + 1)->Type == TokenType::Simple)
+        {
+            LogDiagnostics(tokensPtr, "Cannot have multiple operators next to each other");
+            LogIt(LogSeverityType::Sev3_Critical, "ERROR", "Cannot have multiple operators next to each other");
+        }
+    }
+    // determines if the first or last oken is an operator (with 1#'s being the exception at index 0)
+    if((tokensPtr->at(0)->Type == TokenType::Simple && tokensPtr->at(0)->Content.find("-") != std::string::npos) || tokensPtr->at(tokensPtr->size() - 1)->Type == TokenType::Simple)
+    {
+        LogDiagnostics(tokensPtr, "Unfinished expression");
+        LogIt(LogSeverityType::Sev3_Critical, "ERROR", "Unfinished expression");
+
+    }
+}
+
 /// assigns [lineNumber] to be the LineNumber for each operation in the Operation tree of [op]
 void NumberOperation(Operation* op, int lineNumber)
 {
@@ -344,7 +364,7 @@ void NumberOperation(Operation* op, int lineNumber)
 typedef Operation*(*LineTypeFunctions)(PossibleOperationsList&, TokenList&);
 LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
 
-/// parses a line of code
+/// parses a line of tokens that make up 1 line of code
 Operation* ParseLine(TokenList& tokens)
 {
     PossibleOperationsList typeProbabilities;
@@ -352,6 +372,8 @@ Operation* ParseLine(TokenList& tokens)
 
     LineType lineType;
     DecideLineType(typeProbabilities, tokens, lineType);
+
+    CheckForLineErrors(&tokens);
     
     // fPtr
     switch(lineType)
@@ -505,6 +527,7 @@ Program* ParseProgram(const std::string filepath)
     int nextLinePos = 1;
     int lineStart = 1;
 
+    // can reduce logic and simplify
     for(std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
     {
         TokenList tokens = LexLine(line);
