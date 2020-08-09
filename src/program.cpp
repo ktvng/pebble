@@ -145,19 +145,29 @@ String RemoveCommas(String line)
     return returnString;
 }
 
-std::string RemoveComment(const std::string line)
+TokenList RemoveComment(TokenList tokens)
 {
-    std::string lineNoComment;
-    size_t i = 0;
-    size_t end = line.find('#');
-    while (i < line.size() && i < end)
-    {
-        char val = line.at(i);
-        lineNoComment.push_back(val);
-        i++;
+    TokenList tokensNoComments; 
+    for (size_t i = 0; i < tokens.size(); i++) {
+        if (tokens.at(i)->Content != "#") {
+            tokensNoComments.push_back(tokens.at(i));
+        } else {
+            break;
+        }
     }
-    std::string pointerLine = lineNoComment;
-    return pointerLine;
+    return tokensNoComments;
+
+    // std::string lineNoComment;
+    // size_t i = 0;
+    // size_t end = line.find('#');
+    // while (i < line.size() && i < end)
+    // {
+    //     char val = line.at(i);
+    //     lineNoComment.push_back(val);
+    //     i++;
+    // }
+    // std::string pointerLine = lineNoComment;
+    // return pointerLine;
 }
 
 String g_tabString;
@@ -530,11 +540,12 @@ Program* ParseProgram(const std::string filepath)
 
     for(std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
     {
-        std::string removed = RemoveComment(line);
-        TokenList tokens = LexLine(removed);
+        // std::string removed = RemoveComment(line);
+        TokenList tokens = LexLine(line);
+        TokenList noComments = RemoveComment(tokens);
         lineLevel = LevelOfLine(line);
 
-        CodeLine ls = { tokens , lineStart, lineLevel };
+        CodeLine ls = { noComments , lineStart, lineLevel };
         p->Lines.push_back(ls);
 
     }
