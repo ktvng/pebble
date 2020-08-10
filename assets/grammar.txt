@@ -222,7 +222,6 @@ Expr -> SRef <= Expr
 @ DoTypeBinding a Reduce
 Expr -> a Ref
 Expr -> a Expr
-Line -> a Line
 
 
 @ New new Reduce
@@ -295,6 +294,15 @@ Expr -> Expr . Ref ( )
 Expr -> Expr . Ref ( Expr )
 Expr -> Expr . Ref ( Tuple )
 
+Expr -> SRef  Ref ( )
+Expr -> SRef  Ref ( Expr )
+Expr -> SRef  Ref ( Tuple )
+
+Expr -> Expr  Ref ( )
+Expr -> Expr  Ref ( Expr )
+Expr -> Expr  Ref ( Tuple )
+
+
 @ Evaluate ( UnscopedEval
 > :
 Expr -> Ref ( )
@@ -348,8 +356,8 @@ Expr -> Expr is Expr
 Expr -> SRef = Expr
 Expr -> SRef = ( Tuple )
 Expr -> Expr = Expr
-
-
+Expr -> Expr = Lambda
+Expr -> SRef = Lambda
 
 
 
@@ -379,7 +387,7 @@ Line -> Expr
 
 
 ;;; Operator Precedence
-in new : highest
+in new a : highest
 (
 [ .
 !
@@ -389,7 +397,7 @@ in new : highest
 == != 
 &&
 ||
-= is a
+= is
 ,
 ) ]
 lowest 

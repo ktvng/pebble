@@ -77,6 +77,13 @@ inline std::vector<Scope>& LocalScopeStack()
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode program
+
+struct ByteCodeInstruction
+{
+    uint8_t Op;
+    uint8_t Arg;
+};
+
 extern std::vector<ByteCodeInstruction> ByteCodeProgram;
 
 

@@ -151,7 +151,7 @@ int main(int argc, char* argv[])
 
     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
     
-    if(LogAtLevel == LogSeverityType::Sev0_Debug)
+    if(LogAtLevel == LogSeverityType::Sev1_Notify)
     {
         std::cout << time_span.count() << std::endl;
     }

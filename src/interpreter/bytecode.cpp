@@ -477,6 +477,11 @@ inline void ResolveKeywordCall(const String* callName)
 
 inline bool CallsAreEqual(Call* call1, Call* call2)
 {
+    if(call1->BoundType == &NullType || call2->BoundType == &NullType)
+    {
+        return call1->BoundScope == call2->BoundScope;
+    }
+
     return call1->BoundType == call2->BoundType &&
         call1->BoundScope == call2->BoundScope &&
         call1->BoundSection == call2->BoundSection &&
@@ -528,6 +533,26 @@ void HandlePrimitiveTypeInstantiation(Call* primitiveCall, std::vector<Call*>& p
     }
 }
 
+inline String CallIsEffectivelyNothing(Call* call)
+{
+    if(CallIsPrimitive(call))
+    {
+        return "";
+    }
+
+    if(call->BoundScope == &NothingScope)
+    {
+        if(call->BoundType == &NullType)
+        {
+            return "";
+        }
+
+        return "(Nothing)";
+    }
+    
+    return "";
+}
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Instruction Defintions
@@ -556,23 +581,34 @@ void BCI_Assign(extArg_t arg)
     auto rhs = PopTOS<Call>();
     auto lhs = PopTOS<Call>();
 
+    if(lhs == &NothingCall)
+    {
+        ReportFatalError(SystemMessageType::Exception, 7, 
+            Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
+    }
+
     if(lhs->BoundType == &NullType)
     {
         BindType(lhs, rhs->BoundType);
     }
 
-    if(lhs->BoundType != rhs->BoundType)
+    if(rhs->BoundType == &NullType)
     {
-        ReportFatalError(SystemMessageType::Exception, 7,
-            Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
-        return;
+        BindScope(lhs, &NothingScope);
     }
-
-    BindSection(lhs, rhs->BoundSection);
-    BindScope(lhs, rhs->BoundScope);
-    lhs->Value = rhs->Value;
-
-
+    else
+    {
+        if(!(lhs->BoundScope == &NothingScope && lhs->BoundSection == 0) && (lhs->BoundType != rhs->BoundType))
+        {
+            ReportFatalError(SystemMessageType::Exception, 0,
+                Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
+            return;
+        }
+        
+        BindSection(lhs, rhs->BoundSection);
+        BindScope(lhs, rhs->BoundScope);
+        lhs->Value = rhs->Value;
+    }
 
     PushTOS<Call>(lhs);
 }
@@ -603,7 +639,7 @@ void BCI_Add(extArg_t arg)
     else
     {
         call = &NothingCall;
-        ReportError(SystemMessageType::Warning, 0, Msg("cannot add types %s and %s", lCall->BoundType, rCall->BoundType));
+        // ReportError(SystemMessageType::Warning, 0, Msg("cannot add types %s and %s", lCall->BoundType, rCall->BoundType));
     }
 
     PushTOS<Call>(call);
@@ -628,7 +664,7 @@ void BCI_Subtract(extArg_t arg)
     else
     {
         call = &NothingCall;
-        ReportError(SystemMessageType::Warning, 0, Msg("cannot add types %s from %s", rCall->BoundType, lCall->BoundType));
+        // ReportError(SystemMessageType::Warning, 0, Msg("cannot add types %s from %s", rCall->BoundType, lCall->BoundType));
     }
 
     PushTOS<Call>(call);
@@ -653,7 +689,7 @@ void BCI_Multiply(extArg_t arg)
     else
     {
         call = &NothingCall;
-        ReportError(SystemMessageType::Warning, 0, Msg("cannot multiply types %s from %s", lCall->BoundType, rCall->BoundType));
+        // ReportError(SystemMessageType::Warning, 0, Msg("cannot multiply types %s from %s", lCall->BoundType, rCall->BoundType));
     }
 
     PushTOS<Call>(call);
@@ -678,7 +714,7 @@ void BCI_Divide(extArg_t arg)
     else
     {
         call = &NothingCall;
-        ReportError(SystemMessageType::Warning, 0, Msg("cannot divide types %s by %s", lCall->BoundType, rCall->BoundType));
+        // ReportError(SystemMessageType::Warning, 0, Msg("cannot divide types %s by %s", lCall->BoundType, rCall->BoundType));
     }
 
     PushTOS<Call>(call);
@@ -692,7 +728,7 @@ void BCI_SysCall(extArg_t arg)
     {
         case 0:
         {
-            String msg = StringValueOf(PeekTOS<Call>()) + "\n";
+            String msg = StringValueOf(PeekTOS<Call>()) + CallIsEffectivelyNothing(PeekTOS<Call>()) + "\n";
             ProgramOutput += msg;
             if(g_outputOn)
             {
@@ -842,40 +878,40 @@ void BCI_Jump(extArg_t arg)
 /// leaves object copy as TOS
 void BCI_Copy(extArg_t arg)
 {
-    // auto call = PopTOS<Call>();
-    // auto callCopy = InternalCallConstructor();
+    auto call = PopTOS<Call>();
+    auto callCopy = InternalCallConstructor();
     
-    // auto scp = InternalCopyScope(call->BoundScope);
-    // BindScope(callCopy, scp);
-    // BindType(callCopy, call->BoundType);
-    // BindValue(callCopy, call->Value);
-    // BindSection(callCopy, call->BoundSection);
+    auto scp = InternalCopyScope(call->BoundScope);
+    BindScope(callCopy, scp);
+    BindType(callCopy, call->BoundType);
+    BindValue(callCopy, call->Value);
+    BindSection(callCopy, call->BoundSection);
 
-    // PushTOS<Call>(callCopy);
+    PushTOS<Call>(callCopy);
 }
 
 /// assumes TOS is a Call
 /// leaves object of type as TOS
 void BCI_BindType(extArg_t arg)
 {
-    auto call = PeekTOS<Call>();
+    auto originalCall = PeekTOS<Call>();
 
-    if(call->Name != nullptr)
+    if(originalCall->Name != nullptr)
     {
-    //     BindType(call, call->Name);
-    // }
-    // else
-    // {
-        auto call = PopTOS<Call>();
-        auto newCall = InternalCallConstructor();
-
-        LogDiagnostics(call);
-        BindType(newCall, call->Name);
-        BindValue(newCall, call->Value);
-        BindSection(newCall, call->BoundSection);
-        BindScope(newCall, call->BoundScope);
-
-        PushTOS(newCall);
+        if(originalCall->BoundScope != &NothingScope)
+        {
+            PopTOS<Call>();
+            auto call = InternalCallConstructor();
+            BindType(call, originalCall->Name);
+            BindSection(call, originalCall->BoundSection);
+            BindValue(call, originalCall->Value);
+            
+            PushTOS(call);
+        }
+        else
+        {
+            BindType(originalCall, originalCall->Name);
+        }
     }
     
 }
@@ -926,20 +962,15 @@ void BCI_ResolveDirect(extArg_t arg)
 void BCI_ResolveScoped(extArg_t arg)
 {
     auto callName = PopTOS<String>();
+    auto callerCall = PopTOS<Call>();
 
     // all attributes of Nothing resolve to Nothing
-    if(PeekTOS<Call>()->BoundType == &NullType)
+    if(callerCall->BoundScope == &NothingScope)
     {
+        PushTOS<Call>(&NothingCall);
         return;
     }
 
-    if(PeekTOS<Call>()->BoundScope == &NothingScope)
-    {
-        ReportError(SystemMessageType::Warning, 1, Msg("%s has no bound scope which cannot have attributes", PeekTOS<Call>()->Name));
-        return;
-    }
-
-    auto callerCall = PopTOS<Call>();
     auto resolvedCall = FindInScopeOnlyImmediate(ScopeOf(callerCall), callName);
 
     if(resolvedCall == nullptr)
@@ -1005,7 +1036,7 @@ void BCI_Eval(extArg_t arg)
     auto methodCall = PopTOS<Call>();
     auto caller = PopTOS<Call>();
 
-    if(methodCall->BoundType == &NullType)
+    if(methodCall->BoundScope == &NothingScope)
     {
         PushTOS<Call>(methodCall);
         return;

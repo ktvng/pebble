@@ -80,6 +80,6 @@ ByteCodeError ErrorClasses[] =
     },
     {
         7,
-        "type mismatch"
+        "unassignable left operand"
     }
 };

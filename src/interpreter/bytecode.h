@@ -9,7 +9,7 @@ const uint8_t BitFlag = 0x1;
 
 typedef void (*BCI_Method)(extArg_t);
 
-const inline int BCI_NumberOfInstructions = 35;
+const inline int BCI_NumberOfInstructions = 36;
 
 void BCI_LoadCallName(extArg_t arg);
 void BCI_LoadPrimitive(extArg_t arg);

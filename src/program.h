@@ -28,13 +28,6 @@ struct Program
     Scope* GlobalScope;
     Block* Main;
     Reference* That;
-    std::vector<ByteCodeInstruction> ByteCode;
-};
-
-struct ByteCodeInstruction
-{
-    uint8_t Op;
-    uint8_t Arg;
 };
 
 

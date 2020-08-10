@@ -670,7 +670,7 @@ inline void FlattenOperationEvaluate(Operation* op)
         return;
     }
 
-    if(methodOp->EntityIndex == ARRAY_CALL_ID)
+    if(methodOp->Type == OperationType::Ref && OperationRefIsPrimitive(methodOp) && methodOp->EntityIndex == ARRAY_CALL_ID)
     {
         FlattenOperationEvaluateAsArrayInitialization(paramsOp);
         return;

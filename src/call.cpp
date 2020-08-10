@@ -120,7 +120,11 @@ bool CallIsType(Call* call, BindingType cls)
     return call->BoundType == cls;
 }
 
-
+bool CallIsPrimitive(Call* call)
+{
+    auto type = call->BoundType;
+    return type == &IntegerType || type == &DecimalType || type == &BooleanType || type == &StringType;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Matching primitives

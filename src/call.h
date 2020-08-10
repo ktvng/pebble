@@ -32,6 +32,8 @@ struct Call
 Call* CallConstructor(const String* name=nullptr);
 void CallDestructor(Call* call);
 
+bool CallIsPrimitive(Call* call);
+
 void BindType(Call* call, BindingType type);
 
 void BindSection(Call* call, extArg_t section);
