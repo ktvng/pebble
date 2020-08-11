@@ -94,6 +94,11 @@ extern Call NothingCall;
 extern Call ObjectCall;
 extern Call SomethingCall;
 extern Call ArrayCall;
+extern Call IntegerCall;
+extern Call DecimalCall;
+extern Call StringCall;
+extern Call BooleanCall;
+
 extern Scope NothingScope;
 extern const String NothingCallName;
 

@@ -338,7 +338,14 @@ inline bool OperationRefIsPrimitive(Operation* op)
     /// TODO: add Integer et all
     if(IsReferenceStub(ref))
     {
-        return ref->Name == "Object" || ref->Name == "Something" || ref->Name == "Nothing" || ref->Name == "Array";
+        return ref->Name == "Object" 
+            || ref->Name == "Something" 
+            || ref->Name == "Nothing" 
+            || ref->Name == "Array"
+            || ref->Name == "Integer"
+            || ref->Name == "Decimal"
+            || ref->Name == "String"
+            || ref->Name == "Boolean";
     }
 
     return true;
@@ -1187,16 +1194,36 @@ void IfNeededAddConstPrimitive(Operation* op)
         op->EntityIndex = 3;
         return;
     }
+    else if(op->Value->Name == "Integer")
+    {
+        op->EntityIndex = 4;
+        return;
+    }
+    else if(op->Value->Name == "Decimal")
+    {
+        op->EntityIndex = 5;
+        return;
+    }
+    else if(op->Value->Name == "String")
+    {
+        op->EntityIndex = 6;
+        return;
+    }
+    else if(op->Value->Name == "Boolean")
+    {
+        op->EntityIndex = 7;
+        return;
+    }
 
     size_t atPosition;
     if(EncounteredPrimitiveObject(obj, atPosition))
     {
-        op->EntityIndex = atPosition + UniversalPrimitiveCount;
+        op->EntityIndex = atPosition + PRIMITIVE_CALLS;
         return;
     }
 
-    /// TODO: this is because of the 3 calls hardcoded
-    op->EntityIndex = PrimitiveObjectsEncountered.size() + UniversalPrimitiveCount;
+    /// TODO: this is because of the calls hardcoded
+    op->EntityIndex = PrimitiveObjectsEncountered.size() + PRIMITIVE_CALLS;
     PrimitiveObjectsEncountered.push_back(obj);
     
     Call* call = CallConstructor();
@@ -1248,14 +1275,13 @@ void FirstPassBlock(Block* b)
     }
 }
 
-int UniversalPrimitiveCount = 4;
-
 /// resets the CallNames and ConstPrimtiives lists
 void InitEntityLists()
 {
     ConstPrimitives.clear();
     ConstPrimitives.reserve(64);
-    ConstPrimitives = { &ObjectCall, &SomethingCall, &NothingCall, &ArrayCall };
+    ConstPrimitives = { &ObjectCall, &SomethingCall, &NothingCall, &ArrayCall, &IntegerCall,
+        &DecimalCall, &StringCall, &BooleanCall };
 
     CallNames.clear();
     CallNames.reserve(64);

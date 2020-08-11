@@ -41,16 +41,14 @@ void TestIf()
 {
     It("evaluates an if statement");
     
-    SetProgramToRun("TestIf");
-    ConfigureLogging(LogSeverityType::Sev3_Critical, true);
-    Compile();
-    Execute();
+    CompileAndExecuteProgram("TestIf");
 
-    IncludeStandardAssertSuite();
 
     Should("conditionally execute code by evaluating if-expression");
     OtherwiseReport("unknown failure condition");
-    Assert(ProgramOutput == "INIF\n");
+    Assert(Result.Equals("INIF\n"));
+
+    IncludeStandardAssertSuite();
 }
 
 void TestOrderOfOperations()
@@ -58,17 +56,17 @@ void TestOrderOfOperations()
     It("evaluates order of operations");
 
     SetProgramToRun("TestOrderOfOperations");
+    Expected("28\n6\n7\n-5\n-10\n8\n");
+
     DisableLogging();
     Compile();
     Execute();
+    
+    Should("execute operations in PEMDAS order");
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
 
     IncludeStandardAssertSuite();
-    
-    String correctOutput = "28\n6\n7\n-5\n-10\n8\n";
-
-    Should("execute operations in PEMDAS order");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
 }
 
 void TestMethodWithNoParams()
@@ -77,13 +75,12 @@ void TestMethodWithNoParams()
 
     CompileAndExecuteProgram("TestMethodWithNoParams");
 
-    IncludeStandardAssertSuite();
-
-    String correctOutput = "48\n60\n";
-
+    Expected("48\n60\n");
     Should("define and execute method with no params");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
 }
 
 void TestMethodWithSingleParam()
@@ -91,14 +88,13 @@ void TestMethodWithSingleParam()
     It("can define/evaluate method with single param");
 
     CompileAndExecuteProgram("TestMethodWithSingleParam");
-
-    IncludeStandardAssertSuite();
-
-    String correctOutput = "10\n7\n";
+    Expected("10\n7\n");
 
     Should("define and execute method with single param");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
 }
 
 void TestMethodWithMultipleParams()
@@ -106,14 +102,13 @@ void TestMethodWithMultipleParams()
     It("can define/evaluate method with multiple params");
 
     CompileAndExecuteProgram("TestMethodWithMultipleParams");
-
-    IncludeStandardAssertSuite();
-
-    String correctOutput = "9\n3\n";
+    Expected("9\n3\n");
 
     Should("define and execute method with multiple params");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
 }
 
 void TestScopeAccess()
@@ -121,13 +116,13 @@ void TestScopeAccess()
     It("keeps variables accessible only in local scope");
 
     CompileAndExecuteProgram("TestScopeAccess");
+    Expected("<Nothing>\n<Nothing>\n<Nothing>\n<Nothing>\n10\n");
+
     Valgrind();
 
-    String correctOutput = "<Nothing>\n<Nothing>\n<Nothing>\n<Nothing>\n10\n";
-
     Should("not allow accessing variables outside declared scope");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
 }
 
 void TestMethodRecursion()
@@ -135,13 +130,13 @@ void TestMethodRecursion()
     It("method can call itself");
 
     CompileAndExecuteProgram("TestMethodRecursion");
-    IncludeStandardAssertSuite();
-
-    String correctOutput = "5\n4\n3\n2\n1\n0\n120\n64\n";
+    Expected("5\n4\n3\n2\n1\n0\n120\n64\n");
 
     Should("allow method to call itself");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
 }
 
 void TestComments()
@@ -152,11 +147,11 @@ void TestComments()
     
     IncludeStandardAssertSuite();
 
-    String correctOutput = "30\n#60\n";
+    Expected("30\n#60\n");
 
     Should("not parse program comments marked by a #");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput );
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
 }
 
 void TestIfElseComplex()
@@ -164,12 +159,13 @@ void TestIfElseComplex()
     It("correctly evaluates an if/else-if/else statement");
 
     CompileAndExecuteProgram("TestIfElseComplex");
-    IncludeStandardAssertSuite();
+    Expected("1\n2\nX\n3\n1\n");
 
-    String correctOutput = "1\n2\nX\n3\n1\n";
     Should("cascade through else-ifs and pool in else");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput);
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
 }
 
 void TestWhile()
@@ -177,12 +173,13 @@ void TestWhile()
     It("correctly evaluates a while-loop");
 
     CompileAndExecuteProgram("TestWhile");
-    IncludeStandardAssertSuite();
+    Expected("5\n4\n3\n2\n1\n-5\n-4\n-3\n-2\n-1\n");
 
-    String correctOutput = "5\n4\n3\n2\n1\n-5\n-4\n-3\n-2\n-1\n";
     Should("break out of while when condition is false");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput);
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
 }
 
 void TestHere()
@@ -190,12 +187,46 @@ void TestHere()
     It("correctly evaluates a method with the here operator");
 
     CompileAndExecuteProgram("TestHere");
-    IncludeStandardAssertSuite();
+    Expected("7\n");
 
-    String correctOutput = "7\n";
     Should("execute method in inplace without changing scope when called with here operator");
-    OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
-    Assert(ProgramOutput == correctOutput);
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
+}
+
+void TestMethodReturn()
+{
+    It("correctly returns caller/self/object");
+
+    CompileAndExecuteProgram("TestMethodReturn");
+    Expected("Caller\nCaller\nSelf1\nSelf2\nSelf3\n12\n<Nothing>\nSelf4\n");
+
+    Should("return the appropriate value");
+    OtherwiseReport(Diff());
+    Assert(Result.Expected());
+
+    IncludeStandardAssertSuite();
+}
+
+void TestTypeSystem()
+{
+    It("enforces strict typing");
+
+    CompileAndExecuteProgram("TestMismatchedTypeAssignment");
+    Expected("thrown exception");
+    Valgrind();
+    
+    Should("return the appropriate value");
+    OtherwiseReport(Diff());
+    Assert(Result.EncounteredFatalException());
+
+    CompileAndExecuteProgram("TestAlignedTypeAssignment");
+    Should("allow assignment when types match");
+    Assert(Result.Not.EncounteredFatalException());
+
+    IncludeStandardAssertSuite();
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -210,6 +241,8 @@ std::vector<TestFunction> Tests =
 
     // Test for control flow
     TestIf,
+    TestIfElseComplex,
+    TestWhile,
 
     // Tests for operations
     TestOrderOfOperations,
@@ -219,8 +252,11 @@ std::vector<TestFunction> Tests =
     TestMethodWithSingleParam,
     TestMethodWithMultipleParams,
     TestMethodRecursion,
+    TestMethodReturn,
 
-    TestIfElseComplex,
-    TestWhile,
-    TestComments
+    // Tests for compile time
+    TestComments,
+
+    // Tests for the type system
+    TestTypeSystem,
 };

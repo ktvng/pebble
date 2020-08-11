@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "call.h"
 
 #include "diagnostics.h"
@@ -43,14 +45,26 @@ String StringValueOf(const Call* call)
 {
     if(call->BoundType == &IntegerType)
     {
+        if(call->Value == nullptr)
+        {
+            return "<Integer>";
+        }
         return std::to_string(*static_cast<int*>(call->Value));
     }
     else if(call->BoundType == &DecimalType)
     {
+        if(call->Value == nullptr)
+        {
+            return "<Decimal>";
+        }
         return std::to_string(*static_cast<double*>(call->Value));
     }
     else if(call->BoundType == &BooleanType)
     {
+        if(call->Value == nullptr)
+        {
+            return "<Boolean>";
+        }
         if(*static_cast<bool*>(call->Value))
         {
             return "true";
@@ -59,6 +73,10 @@ String StringValueOf(const Call* call)
     }
     else if(call->BoundType == &StringType)
     {
+        if(call->Value == nullptr)
+        {
+            return "<String>";
+        }
         return *static_cast<String*>(call->Value);
     }
     else
@@ -126,27 +144,47 @@ bool CallIsPrimitive(Call* call)
     return type == &IntegerType || type == &DecimalType || type == &BooleanType || type == &StringType;
 }
 
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Matching primitives
 
 bool ValueMatchesPrimitiveCall(int value, Call* call)
 {
+    if(call->Value == nullptr)
+    {
+        return false;
+    }
+
     return CallIsType(call, &IntegerType) && *static_cast<int*>(call->Value) == value;
 }
 
 bool ValueMatchesPrimitiveCall(String& value, Call* call)
 {
-    LogDiagnostics(call);
+    if(call->Value == nullptr)
+    {
+        return false;
+    }
+
     return CallIsType(call, &StringType) && *static_cast<String*>(call->Value) == value;
 }
 
 bool ValueMatchesPrimitiveCall(double value, Call* call)
 {
+    if(call->Value == nullptr)
+    {
+        return false;
+    }
+
     return CallIsType(call, &DecimalType) && *static_cast<double*>(call->Value) == value;
 }
 
 bool ValueMatchesPrimitiveCall(bool value, Call* call)
 {
+    if(call->Value == nullptr)
+    {
+        return false;
+    }
+
     return CallIsType(call, &BooleanType) && *static_cast<bool*>(call->Value) == value;
 }
 
@@ -203,6 +241,6 @@ bool ListContainsPrimitiveCall(std::vector<Call*> list, bool value, Call** found
             return true;
         }
     }
-    
+
     return false;
 }

@@ -102,6 +102,7 @@ std::vector<ByteCodeInstruction> ByteCodeProgram;
 // Statics
 
 Scope NothingScope;
+Scope SomethingScope;
 
 Call ObjectCall
 {
@@ -118,7 +119,7 @@ Call SomethingCall
     &SomethingType,
     &SomethingType,
     0,
-    &NothingScope,
+    &SomethingScope,
 
     nullptr,
 };
@@ -138,12 +139,53 @@ Call ArrayCall
     &ArrayType,
     &ArrayType,
     0,
+    &SomethingScope,
+
     nullptr,
+};
+
+Call IntegerCall
+{
+    &IntegerType,
+    &IntegerType,
+    0,
+    &SomethingScope,
+
+    nullptr,
+};
+
+Call DecimalCall
+{
+    &DecimalType,
+    &DecimalType,
+    0,
+    &SomethingScope,
+
+    nullptr,
+};
+
+Call StringCall
+{
+    &StringType,
+    &StringType,
+    0,
+    &SomethingScope,
+
+    nullptr,
+};
+
+Call BooleanCall
+{
+    &BooleanType,
+    &BooleanType,
+    0,
+    &SomethingScope,
 
     nullptr,
 };
 
 const String SizeCallName = "Size";
+
 std::vector<String> ArrayIndexCalls;
 
 String* CallNamePointerFor(int i)
@@ -277,6 +319,7 @@ int DoByteCodeProgram(Program* p)
     {
         auto ins = ByteCodeProgram[InstructionReg];
         LogItDebug(Msg("%i: %s", (int)InstructionReg, ToString(ins)));
+
         if(IsNOP(ins))
         {
             InstructionReg++;

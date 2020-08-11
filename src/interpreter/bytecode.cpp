@@ -581,6 +581,9 @@ void BCI_Assign(extArg_t arg)
     auto rhs = PopTOS<Call>();
     auto lhs = PopTOS<Call>();
 
+    LogDiagnostics(rhs);
+    LogDiagnostics(lhs);
+
     if(lhs == &NothingCall)
     {
         ReportFatalError(SystemMessageType::Exception, 7, 
@@ -589,26 +592,31 @@ void BCI_Assign(extArg_t arg)
 
     if(lhs->BoundType == &NullType)
     {
-        BindType(lhs, rhs->BoundType);
-    }
-
-    if(rhs->BoundType == &NullType)
-    {
-        BindScope(lhs, &NothingScope);
+        if(lhs->BoundScope == &NothingScope)
+        {
+            BindType(lhs, rhs->BoundType);
+            BindSection(lhs, rhs->BoundSection);
+            BindScope(lhs, rhs->BoundScope);
+            lhs->Value = rhs->Value;
+        }
     }
     else
     {
-        if(!(lhs->BoundScope == &NothingScope && lhs->BoundSection == 0) && (lhs->BoundType != rhs->BoundType))
+        if(lhs->BoundType == rhs->BoundType)
+        {
+            BindType(lhs, rhs->BoundType);
+            BindSection(lhs, rhs->BoundSection);
+            BindScope(lhs, rhs->BoundScope);
+            lhs->Value = rhs->Value;
+        }
+        else
         {
             ReportFatalError(SystemMessageType::Exception, 0,
                 Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
             return;
         }
-        
-        BindSection(lhs, rhs->BoundSection);
-        BindScope(lhs, rhs->BoundScope);
-        lhs->Value = rhs->Value;
     }
+
 
     PushTOS<Call>(lhs);
 }

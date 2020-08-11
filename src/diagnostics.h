@@ -86,7 +86,7 @@ String ToString(const Operation& op, int level=0);
 String ToString(const Operation* op, int level=0);
 String ToString(const Block* block, int level=0);
 String ToString(const Block& block, int level=0);
-
+String ToString(const Call* call);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Logging object dump

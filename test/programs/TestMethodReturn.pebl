@@ -1,0 +1,41 @@
+MethodCaller():
+    Name = "Caller"
+
+    ExplicitlyReturnsCaller():
+        return caller
+
+    ImplicitlyReturnsCaller():
+        12
+
+    ExplicitlyReturnsSelf():
+        self.Name = "Self1"
+        return self
+
+MethodImplicitlyReturnsSelf():
+    Name = "Self2"
+
+MethodExplicitlyReturnsSelf():
+    Name = "Self3"
+    return self
+
+MethodReturnsInteger():
+    return 12
+
+MethodReturnsNothing():
+    return Nothing
+
+MethodReturnsSelf():
+    Name = "Self4"
+    return
+
+Caller = MethodCaller()
+
+print Caller.ExplicitlyReturnsCaller().Name
+print Caller.ImplicitlyReturnsCaller().Name
+print Caller.ExplicitlyReturnsSelf().Name
+
+print MethodImplicitlyReturnsSelf().Name
+print MethodExplicitlyReturnsSelf().Name
+print MethodReturnsInteger()
+print MethodReturnsNothing()
+print MethodReturnsSelf().Name

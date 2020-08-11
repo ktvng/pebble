@@ -20,6 +20,7 @@ extern std::string testBuffer;
 extern std::string assertName;
 extern std::string failureDescription;
 extern std::string testName;
+extern std::string expected;
 
 extern std::string programFile;
 
@@ -46,6 +47,36 @@ bool Test();
 void ResetRun();
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Program output wrapper
+
+class NotResult
+{
+    public:
+    bool Equals(std::string msg);
+    bool Contains(std::string msg);
+    bool EncounteredFatalException();
+    bool EncounteredNonFatalException();
+    bool Expected();
+};
+
+class ProgramResult
+{
+    public:
+    bool Equals(std::string msg);
+    bool Contains(std::string msg);
+    bool EncounteredFatalException();
+    bool EncounteredNonFatalException();
+    bool Expected();
+    std::string Output();
+    NotResult Not;
+};
+
+
+
+extern ProgramResult Result;
+
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Test fundementals
 
 /// describes the current assertion. MUST BE CALLED BEFORE EACH UNIQUE ASSERTION
@@ -57,6 +88,21 @@ inline void Should(const std::string& descriptionOfTest)
 inline void OtherwiseReport(const std::string& descriptionOfFailureCase)
 {
     failureDescription = descriptionOfFailureCase;
+}
+
+inline std::string Diff()
+{
+    return "different between result and expected\ngot:\n" + ProgramOutput + "\nexpected:\n" + expected;
+}
+
+inline void Expected(std::string& msg)
+{
+    expected = msg;
+}
+
+inline void Expected(const char* msg)
+{
+    expected = std::string(msg);
 }
 
 /// assert that [b] is true. logs error if this is not the case

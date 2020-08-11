@@ -14,6 +14,7 @@ std::string testBuffer;
 std::string assertName = "*unspecified*";
 std::string failureDescription = "*unspecified*";
 std::string testName = "*unspecified*";
+std::string expected = "*unspecified";
 
 std::string programFile = "./program";
 
@@ -24,6 +25,71 @@ int succeededAsserts = 0;
 
 bool g_shouldRunCustomProgram = true;
 bool g_noisyReport = false;
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Program output wrapper
+
+const std::string FatalExceptionString = "(!) Fatal Exception";
+const std::string NonFatalExceptionString = "(!) Exception";
+
+bool ProgramResult::Equals(std::string msg)
+{
+    return ProgramOutput == msg;
+}
+
+bool ProgramResult::Contains(std::string msg)
+{
+    return ProgramOutput.find(msg) != std::string::npos;
+}
+
+bool ProgramResult::EncounteredFatalException()
+{
+    return ProgramOutput.find(FatalExceptionString) != std::string::npos;
+}
+
+bool ProgramResult::EncounteredNonFatalException()
+{
+    return ProgramOutput.find(NonFatalExceptionString) != std::string::npos;
+}
+
+bool ProgramResult::Expected()
+{
+    return ProgramOutput == expected;
+}
+
+std::string ProgramResult::Output()
+{
+    return ProgramOutput;
+}
+
+bool NotResult::Equals(std::string msg)
+{
+    return ProgramOutput != msg;
+}
+
+bool NotResult::Contains(std::string msg)
+{
+    return ProgramOutput.find(msg) == std::string::npos;
+}
+
+bool NotResult::EncounteredFatalException()
+{
+    return ProgramOutput.find(FatalExceptionString) == std::string::npos;
+}
+
+bool NotResult::EncounteredNonFatalException()
+{
+    return ProgramOutput.find(NonFatalExceptionString) == std::string::npos;
+}
+
+bool NotResult::Expected()
+{
+    return ProgramOutput != expected;
+}
+
+
+ProgramResult Result;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers

@@ -195,12 +195,15 @@ void LogProgramInstructions()
     {
         refNames +=  Msg("%i:\t %s\n", i, CallNames[i]);
     }
+    
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", refNames);
 
+    String primitives = "Const Primitives\n";
     for(size_t i=0; i<ConstPrimitives.size(); i++)
     {
-        LogDiagnostics(ConstPrimitives[i], "Constant Primitive");
+        primitives += Msg("%i: %s", i, ToString(ConstPrimitives[i]));
     }
+    LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", primitives);
 
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", Msg("\n%s", ToString(ByteCodeProgram)));
 }

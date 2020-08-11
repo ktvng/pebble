@@ -23,8 +23,6 @@ inline int GetLineNumberFromInstructionNumber(extArg_t instructionNumber, Progra
 {
     extArg_t i = 0;
     for(; i< ByteCodeLineAssociation.size() && ByteCodeLineAssociation[i] < instructionNumber; i++);
-    std::cerr << std::endl << i << std::endl;
-    std::cerr << p->Lines.size();
     return p->Lines[i-1].LineNumber;
 }
 
@@ -37,6 +35,7 @@ void IfNeededDisplayError(Program* p)
         String fatalStatus = (ErrorType == SystemMessageType::Exception ? "Fatal" : "");        
         auto stringMsg = Msg("(!) %s %s at line[%i]: %s\n     >>   %s\n", fatalStatus, SystemMessageTypeString(ErrorType), lineNumber, ErrorClasses[ErrorCode].ErrorMsg, ErrorMsg);
         SetConsoleColorForMessage(ErrorType);
+        ProgramOutput += stringMsg;
         if(g_outputOn)
             std::cerr << stringMsg;
         SetConsoleColor(ConsoleColor::White);
