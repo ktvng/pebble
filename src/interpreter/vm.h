@@ -100,6 +100,7 @@ extern Call StringCall;
 extern Call BooleanCall;
 
 extern Scope NothingScope;
+extern Scope SomethingScope;
 extern const String NothingCallName;
 
 extern const String SizeCallName;

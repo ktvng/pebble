@@ -3,6 +3,13 @@
 
 #include "abstract.h"
 
+struct Type
+{
+    std::string* BoundName;
+    std::vector<Type*> InputTypes;
+    Type* OutputType;
+};
+
 typedef const std::string* BindingType;
 
 

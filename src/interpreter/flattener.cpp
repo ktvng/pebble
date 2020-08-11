@@ -1228,7 +1228,7 @@ void IfNeededAddConstPrimitive(Operation* op)
     
     Call* call = CallConstructor();
     call->Value = op->Value->To->Value;
-    BindScope(call, &NothingScope);
+    BindScope(call, &SomethingScope);
     /// TODO: make this more robust
     BindType(call, ObjectClassToType(op->Value->To));
     ConstPrimitives.push_back(call);
