@@ -82,8 +82,12 @@ std::vector<String> CallNames;
 /// list of all constant primitives appearing in a program
 std::vector<Call*> ConstPrimitives;
 
+/// list of all calls created during runtime
 std::vector<Call*> RuntimeCalls;
+
+/// list of all scopes created during runtime
 std::vector<Scope*> RuntimeScopes;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -91,6 +95,7 @@ std::vector<Scope*> RuntimeScopes;
 /// the call stack, stores information about different function calls and 
 /// how to return after a given function returns
 std::vector<CallFrame> CallStack;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode program
@@ -102,7 +107,10 @@ std::vector<ByteCodeInstruction> ByteCodeProgram;
 // ---------------------------------------------------------------------------------------------------------------------
 // Statics
 
+/// scope used for Calls which have not been bound to a speciic scope prior
 Scope NothingScope;
+
+/// scope used for primitives which are valued 
 Scope SomethingScope;
 
 Call ObjectCall
@@ -110,15 +118,7 @@ Call ObjectCall
     &ObjectType,
     &ObjectType,
     0,
-    nullptr,
-};
-
-Call SomethingCall
-{
-    &SomethingType,
-    &SomethingType,
-    0,
-    &NothingScope,
+    &SomethingScope,
 };
 
 Call NothingCall
@@ -169,6 +169,11 @@ Call BooleanCall
     &NothingScope,
 };
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Array methods
+/// TODO: fix arrays
+
 const String SizeCallName = "Size";
 
 std::vector<String> ArrayIndexCalls;
@@ -191,13 +196,11 @@ void IfNeededAddArrayIndexCalls(size_t n)
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Program Execution
+// Program execution helpers
 
 /// initializes all registers and pushes the program CallFrame onto the CallStack
 void InitRuntime()
 {
-    BindScope(&ObjectCall, ScopeConstructor(nullptr));
-
     std::vector<Scope> localScopeStack;
     extArg_t programEnd = ByteCodeProgram.size();
 
@@ -244,8 +247,15 @@ inline bool IsNOP(const ByteCodeInstruction& ins)
     return ins.Op == IndexOfInstruction(BCI_NOP);
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Program post-execution cleanup
+
+/// list containing the memory addresses of Call values which have already
+/// been destroyed
 std::vector<String*> DestroyedValues;
 
+/// true if [value] has already been destroyed and appears in DestroyedValues
+/// otherwise will return false and add [value] to the list
 bool HasBeenDestroyed(String* value)
 {
     if(value == nullptr)
@@ -263,11 +273,13 @@ bool HasBeenDestroyed(String* value)
     return false;
 }
 
+/// true if [call] has a BoundValue that should be destroyed
 bool ShouldDestroyValue(const Call* call)
 {
     return call->BoundType == &StringType;
 }
 
+/// wrapper to delete a [call] and meet all dependencies
 void DeleteCall(Call* call)
 {
     if(ShouldDestroyValue(call) && !HasBeenDestroyed(call->BoundValue.s))
@@ -277,6 +289,7 @@ void DeleteCall(Call* call)
     CallDestructor(call);
 }
 
+/// free all allocated memory and stop program execution
 void GracefullyExit()
 {
     size_t size = RuntimeCalls.size() + ConstPrimitives.size();
@@ -299,8 +312,11 @@ void GracefullyExit()
     }
 
     ScopeDestructor(ProgramReg);
-    ScopeDestructor(ObjectCall.BoundScope);
 }
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Program Execution
 
 /// iterates and executes the instructions stored in BytecodeProgram
 int DoByteCodeProgram(Program* p)
@@ -353,6 +369,9 @@ int DoByteCodeProgram(Program* p)
     GracefullyExit();
     return 0;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Recording created entities
 
 void AddRuntimeCall(Call* call)
 {

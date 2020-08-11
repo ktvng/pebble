@@ -154,8 +154,10 @@ Call* InternalPrimitiveCallConstructor(String& value)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Helper methods
-int IndexOfNop()
+// Bytecode id helper methods
+
+// returns the index the NOP instruction in BCI_Instructions array
+extArg_t IndexOfNop()
 {
     for(size_t i=0; i<BCI_NumberOfInstructions; i++)
     {
@@ -167,6 +169,7 @@ int IndexOfNop()
     return -1;
 }
 
+// returns the index of [bci] in BCI_Instructions array
 int IndexOfInstruction(BCI_Method bci)
 {
     for(size_t i=0; i<BCI_NumberOfInstructions; i++)
@@ -187,20 +190,17 @@ int IndexOfInstruction(BCI_Method bci)
 BCI_Method BCI_Instructions[] = {
     BCI_LoadCallName,
     BCI_LoadPrimitive,
-
     BCI_Assign,
-
     BCI_Add,
     BCI_Subtract,
+
     BCI_Multiply,
     BCI_Divide,
-    
     BCI_SysCall,
-    
     BCI_And,
     BCI_Or,
+    
     BCI_Not,
-
     BCI_NotEquals,
     BCI_Equals,
     BCI_Cmp,
@@ -208,31 +208,28 @@ BCI_Method BCI_Instructions[] = {
 
     BCI_JumpFalse,
     BCI_Jump,
-
     BCI_Copy,
     BCI_BindType,
-
     BCI_ResolveDirect,
-    BCI_ResolveScoped,
 
+    BCI_ResolveScoped,
     BCI_DefMethod,
     BCI_BindSection,
     BCI_EvalHere,
     BCI_Eval,
+
     BCI_Return,
-
     BCI_Array,
-
     BCI_EnterLocal,
     BCI_LeaveLocal,
-
     BCI_Extend,
+
     BCI_NOP,
     BCI_Dup,
     BCI_EndLine,
-
     BCI_Swap,
     BCI_JumpNothing,
+
     BCI_DropTOS,
 };
 
@@ -240,8 +237,9 @@ BCI_Method BCI_Instructions[] = {
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Instruction Helpers
+// Memory stack helpers
 
+/// pop a pointer of <T> from the top of the MemoryStack
 template <typename T>
 inline T* PopTOS()
 {
@@ -250,17 +248,29 @@ inline T* PopTOS()
     return tos;
 }
 
+/// push a pointer of <T> to [entity] onto the MemoryStack
 template <typename T>
 inline void PushTOS(T* entity)
 {
     MemoryStack.push_back(static_cast<void*>(entity));
 }
 
+/// peek a pointer of <T> to the top of the MemoryStack
 template <typename T>
 inline T* PeekTOS()
 {
     return static_cast<T*>(MemoryStack.back());
 }
+
+/// return the size of the MemoryStack
+inline size_t MemoryStackSize()
+{
+    return MemoryStack.size();
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Scope helpers
 
 /// finds and returns a Reference with [callName] in [scope] without checking 
 /// the inherited scope
@@ -289,21 +299,28 @@ inline Call* FindInScopeChain(Scope* scope, const String* callName)
     return nullptr;
 }
 
-inline void InternalJumpTo(extArg_t ins)
-{
-    InstructionReg = ins;
-    JumpStatusReg = 1;
-}
-
+/// returns the Scope bound to [call]
 inline Scope* ScopeOf(Call* call)
 {
     return call->BoundScope;
 }
 
-/// return the size of the MemoryStack
-inline size_t MemoryStackSize()
+/// adds [call] to [scp]
+inline void AddCallToScope(Call* call, Scope* scp)
 {
-    return MemoryStack.size();
+    scp->CallsIndex.push_back(call);
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Instruction jump helpers
+
+/// sets the jump location to [ins] and notifies the vm to jump
+inline void InternalJumpTo(extArg_t ins)
+{
+    InstructionReg = ins;
+    JumpStatusReg = 1;
 }
 
 /// add a new CallFrame to the CallStack with [caller] and [self] the new caller and self
@@ -321,29 +338,68 @@ inline void EnterNewCallFrame(extArg_t callerRefId, Call* caller, Call* self)
     LastResultReg = nullptr;
 }
 
-/// true if both [obj1] and [obj2] are of [cls]
+/// changes the LocalScopeReg whenever a LocalScope change occurs. the base scope
+/// is either the program scope or the self object scope
+void AdjustLocalScopeReg()
+{
+    if(LocalScopeStack().size() == 0)
+    {
+        if(SelfReg->BoundScope != &NothingScope)
+        {
+            LocalScopeReg = SelfReg->BoundScope;
+        }
+        else
+        {
+            LocalScopeReg = ProgramReg;
+        }
+    }
+    else
+    {
+        LocalScopeReg = &LocalScopeStack().back();
+    }
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Type system helpers
+
+/// true if [call] corresponds to the general definition of Nothing
+bool IsNothing(const Call* call)
+{
+    return call->BoundScope == &NothingScope;
+}
+
+/// true if [call] corresponds to the strict definition of Nothing
+bool IsPureNothing(const Call* call)
+{
+    return call->BoundType == &NothingType;
+}
+
+/// true if both [call1] and [call2] are [type]
 inline bool BothAre(const Call* call1, const Call* call2, const BindingType type)
 {
     return call1->BoundType == type && call2->BoundType == type;
 }
 
+/// true if either [call1] or [call2] are Nothing
 inline bool EitherIsNothing(const Call* call1, const Call* call2)
 {
-    return call1->BoundScope == &NothingScope || call2->BoundScope == &NothingScope;
+    return IsNothing(call1) || IsNothing(call2);
 }
 
+/// true if [call] is [type] and is bound to a realized scope (not NothingScope)
 inline bool IsActually(const BindingType type, const Call* call)
 {
     return call->BoundScope != &NothingScope && call->BoundType == type;
 }
 
-/// adds [ref] to [scp]
-inline void AddCallToScope(Call* call, Scope* scp)
-{
-    scp->CallsIndex.push_back(call);
-}
 
-/// add a list of Objects [paramsList] to the scope of [methodCall] in reverse order
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Eval instruction helpers
+
+/// add a list of Calls [paramsList] to the scope of [methodCall] in reverse order
 /// used when evaluating a method
 inline void AddParamsToMethodScope(Call* methodCall, std::vector<Call*> paramsList)
 {
@@ -386,18 +442,15 @@ inline std::vector<Call*> GetParameters(extArg_t numParams)
     return params;
 }
 
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Comparison instruction helpers
+
 /// returns the [n]th bit of [data]
 inline bool NthBit(uint8_t data, int n)
 {
     return (data & (BitFlag << n)) >> n;
-}
-
-extArg_t IndexAfterNextJump()
-{
-    extArg_t i = InstructionReg;
-    for(; i<ByteCodeProgram.size() && 
-        (ByteCodeProgram[i].Op != IndexOfInstruction(BCI_Jump)); i++);
-    return i+1;
 }
 
 /// fills in <= >= using the comparisions already made
@@ -453,26 +506,55 @@ inline void CompareDecimals(Call* lhs, Call* rhs)
     FillInRestOfComparisons();
 }
 
-/// changes the LocalScopeReg whenever a LocalScope change occurs. the base scope
-/// is either the program scope or the self object scope
-void AdjustLocalScopeReg()
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Equality operators
+
+/// true if [call1] and [call2] have the same value. assumes that neither are
+/// Nothing
+inline bool CallsHaveEqualValue(const Call* call1, const Call* call2)
 {
-    if(LocalScopeStack().size() == 0)
+    if(BothAre(call1, call2, &IntegerType))
     {
-        if(SelfReg->BoundScope != &NothingScope)
-        {
-            LocalScopeReg = SelfReg->BoundScope;
-        }
-        else
-        {
-            LocalScopeReg = ProgramReg;
-        }
+        return call1->BoundValue.i == call2->BoundValue.i;
+    }
+    else if(BothAre(call1, call2, &DecimalType))
+    {
+        return call1->BoundValue.d == call2->BoundValue.d;
+    }
+    else if(BothAre(call1, call2, &StringType))
+    {
+        return call1->BoundValue.s == call2->BoundValue.s;
+    }
+    else if(BothAre(call1, call2, &BooleanType))
+    {
+        return call1->BoundValue.b == call2->BoundValue.b;
     }
     else
     {
-        LocalScopeReg = &LocalScopeStack().back();
+        return true;
     }
 }
+
+/// true if Calls are equal (i.e. defines the definition of equality in Pebble)
+inline bool CallsAreEqual(const Call* call1, const Call* call2)
+{
+    if(call1->BoundType == &NothingType || call2->BoundType == &NothingType)
+    {
+        return call1->BoundScope == call2->BoundScope;
+    }
+
+    return call1->BoundType == call2->BoundType &&
+        call1->BoundScope == call2->BoundScope &&
+        call1->BoundSection == call2->BoundSection &&
+        CallsHaveEqualValue(call1, call2);
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Scope resolution helpers
 
 /// resolves [callName] which is a keyword to the appropriate object which is 
 /// pushed to TOS
@@ -502,43 +584,11 @@ inline void ResolveKeywordCall(const String* callName)
     PushTOS<Call>(call);
 }
 
-inline bool CallsHaveEqualValue(const Call* call1, const Call* call2)
-{
-    if(BothAre(call1, call2, &IntegerType))
-    {
-        return call1->BoundValue.i == call2->BoundValue.i;
-    }
-    else if(BothAre(call1, call2, &DecimalType))
-    {
-        return call1->BoundValue.d == call2->BoundValue.d;
-    }
-    else if(BothAre(call1, call2, &StringType))
-    {
-        return call1->BoundValue.s == call2->BoundValue.s;
-    }
-    else if(BothAre(call1, call2, &BooleanType))
-    {
-        return call1->BoundValue.b == call2->BoundValue.b;
-    }
-    else
-    {
-        return true;
-    }
-}
 
-inline bool CallsAreEqual(const Call* call1, const Call* call2)
-{
-    if(call1->BoundType == &NothingType || call2->BoundType == &NothingType)
-    {
-        return call1->BoundScope == call2->BoundScope;
-    }
+// ---------------------------------------------------------------------------------------------------------------------
+// Array helpers
 
-    return call1->BoundType == call2->BoundType &&
-        call1->BoundScope == call2->BoundScope &&
-        call1->BoundSection == call2->BoundSection &&
-        CallsHaveEqualValue(call1, call2);
-}
-
+/// built in method to initialize a new array and push it onto TOS
 inline void HandleArrayInitialization(Call* caller, Call* size)
 {
     int arraySize = IntegerValueOf(size);
@@ -557,6 +607,7 @@ inline void HandleArrayInitialization(Call* caller, Call* size)
     PushTOS<Call>(caller);
 }
 
+/// build in method to initialize a new object and push it onto TOS
 inline void HandleObjectInitialization(Call* call)
 {
     auto newObjectCall = InternalCallConstructor();
@@ -566,7 +617,8 @@ inline void HandleObjectInitialization(Call* call)
     PushTOS<Call>(newObjectCall);
 }
 
-inline bool IsPrimitiveType(const BindingType type)
+/// true if a type corresponds to a primitive, predefined method
+inline bool IsPrimitiveMethodType(const BindingType type)
 {
     return type == &ArrayType || type == &ObjectType; 
 }
@@ -583,16 +635,12 @@ void HandlePrimitiveTypeInstantiation(Call* primitiveCall, std::vector<Call*>& p
     }
 }
 
-bool IsNothing(const Call* call)
-{
-    return call->BoundScope == &NothingScope;
-}
 
-bool IsPureNothing(const Call* call)
-{
-    return call->BoundType == &NothingType;
-}
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Print/Say helpers
+
+/// returns a string representation of [call]'s BoundType
 String CallTypeToString(const Call* call)
 {
     if(IsPureNothing(call))
@@ -608,6 +656,7 @@ String CallTypeToString(const Call* call)
     return "<" + *call->BoundType + ">";
 }
 
+/// returns a string representation of [call]
 String CallToString(const Call* call)
 {
     if(IsPureNothing(call) || IsNothing(call))
@@ -617,6 +666,7 @@ String CallToString(const Call* call)
 
     return StringValueOf(call) + "\n";
 }
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -1185,7 +1235,7 @@ void BCI_Eval(extArg_t arg)
         return;
     }
 
-    if(IsPrimitiveType(methodCall->BoundType))
+    if(IsPrimitiveMethodType(methodCall->BoundType))
     {
         HandlePrimitiveTypeInstantiation(methodCall, paramsList);
         return;

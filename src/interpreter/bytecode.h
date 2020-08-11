@@ -83,6 +83,7 @@ inline bool CallNameIsKeyword(const String* name)
     return *name == "caller" || *name == "self" || *name == "it" || *name == "that";
 }
 
+/// true if call is bound to NothingType or if it is bound to NothingScope
 bool IsNothing(const Call* call);
 
 #endif

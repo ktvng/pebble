@@ -207,7 +207,7 @@ void LogProgramInstructions()
     {
         primitives += Msg("%i: %s", i, ToString(ConstPrimitives[i]));
     }
+    
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", primitives);
-
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", Msg("\n%s", ToString(ByteCodeProgram)));
 }

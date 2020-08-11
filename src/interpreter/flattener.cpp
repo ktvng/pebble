@@ -1196,42 +1196,37 @@ void IfNeededAddConstPrimitive(Operation* op)
     /// TODO: streamline this process for GodObj and SomethingObj
     if(op->Value->Name == "Object")
     {
-        op->EntityIndex = 0;
-        return;
-    }
-    else if(op->Value->Name == "Something")
-    {
-        op->EntityIndex = 1;
+        op->EntityIndex = OBJECT_CALL_ID;
         return;
     }
     else if(op->Value->Name == "Nothing")
     {
-        op->EntityIndex = 2;
+        op->EntityIndex = NOTHING_CALL_ID;
         return;
     }
     else if(op->Value->Name == "Array")
     {
-        op->EntityIndex = 3;
+        op->EntityIndex = ARRAY_CALL_ID;
         return;
     }
     else if(op->Value->Name == "Integer")
     {
-        op->EntityIndex = 4;
+        op->EntityIndex = INTEGER_CALL_ID;
         return;
     }
     else if(op->Value->Name == "Decimal")
     {
-        op->EntityIndex = 5;
+        op->EntityIndex = DECIMAL_CALL_ID; 
         return;
     }
     else if(op->Value->Name == "String")
     {
-        op->EntityIndex = 6;
+        op->EntityIndex = STRING_CALL_ID;
         return;
     }
     else if(op->Value->Name == "Boolean")
     {
-        op->EntityIndex = 7;
+        op->EntityIndex = BOOLEAN_CALL_ID;
         return;
     }
 
@@ -1302,7 +1297,7 @@ void InitEntityLists()
 {
     ConstPrimitives.clear();
     ConstPrimitives.reserve(64);
-    ConstPrimitives = { &ObjectCall, &SomethingCall, &NothingCall, &ArrayCall, &IntegerCall,
+    ConstPrimitives = { &ObjectCall, &NothingCall, &ArrayCall, &IntegerCall,
         &DecimalCall, &StringCall, &BooleanCall };
 
     CallNames.clear();
