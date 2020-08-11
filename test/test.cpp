@@ -17,6 +17,7 @@ std::string testName = "*unspecified*";
 std::string expected = "*unspecified";
 
 std::string programFile = "./program";
+std::string programName = "program";
 
 Program* programToRun = nullptr;
 
@@ -142,7 +143,8 @@ void Valgrind()
         "Program",
         "ParseToken",
         "ObjectValue",
-        "ReferenceStub"
+        "ReferenceStub",
+        "String",
     };
 
     for(auto str: objectsToTest)

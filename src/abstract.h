@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+union Value;
+
 struct Token;
 struct OperationTypeProbability;
 struct SystemMessage;

@@ -22,7 +22,11 @@ String ToString(ByteCodeInstruction& ins)
     else if(ins.Op == IndexOfInstruction(BCI_LoadPrimitive))
     {
         str += "#BCI_LoadPrimitive";
-        decodedArg = StringValueOf(ConstPrimitives[ins.Arg]);
+        auto call = ConstPrimitives[ins.Arg];
+        if(call->BoundScope != &NothingScope)
+        {
+            decodedArg = StringValueOf(ConstPrimitives[ins.Arg]);
+        }
     }
     else if(ins.Op == IndexOfInstruction(BCI_Assign)) 
     {

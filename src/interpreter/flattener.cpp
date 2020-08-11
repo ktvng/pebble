@@ -1163,7 +1163,27 @@ BindingType ObjectClassToType(Object* obj)
     }
     else
     {
-        return &NullType;
+        return &NothingType;
+    }
+}
+
+void AssignValueFromObject(Call* c, Object* obj)
+{
+    if(obj->Class == IntegerClass)
+    {
+        c->BoundValue.i = *static_cast<int*>(obj->Value);
+    }
+    else if(obj->Class == DecimalClass)
+    {
+        c->BoundValue.d = *static_cast<double*>(obj->Value);
+    }
+    else if(obj->Class == StringClass)
+    {
+        c->BoundValue.s = StringConstructor(*static_cast<String*>(obj->Value));
+    }
+    else if(obj->Class == BooleanClass)
+    {
+        c->BoundValue.b = *static_cast<bool*>(obj->Value);
     }
 }
 
@@ -1227,7 +1247,7 @@ void IfNeededAddConstPrimitive(Operation* op)
     PrimitiveObjectsEncountered.push_back(obj);
     
     Call* call = CallConstructor();
-    call->Value = op->Value->To->Value;
+    AssignValueFromObject(call, obj);
     BindScope(call, &SomethingScope);
     /// TODO: make this more robust
     BindType(call, ObjectClassToType(op->Value->To));
@@ -1275,6 +1295,8 @@ void FirstPassBlock(Block* b)
     }
 }
 
+std::vector<void*> DeletedValueAddrs;
+
 /// resets the CallNames and ConstPrimtiives lists
 void InitEntityLists()
 {
@@ -1292,12 +1314,35 @@ void InitEntityLists()
     ByteCodeProgram.clear();
     ByteCodeLineAssociation.clear();
     ByteCodeLineAssociation.push_back(0);
+
+    DeletedValueAddrs.clear();
+    DeletedValueAddrs.reserve(64);
 }
 
 /// iterates through the main block of [p]
 void FirstPassProgram(Program* p)
 {
     FirstPassBlock(p->Main);
+}
+
+void SafeDeleteObjectValue(Object* obj)
+{
+    if(obj->Value == nullptr)
+    {
+        return;
+    }
+
+
+    for(void* addr: DeletedValueAddrs)
+    {
+        if(obj->Value == addr)
+        {
+            return;
+        }
+    }
+
+    DeletedValueAddrs.push_back(obj->Value);
+    ObjectValueDestructor(obj->Class, obj->Value);
 }
 
 void InternalDeleteObject(Object* obj)
@@ -1307,6 +1352,7 @@ void InternalDeleteObject(Object* obj)
     {
         MethodDestructor(obj->Action);
     }
+    SafeDeleteObjectValue(obj);
     
     ObjectDestructor(obj);
 }

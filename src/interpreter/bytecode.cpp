@@ -4,18 +4,21 @@
 #include "errormsg.h"
 #include "flattener.h"
 
-#include "object.h"
 #include "main.h"
 #include "program.h"
 #include "scope.h"
 #include "diagnostics.h"
 #include "call.h"
 #include "scope.h"
+#include "value.h"
+
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Internal Constructors
+// Internal constructor wrappers
 
-Scope* InternalScopeConstructor(Scope* inheritedScope)
+/// wrapper for the ScopeConstructor used to create a new scope with
+/// [inheritedscope]
+inline Scope* InternalScopeConstructor(Scope* inheritedScope)
 {
     auto scope = ScopeConstructor(inheritedScope);
     AddRuntimeScope(scope);
@@ -23,7 +26,8 @@ Scope* InternalScopeConstructor(Scope* inheritedScope)
     return scope;
 }
 
-Scope* InternalCopyScope(Scope* scopeToCopy)
+/// wrapper for CopyScope used to copy [scopeToCopy] into a new scope
+inline Scope* InternalCopyScope(Scope* scopeToCopy)
 {
     Scope* scope;
     if(scopeToCopy == &NothingScope || scopeToCopy == nullptr)
@@ -40,17 +44,27 @@ Scope* InternalCopyScope(Scope* scopeToCopy)
     return scope;
 }
 
-Call* InternalCallConstructor(const String* name=nullptr)
+/// wrapper for CallConstructor to create a new call with [name]
+inline Call* InternalCallConstructor(const String* name=nullptr)
 {
     Call* call = CallConstructor(name);
     BindScope(call, &NothingScope);
-    BindType(call, &NullType);
+    BindType(call, &NothingType);
     AddRuntimeCall(call);
 
     return call;
 }
 
-Call* InternalPrimitiveCallConstructor(BindingType type, int value)
+inline Call* InternalSharedPrimitiveCallConstructor()
+{
+    auto call = InternalCallConstructor();
+    BindScope(call, &SomethingScope);
+    return call;
+}
+
+/// wrapper to construct a call for a primitive [value] enforcing the 
+/// prior that a given primitive value should only have one constructed call
+Call* InternalPrimitiveCallConstructor(int value)
 {
     Call* foundCall = nullptr;
     if(ListContainsPrimitiveCall(RuntimeCalls, value, &foundCall))
@@ -63,15 +77,39 @@ Call* InternalPrimitiveCallConstructor(BindingType type, int value)
     }
     else
     {
-        Call* call = InternalCallConstructor();
-        BindType(call, type);
-        call->Value = static_cast<void*>(ObjectValueConstructor(value));
+        Call* call = InternalSharedPrimitiveCallConstructor();
+        BindType(call, &IntegerType);
+        AssignValue(call->BoundValue, value);
+        return call;
+    }
+}
+
+/// wrapper to construct a call for a primitive [value] enforcing the 
+/// prior that a given primitive value should only have one constructed call
+Call* InternalPrimitiveCallConstructor(double value)
+{
+    Call* foundCall = nullptr;
+    if(ListContainsPrimitiveCall(RuntimeCalls, value, &foundCall))
+    {
+        return foundCall;
+    }
+    else if(ListContainsPrimitiveCall(ConstPrimitives, value, &foundCall))
+    {
+        return foundCall;
+    }
+    else
+    {
+        Call* call = InternalSharedPrimitiveCallConstructor();
+        BindType(call, &DecimalType);
+        AssignValue(call->BoundValue, value);
 
         return call;
     }
 }
 
-Call* InternalPrimitiveCallConstructor(BindingType type, double value)
+/// wrapper to construct a call for a primitive [value] enforcing the 
+/// prior that a given primitive value should only have one constructed call
+Call* InternalPrimitiveCallConstructor(bool value)
 {
     Call* foundCall = nullptr;
     if(ListContainsPrimitiveCall(RuntimeCalls, value, &foundCall))
@@ -84,16 +122,17 @@ Call* InternalPrimitiveCallConstructor(BindingType type, double value)
     }
     else
     {
-        Call* call = InternalCallConstructor();
-        BindType(call, type);
-        call->Value = static_cast<void*>(ObjectValueConstructor(value));
+        Call* call = InternalSharedPrimitiveCallConstructor();
+        BindType(call, &BooleanType);
+        AssignValue(call->BoundValue, value);
 
         return call;
     }
 }
 
-
-Call* InternalPrimitiveCallConstructor(BindingType type, bool value)
+/// wrapper to construct a call for a primitive [value] enforcing the 
+/// prior that a given primitive value should only have one constructed call
+Call* InternalPrimitiveCallConstructor(String& value)
 {
     Call* foundCall = nullptr;
     if(ListContainsPrimitiveCall(RuntimeCalls, value, &foundCall))
@@ -106,31 +145,9 @@ Call* InternalPrimitiveCallConstructor(BindingType type, bool value)
     }
     else
     {
-        Call* call = InternalCallConstructor();
-        BindType(call, type);
-        call->Value = static_cast<void*>(ObjectValueConstructor(value));
-
-        return call;
-    }
-}
-
-
-Call* InternalPrimitiveCallConstructor(BindingType type, String& value)
-{
-    Call* foundCall = nullptr;
-    if(ListContainsPrimitiveCall(RuntimeCalls, value, &foundCall))
-    {
-        return foundCall;
-    }
-    else if(ListContainsPrimitiveCall(ConstPrimitives, value, &foundCall))
-    {
-        return foundCall;
-    }
-    else
-    {
-        Call* call = InternalCallConstructor();
-        BindType(call, type);
-        call->Value = static_cast<void*>(ObjectValueConstructor(value));
+        Call* call = InternalSharedPrimitiveCallConstructor();
+        BindType(call, &StringType);
+        AssignValue(call->BoundValue, value);
 
         return call;
     }
@@ -305,9 +322,19 @@ inline void EnterNewCallFrame(extArg_t callerRefId, Call* caller, Call* self)
 }
 
 /// true if both [obj1] and [obj2] are of [cls]
-inline bool BothAre(Call* call1, Call* call2, BindingType type)
+inline bool BothAre(const Call* call1, const Call* call2, const BindingType type)
 {
     return call1->BoundType == type && call2->BoundType == type;
+}
+
+inline bool EitherIsNothing(const Call* call1, const Call* call2)
+{
+    return call1->BoundScope == &NothingScope || call2->BoundScope == &NothingScope;
+}
+
+inline bool IsActually(const BindingType type, const Call* call)
+{
+    return call->BoundScope != &NothingScope && call->BoundType == type;
 }
 
 /// adds [ref] to [scp]
@@ -339,7 +366,7 @@ inline void AddParamsToMethodScope(Call* methodCall, std::vector<Call*> paramsLi
         BindSection(call, callParam->BoundSection);
         /// TODO: type checking here
         BindType(call, callParam->BoundType);
-        BindValue(call, callParam->Value);
+        BindValue(call, callParam->BoundValue);
 
         AddCallToScope(call, ScopeOf(methodCall));
     }
@@ -475,9 +502,33 @@ inline void ResolveKeywordCall(const String* callName)
     PushTOS<Call>(call);
 }
 
-inline bool CallsAreEqual(Call* call1, Call* call2)
+inline bool CallsHaveEqualValue(const Call* call1, const Call* call2)
 {
-    if(call1->BoundType == &NullType || call2->BoundType == &NullType)
+    if(BothAre(call1, call2, &IntegerType))
+    {
+        return call1->BoundValue.i == call2->BoundValue.i;
+    }
+    else if(BothAre(call1, call2, &DecimalType))
+    {
+        return call1->BoundValue.d == call2->BoundValue.d;
+    }
+    else if(BothAre(call1, call2, &StringType))
+    {
+        return call1->BoundValue.s == call2->BoundValue.s;
+    }
+    else if(BothAre(call1, call2, &BooleanType))
+    {
+        return call1->BoundValue.b == call2->BoundValue.b;
+    }
+    else
+    {
+        return true;
+    }
+}
+
+inline bool CallsAreEqual(const Call* call1, const Call* call2)
+{
+    if(call1->BoundType == &NothingType || call2->BoundType == &NothingType)
     {
         return call1->BoundScope == call2->BoundScope;
     }
@@ -485,9 +536,8 @@ inline bool CallsAreEqual(Call* call1, Call* call2)
     return call1->BoundType == call2->BoundType &&
         call1->BoundScope == call2->BoundScope &&
         call1->BoundSection == call2->BoundSection &&
-        call1->Value == call2->Value;
+        CallsHaveEqualValue(call1, call2);
 }
-
 
 inline void HandleArrayInitialization(Call* caller, Call* size)
 {
@@ -501,7 +551,7 @@ inline void HandleArrayInitialization(Call* caller, Call* size)
 
     auto sizeCall = InternalCallConstructor(&SizeCallName);
     BindType(sizeCall, &IntegerType);
-    BindValue(sizeCall, ObjectValueConstructor(arraySize));
+    AssignValue(sizeCall->BoundValue, arraySize);
     AddCallToScope(sizeCall, ScopeOf(caller));
 
     PushTOS<Call>(caller);
@@ -533,24 +583,39 @@ void HandlePrimitiveTypeInstantiation(Call* primitiveCall, std::vector<Call*>& p
     }
 }
 
-inline String CallIsEffectivelyNothing(Call* call)
+bool IsNothing(const Call* call)
 {
-    if(CallIsPrimitive(call))
+    return call->BoundScope == &NothingScope;
+}
+
+bool IsPureNothing(const Call* call)
+{
+    return call->BoundType == &NothingType;
+}
+
+String CallTypeToString(const Call* call)
+{
+    if(IsPureNothing(call))
     {
-        return "";
+        return "<Nothing>";
     }
 
-    if(call->BoundScope == &NothingScope)
+    if(IsNothing(call))
     {
-        if(call->BoundType == &NullType)
-        {
-            return "";
-        }
-
-        return "(Nothing)";
+        return "<" + *call->BoundType + "?>";
     }
-    
-    return "";
+
+    return "<" + *call->BoundType + ">";
+}
+
+String CallToString(const Call* call)
+{
+    if(IsPureNothing(call) || IsNothing(call))
+    {
+        return CallTypeToString(call) + "\n";
+    }
+
+    return StringValueOf(call) + "\n";
 }
 
 
@@ -590,14 +655,14 @@ void BCI_Assign(extArg_t arg)
             Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
     }
 
-    if(lhs->BoundType == &NullType)
+    if(lhs->BoundType == &NothingType)
     {
         if(lhs->BoundScope == &NothingScope)
         {
             BindType(lhs, rhs->BoundType);
             BindSection(lhs, rhs->BoundSection);
             BindScope(lhs, rhs->BoundScope);
-            lhs->Value = rhs->Value;
+            lhs->BoundValue = rhs->BoundValue;
         }
     }
     else
@@ -607,7 +672,7 @@ void BCI_Assign(extArg_t arg)
             BindType(lhs, rhs->BoundType);
             BindSection(lhs, rhs->BoundSection);
             BindScope(lhs, rhs->BoundScope);
-            lhs->Value = rhs->Value;
+            lhs->BoundValue = rhs->BoundValue;
         }
         else
         {
@@ -629,20 +694,24 @@ void BCI_Add(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, &IntegerType))
+    if(EitherIsNothing(lCall, rCall))
+    {
+        call = &NothingCall;
+    }
+    else if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) + IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) + DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else if(BothAre(lCall, rCall, &StringType))
     {
         String ans = StringValueOf(lCall) + StringValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&StringType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else
     {
@@ -659,15 +728,19 @@ void BCI_Subtract(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, &IntegerType))
+    if(EitherIsNothing(lCall, rCall))
+    {
+        call = &NothingCall;
+    }
+    else if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) - IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) - DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else
     {
@@ -684,15 +757,19 @@ void BCI_Multiply(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, &IntegerType))
+    if(EitherIsNothing(lCall, rCall))
+    {
+        call = &NothingCall;
+    }
+    else if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) * IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) * DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else
     {
@@ -709,15 +786,19 @@ void BCI_Divide(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     Call* call = nullptr;
-    if(BothAre(lCall, rCall, &IntegerType))
+    if(EitherIsNothing(lCall, rCall))
+    {
+        call = &NothingCall;
+    }
+    else if(BothAre(lCall, rCall, &IntegerType))
     {
         int ans = IntegerValueOf(lCall) / IntegerValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&IntegerType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else if(BothAre(lCall, rCall, &DecimalType))
     {
         double ans = DecimalValueOf(lCall) / DecimalValueOf(rCall);
-        call = InternalPrimitiveCallConstructor(&DecimalType, ans);
+        call = InternalPrimitiveCallConstructor(ans);
     }
     else
     {
@@ -736,7 +817,7 @@ void BCI_SysCall(extArg_t arg)
     {
         case 0:
         {
-            String msg = StringValueOf(PeekTOS<Call>()) + CallIsEffectivelyNothing(PeekTOS<Call>()) + "\n";
+            String msg = CallToString(PeekTOS<Call>());
             ProgramOutput += msg;
             if(g_outputOn)
             {
@@ -750,7 +831,7 @@ void BCI_SysCall(extArg_t arg)
             String s;
             std::getline(std::cin, s);
             std::cout << s;
-            auto call = InternalPrimitiveCallConstructor(&StringType, s);
+            auto call = InternalPrimitiveCallConstructor(s);
             PushTOS<Call>(call);
         }
         break;
@@ -760,14 +841,31 @@ void BCI_SysCall(extArg_t arg)
     }
 }
 
+/// TODO: nothing proof this
+/// TODO: type proof this
 void BCI_And(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
     auto lCall = PopTOS<Call>();
 
-    bool b = BooleanValueOf(lCall) && BooleanValueOf(rCall);
-    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
+    if(EitherIsNothing(lCall, rCall))
+    {
+        PushTOS<Call>(&NothingCall);    
+        return;
+    }
 
+    bool b = 0;
+    if(IsActually(&BooleanType, lCall) && IsActually(&BooleanType, rCall))
+    {
+        b = BooleanValueOf(lCall) && BooleanValueOf(rCall);
+    }
+    else
+    {
+        ReportFatalError(SystemMessageType::Exception, 0, 
+            Msg("cannot 'or' %s with %s", CallTypeToString(lCall), CallTypeToString(rCall)));
+    }
+
+    Call* call = InternalPrimitiveCallConstructor(b);
     PushTOS<Call>(call);
 }
 
@@ -776,20 +874,44 @@ void BCI_Or(extArg_t arg)
     auto rCall = PopTOS<Call>();
     auto lCall = PopTOS<Call>();
 
-    bool b = BooleanValueOf(lCall) || BooleanValueOf(rCall);
-    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
+    if(EitherIsNothing(lCall, rCall))
+    {
+        PushTOS<Call>(&NothingCall);    
+        return;
+    }
 
+    bool b = 0;
+    if(IsActually(&BooleanType, lCall) && IsActually(&BooleanType, rCall))
+    {
+        b = BooleanValueOf(lCall) || BooleanValueOf(rCall);
+    }
+    else
+    {
+        ReportFatalError(SystemMessageType::Exception, 0, 
+            Msg("cannot 'or' %s with %s", CallTypeToString(lCall), CallTypeToString(rCall)));
+    }
+    Call* call = InternalPrimitiveCallConstructor(b);
     PushTOS<Call>(call);
 }
 
 void BCI_Not(extArg_t arg)
 {
-    auto c = PopTOS<Call>();
+    if(IsPureNothing(PeekTOS<Call>()))
+    {
+        return;
+    }
+     
+    auto call = PopTOS<Call>();
 
-    bool b = !BooleanValueOf(c);
-    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
+    if(!IsActually(&BooleanType, call))
+    {
+        ReportFatalError(SystemMessageType::Exception, 0, 
+            Msg("cannot 'not' %s", *call->BoundType));
+    }
 
-    PushTOS<Call>(call);
+    bool b = !BooleanValueOf(call);
+    Call* newCall = InternalPrimitiveCallConstructor(b);
+    PushTOS<Call>(newCall);
 }
 
 /// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
@@ -800,7 +922,7 @@ void BCI_NotEquals(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     bool b = !CallsAreEqual(rCall, lCall);
-    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
+    Call* call = InternalPrimitiveCallConstructor(b);
 
     PushTOS<Call>(call);
 }
@@ -813,7 +935,7 @@ void BCI_Equals(extArg_t arg)
     auto lCall = PopTOS<Call>();
 
     bool b = CallsAreEqual(rCall, lCall);
-    Call* call = InternalPrimitiveCallConstructor(&BooleanType, b);
+    Call* call = InternalPrimitiveCallConstructor(b);
 
     PushTOS<Call>(call);
 }
@@ -855,7 +977,7 @@ void BCI_LoadCmp(extArg_t arg)
         case 4: 
         case 5:
         case 6:
-        boolCall = InternalPrimitiveCallConstructor(&BooleanType, NthBit(CmpReg, arg));
+        boolCall = InternalPrimitiveCallConstructor(NthBit(CmpReg, arg));
         break;
 
         default:
@@ -868,9 +990,23 @@ void BCI_LoadCmp(extArg_t arg)
 void BCI_JumpFalse(extArg_t arg)
 {
     auto call = PopTOS<Call>();
-    if(!BooleanValueOf(call))
+
+    if(IsNothing(call))
     {
         InternalJumpTo(arg);
+    }
+
+    if(IsActually(&BooleanType, call))
+    {
+        if(!BooleanValueOf(call))
+        {
+            InternalJumpTo(arg);
+        }
+    }
+    else
+    {
+        ReportFatalError(SystemMessageType::Exception, 0, 
+            Msg("cannot conditionally jump on %s", CallTypeToString(call)));
     }
 }
 
@@ -892,7 +1028,6 @@ void BCI_Copy(extArg_t arg)
     auto scp = InternalCopyScope(call->BoundScope);
     BindScope(callCopy, scp);
     BindType(callCopy, call->BoundType);
-    BindValue(callCopy, call->Value);
     BindSection(callCopy, call->BoundSection);
 
     PushTOS<Call>(callCopy);
@@ -912,7 +1047,7 @@ void BCI_BindType(extArg_t arg)
             auto call = InternalCallConstructor();
             BindType(call, originalCall->Name);
             BindSection(call, originalCall->BoundSection);
-            BindValue(call, originalCall->Value);
+            BindValue(call, originalCall->BoundValue);
             
             PushTOS(call);
         }
@@ -1112,7 +1247,7 @@ void BCI_Return(extArg_t arg)
     }
     else
     {
-        if(CallerReg->BoundType != &NullType)
+        if(CallerReg->BoundType != &NothingType)
         {
             PushTOS(CallerReg);
         }
@@ -1260,7 +1395,7 @@ void BCI_Swap(extArg_t arg)
 void BCI_JumpNothing(extArg_t arg)
 {
     auto TOS = PopTOS<Call>();
-    if(TOS->BoundType == &NullType)
+    if(TOS->BoundType == &NothingType)
     {
         InternalJumpTo(arg);
     }

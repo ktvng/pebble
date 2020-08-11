@@ -1,71 +1,79 @@
-#include <iostream>
-
 #include "call.h"
 
+#include "value.h"
+#include "vm.h"
 #include "diagnostics.h"
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Call structure methods
+
+/// wrapper which should always be used when creating a new instance of Call
+/// with [name]
 Call* CallConstructor(const String* name)
 {
     auto call = new Call;
     call->Name = name;
     call->BoundScope = nullptr;
     call->BoundSection = 0;
-    call->Value = nullptr;
     call->BoundType = nullptr;
 
     return call;
 }
 
+/// wrapper which should always be used when freeing an instance of Call [call]
 void CallDestructor(Call* call)
 {
     delete call;
 }
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Call binding methods
+
+/// bind [type] to [call]
 void BindType(Call* call, BindingType type)
 {
     call->BoundType = type;
 }
 
+/// bind [section] to [call]
 void BindSection(Call* call, extArg_t section)
 {
     call->BoundSection = section;
 }
 
+/// bind [scope] to [call]
 void BindScope(Call* call, Scope* scope)
 {
     call->BoundScope = scope;
 }
 
-void BindValue(Call* call, void* value)
+/// bind [value] to [call]
+void BindValue(Call* call, Value value)
 {
-    call->Value = value;
+    call->BoundValue = value;
 }
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Default call type casting
+
+
+/// obtain the String form of [call]'s value
 String StringValueOf(const Call* call)
 {
     if(call->BoundType == &IntegerType)
     {
-        if(call->Value == nullptr)
-        {
-            return "<Integer>";
-        }
-        return std::to_string(*static_cast<int*>(call->Value));
+        return std::to_string(call->BoundValue.i);
     }
     else if(call->BoundType == &DecimalType)
     {
-        if(call->Value == nullptr)
-        {
-            return "<Decimal>";
-        }
-        return std::to_string(*static_cast<double*>(call->Value));
+        return std::to_string(call->BoundValue.d);
     }
     else if(call->BoundType == &BooleanType)
     {
-        if(call->Value == nullptr)
-        {
-            return "<Boolean>";
-        }
-        if(*static_cast<bool*>(call->Value))
+        if(call->BoundValue.b)
         {
             return "true";
         }
@@ -73,11 +81,7 @@ String StringValueOf(const Call* call)
     }
     else if(call->BoundType == &StringType)
     {
-        if(call->Value == nullptr)
-        {
-            return "<String>";
-        }
-        return *static_cast<String*>(call->Value);
+        return *call->BoundValue.s;
     }
     else
     {
@@ -85,6 +89,7 @@ String StringValueOf(const Call* call)
     }
 }
 
+/// obtain the int form of [call]'s value
 int IntegerValueOf(const Call* call)
 {
     if(call->BoundType != &IntegerType)
@@ -92,52 +97,51 @@ int IntegerValueOf(const Call* call)
         LogIt(LogSeverityType::Sev1_Notify, "GetIntValue", "only implemented for IntegerType");
         return 0;
     }
-    return *static_cast<int*>(call->Value);
+    return call->BoundValue.i;
 }
 
+/// obtain the double form of [call]'s value
 double DecimalValueOf(const Call* call)
 {
     if(call->BoundType == &DecimalType)
     {
-        return *static_cast<double*>(call->Value);
+        return call->BoundValue.d;
     }
     if(call->BoundType == &IntegerType)
     {
-        return static_cast<double>(*static_cast<int*>(call->Value));
+        return static_cast<double>(call->BoundValue.i);
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetDecimalValue", "only implemented for Integer and Decimal Typees");
     return 0;
 }
 
+/// obtain the bool form of [call]'s value
 bool BooleanValueOf(const Call* call)
 {
     if(call->BoundType == &BooleanType)
     {
-        return *static_cast<bool*>(call->Value);
+        return call->BoundValue.b;
     }
-    else if (call->BoundType == &IntegerType)
-    {
-        return static_cast<bool>(*static_cast<int*>(call->Value));
-    }
-    else if(call->BoundType == &NullType)
+    else if(call->BoundType == &NothingType)
     {
         return false;
     }
-    else
-    {
-        return true;
-    }
-}
 
+    LogIt(LogSeverityType::Sev1_Notify, "BooleanValueOf", "only implemented for Boolean and Nothing Typees");
+    return 0;    
+}
 
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Type matching
-bool CallIsType(Call* call, BindingType cls)
+
+/// true if [call] is type [cls]
+bool CallIsType(const Call* call, BindingType cls)
 {
     return call->BoundType == cls;
 }
 
+/// true if [call] refers to a primitive type
 bool CallIsPrimitive(Call* call)
 {
     auto type = call->BoundType;
@@ -146,49 +150,40 @@ bool CallIsPrimitive(Call* call)
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Matching primitives
+// Call matching by value
 
-bool ValueMatchesPrimitiveCall(int value, Call* call)
+/// true if [call] has [value]
+bool ValueMatchesPrimitiveCall(int value, const Call* call)
 {
-    if(call->Value == nullptr)
-    {
-        return false;
-    }
-
-    return CallIsType(call, &IntegerType) && *static_cast<int*>(call->Value) == value;
+    return CallIsType(call, &IntegerType) && call->BoundScope != &NothingScope && call->BoundValue.i == value;
 }
 
-bool ValueMatchesPrimitiveCall(String& value, Call* call)
+/// true if [call] has [value]
+bool ValueMatchesPrimitiveCall(const String& value, const Call* call)
 {
-    if(call->Value == nullptr)
-    {
-        return false;
-    }
-
-    return CallIsType(call, &StringType) && *static_cast<String*>(call->Value) == value;
+    return CallIsType(call, &StringType) && call->BoundScope != &NothingScope &&  *call->BoundValue.s == value;
 }
 
-bool ValueMatchesPrimitiveCall(double value, Call* call)
+/// true if [call] has [value]
+bool ValueMatchesPrimitiveCall(double value, const Call* call)
 {
-    if(call->Value == nullptr)
-    {
-        return false;
-    }
-
-    return CallIsType(call, &DecimalType) && *static_cast<double*>(call->Value) == value;
+    return CallIsType(call, &DecimalType) && call->BoundScope != &NothingScope && call->BoundValue.d == value;
 }
 
-bool ValueMatchesPrimitiveCall(bool value, Call* call)
+/// true if [call] has [value]
+bool ValueMatchesPrimitiveCall(bool value, const Call* call)
 {
-    if(call->Value == nullptr)
-    {
-        return false;
-    }
-
-    return CallIsType(call, &BooleanType) && *static_cast<bool*>(call->Value) == value;
+    return CallIsType(call, &BooleanType) && call->BoundScope != &NothingScope && call->BoundValue.b == value;
 }
 
-bool ListContainsPrimitiveCall(std::vector<Call*> list, int value, Call** foundCall)
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Call lookup
+
+
+/// true if [list] contains a Call where [value] satisfies 
+/// ValueMatchesPrimitiveCall. leaves [foundCall] pointing to the matched call
+bool ListContainsPrimitiveCall(const std::vector<Call*>& list, int value, Call** foundCall)
 {
     for(auto call: list)
     {
@@ -203,7 +198,9 @@ bool ListContainsPrimitiveCall(std::vector<Call*> list, int value, Call** foundC
     return false;
 }
 
-bool ListContainsPrimitiveCall(std::vector<Call*> list, String& value, Call** foundCall)
+/// true if [list] contains a Call where [value] satisfies 
+/// ValueMatchesPrimitiveCall. leaves [foundCall] pointing to the matched call
+bool ListContainsPrimitiveCall(const std::vector<Call*>& list, const String& value, Call** foundCall)
 {
     for(auto call: list)
     {
@@ -217,7 +214,9 @@ bool ListContainsPrimitiveCall(std::vector<Call*> list, String& value, Call** fo
     return false;
 }
 
-bool ListContainsPrimitiveCall(std::vector<Call*> list, double value, Call** foundCall)
+/// true if [list] contains a Call where [value] satisfies 
+/// ValueMatchesPrimitiveCall. leaves [foundCall] pointing to the matched call
+bool ListContainsPrimitiveCall(const std::vector<Call*>& list, double value, Call** foundCall)
 {
     for(auto call: list)
     {
@@ -231,7 +230,9 @@ bool ListContainsPrimitiveCall(std::vector<Call*> list, double value, Call** fou
     return false;
 }
 
-bool ListContainsPrimitiveCall(std::vector<Call*> list, bool value, Call** foundCall)
+/// true if [list] contains a Call where [value] satisfies 
+/// ValueMatchesPrimitiveCall. leaves [foundCall] pointing to the matched call
+bool ListContainsPrimitiveCall(const std::vector<Call*>& list, bool value, Call** foundCall)
 {
     for(auto call: list)
     {

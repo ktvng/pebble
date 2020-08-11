@@ -2,7 +2,7 @@ X is an Integer
 X = 4
 
 Y is a String
-X = "hello"
+Y = "hello"
 
 Z is a Boolean
 Z = false

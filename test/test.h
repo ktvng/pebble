@@ -23,6 +23,7 @@ extern std::string testName;
 extern std::string expected;
 
 extern std::string programFile;
+extern std::string programName;
 
 extern int failedAsserts;
 extern int succeededAsserts;
@@ -111,7 +112,7 @@ inline void Assert(bool b)
     if(!b)
     {
         failedAsserts++;
-        testBuffer.append("(" + std::to_string(failedAsserts) + "):\n");
+        testBuffer.append("(" + std::to_string(failedAsserts) + "): " + programName + "\n");
         testBuffer.append(testName + "\n");
         testBuffer.append("  failed assertion: (should) " + assertName + "\n");
         testBuffer.append("    > " + IndentStringToLevel(failureDescription, 3) + "\n\n");
@@ -201,6 +202,7 @@ inline int NumberOfCallsTo(const std::string& methodName)
 
 inline void SetProgramToRun(const std::string& fileName)
 {
+    programName = fileName;
     programFile = "./test/programs/" + fileName + ".pebl";
     if(g_noisyReport)
     {        

@@ -2,7 +2,7 @@ X = 10
     Y = 6
 print Y
 
-if(X)
+if(X is not 0)
     Z = 6
 print Z
 

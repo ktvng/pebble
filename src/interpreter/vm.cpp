@@ -13,6 +13,7 @@
 #include "main.h"
 #include "program.h"
 #include "call.h"
+#include "value.h"
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -110,8 +111,6 @@ Call ObjectCall
     &ObjectType,
     0,
     nullptr,
-
-    nullptr,
 };
 
 Call SomethingCall
@@ -119,19 +118,15 @@ Call SomethingCall
     &SomethingType,
     &SomethingType,
     0,
-    &SomethingScope,
-
-    nullptr,
+    &NothingScope,
 };
 
 Call NothingCall
 {
-    &NullType,
-    &NullType,
+    &NothingType,
+    &NothingType,
     0,
     &NothingScope,
-
-    nullptr,
 };
 
 Call ArrayCall
@@ -139,9 +134,7 @@ Call ArrayCall
     &ArrayType,
     &ArrayType,
     0,
-    &SomethingScope,
-
-    nullptr,
+    &NothingScope,
 };
 
 Call IntegerCall
@@ -149,9 +142,7 @@ Call IntegerCall
     &IntegerType,
     &IntegerType,
     0,
-    &SomethingScope,
-
-    nullptr,
+    &NothingScope,
 };
 
 Call DecimalCall
@@ -159,9 +150,7 @@ Call DecimalCall
     &DecimalType,
     &DecimalType,
     0,
-    &SomethingScope,
-
-    nullptr,
+    &NothingScope,
 };
 
 Call StringCall
@@ -169,9 +158,7 @@ Call StringCall
     &StringType,
     &StringType,
     0,
-    &SomethingScope,
-
-    nullptr,
+    &NothingScope,
 };
 
 Call BooleanCall
@@ -179,9 +166,7 @@ Call BooleanCall
     &BooleanType,
     &BooleanType,
     0,
-    &SomethingScope,
-
-    nullptr,
+    &NothingScope,
 };
 
 const String SizeCallName = "Size";
@@ -240,6 +225,9 @@ void InitRuntime()
     ProgramReg = ScopeConstructor(nullptr);
     LocalScopeReg = ProgramReg;
 
+    FatalErrorOccured = false;
+    ErrorFlag = false;
+
     InstructionReg = 0;
 }
 
@@ -256,9 +244,9 @@ inline bool IsNOP(const ByteCodeInstruction& ins)
     return ins.Op == IndexOfInstruction(BCI_NOP);
 }
 
-std::vector<void*> DestroyedValues;
+std::vector<String*> DestroyedValues;
 
-bool HasBeenDestroyed(void* value)
+bool HasBeenDestroyed(String* value)
 {
     if(value == nullptr)
         return true;
@@ -275,13 +263,17 @@ bool HasBeenDestroyed(void* value)
     return false;
 }
 
+bool ShouldDestroyValue(const Call* call)
+{
+    return call->BoundType == &StringType;
+}
+
 void DeleteCall(Call* call)
 {
-    if(!HasBeenDestroyed(call->Value))
+    if(ShouldDestroyValue(call) && !HasBeenDestroyed(call->BoundValue.s))
     {
-        ObjectValueDestructor(*call->BoundType, call->Value);
+        StringDestructor(call->BoundValue.s);
     }
-
     CallDestructor(call);
 }
 

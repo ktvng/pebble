@@ -22,6 +22,7 @@
 #include "astvm.h"
 #include "executable.h"
 #include "call.h"
+#include "bytecode.h"
 
 
 #ifdef _WIN32 
@@ -349,7 +350,7 @@ String ToString(const Call* call)
     callString += IndentLevel(1) +
         StringForAttrbute("BoundSection", std::to_string(call->BoundSection));
 
-    if(call->Value != nullptr)
+    if(!IsNothing(call))
         callString += IndentLevel(1) +
             StringForAttrbute("Value", StringValueOf(call));
 
