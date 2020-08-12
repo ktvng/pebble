@@ -103,6 +103,17 @@ extern std::vector<CallFrame> CallStack;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Anonymous scope stack
+// used for scopes that don't have owners (if/while/indent-block) which don't affect
+// self or caller
+inline std::vector<Scope>& LocalScopeStack()
+{
+    return CallStack.back().LocalScopeStack;
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Bytecode program
 
 /// stores the information for executing a bytecode instruction
