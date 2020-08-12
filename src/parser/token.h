@@ -53,6 +53,8 @@ typedef std::vector<Token*> TokenList;
 
 void DeleteTokenList(TokenList tokenList);
 
+void TokenDestructor(Token* t);
+
 /// returns a new string with each character of [str] changed to lowercase
 String ToLowerCase(const String& str);
 

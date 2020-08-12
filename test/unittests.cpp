@@ -153,7 +153,7 @@ void TestComments()
     
     IncludeStandardAssertSuite();
 
-    String correctOutput = "30\n";
+    String correctOutput = "30\n#60\n";
 
     Should("not parse program comments marked by a #");
     OtherwiseReport("diff\ngot:\n" + ProgramOutput + "\nexpected:\n" + correctOutput);
@@ -223,4 +223,5 @@ std::vector<TestFunction> Tests =
 
     TestIfElseComplex,
     TestWhile,
+    TestComments
 };

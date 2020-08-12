@@ -147,27 +147,25 @@ String RemoveCommas(String line)
 
 TokenList RemoveComment(TokenList tokens)
 {
-    TokenList tokensNoComments; 
-    for (size_t i = 0; i < tokens.size(); i++) {
-        if (tokens.at(i)->Content != "#") {
+    TokenList tokensNoComments;
+    bool foundComment = false; 
+    for (size_t i = 0; i < tokens.size(); i++)
+    { 
+        if (tokens.at(i)->Content != "#" && !foundComment) 
+        {
             tokensNoComments.push_back(tokens.at(i));
-        } else {
-            break;
+        } 
+        else if (tokens.at(i)->Content != "#" && foundComment)
+        {
+            TokenDestructor(tokens.at(i));
+        } 
+        else if (tokens.at(i)->Content == "#") 
+        {
+            foundComment = true;
+            TokenDestructor(tokens.at(i));
         }
-    }
+    }  
     return tokensNoComments;
-
-    // std::string lineNoComment;
-    // size_t i = 0;
-    // size_t end = line.find('#');
-    // while (i < line.size() && i < end)
-    // {
-    //     char val = line.at(i);
-    //     lineNoComment.push_back(val);
-    //     i++;
-    // }
-    // std::string pointerLine = lineNoComment;
-    // return pointerLine;
 }
 
 String g_tabString;
@@ -256,7 +254,14 @@ bool LineIsWhitespace(std::string& line)
 
 bool LineIsComment(std::string &line)
 {
-    return line[0] == '#' ? true : false;
+    size_t i = 0;
+    while (i < line.size())
+    {
+        if (!CharIsWhiteSpace(line.at(i)))
+            break;
+        i++;
+    }    
+    return line[i] == '#' ? true : false;
 }
 
 /// returns a line of code and sets lineNumber to that of the next line and lineStart to
@@ -287,8 +292,7 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
         }
         fullLine += newLine;
 
-    } while (LineIsWhitespace(newLine) || LastNonWhitespaceChar(newLine) == ',' 
-        || LineIsComment(newLine));
+    } while (LineIsWhitespace(newLine) || LineIsComment(newLine));
 
     if(!TabStringIsSet())
         SetTabString(DecideTabString(newLine));
