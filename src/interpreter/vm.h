@@ -78,6 +78,16 @@ extern std::vector<Call*> RuntimeCalls;
 /// stores the scopes which are created during runtime
 extern std::vector<Scope*> RuntimeScopes;
 
+
+extern bool LocalScopeIsDetachedReg;
+struct LabeledScope
+{
+    Scope* Value;
+    bool IsDetached;
+};
+
+
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
 
@@ -94,7 +104,7 @@ struct CallFrame
     extArg_t ReturnToInstructionId;
     extArg_t MemoryStackStart;
     extArg_t Owner;
-    std::vector<Scope> LocalScopeStack;
+    std::vector<LabeledScope> LocalScopeStack;
     Call* LastResult;
 };
 
@@ -106,7 +116,7 @@ extern std::vector<CallFrame> CallStack;
 // Anonymous scope stack
 // used for scopes that don't have owners (if/while/indent-block) which don't affect
 // self or caller
-inline std::vector<Scope>& LocalScopeStack()
+inline std::vector<LabeledScope>& LocalScopeStack()
 {
     return CallStack.back().LocalScopeStack;
 }

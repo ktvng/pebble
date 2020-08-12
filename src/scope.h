@@ -23,13 +23,11 @@ struct Scope
 
     /// new scope
     std::vector<Call*> CallsIndex;
-    /// TODO: make this calls
-    std::vector<String*> CallParameters; 
 };
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Scoping
+// Constructors/Destructors
 
 /// create a new scope with [inheritedScope]
 Scope* ScopeConstructor(Scope* inheritedScope);
@@ -37,8 +35,13 @@ Scope* ScopeConstructor(Scope* inheritedScope);
 /// destroys the [scope]
 void ScopeDestructor(Scope* scope);
 
+/// DEP: 
 void AddReferenceToScope(Reference* ref, Scope* scope);
 
+/// add [call] to [scope]
+void AddCallToScope(Call* call, Scope* scope);
+
+/// return a deep copy of [scp]
 Scope* CopyScope(Scope* scp);
 
 #endif

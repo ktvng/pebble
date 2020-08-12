@@ -44,7 +44,7 @@ void BCI_BindType(extArg_t arg);
 void BCI_ResolveDirect(extArg_t arg);
 
 void BCI_ResolveScoped(extArg_t arg);
-void BCI_DefMethod(extArg_t arg);
+void BCI_BindScope(extArg_t arg);
 void BCI_BindSection(extArg_t arg);
 void BCI_EvalHere(extArg_t arg);
 void BCI_Eval(extArg_t arg);
@@ -62,7 +62,6 @@ void BCI_Swap(extArg_t arg);
 void BCI_JumpNothing(extArg_t arg);
 
 void BCI_DropTOS(extArg_t arg);
-
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode instructions

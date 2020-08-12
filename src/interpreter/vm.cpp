@@ -65,6 +65,7 @@ uint8_t CmpReg = CmpRegDefaultValue;
 /// instruction
 Call* LastResultReg = nullptr;
 
+bool LocalScopeIsDetachedReg = 0;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -201,7 +202,7 @@ void IfNeededAddArrayIndexCalls(size_t n)
 /// initializes all registers and pushes the program CallFrame onto the CallStack
 void InitRuntime()
 {
-    std::vector<Scope> localScopeStack;
+    std::vector<LabeledScope> localScopeStack;
     extArg_t programEnd = ByteCodeProgram.size();
 
     RuntimeCalls.clear();

@@ -30,6 +30,13 @@ void AddReferenceToScope(Reference* ref, Scope* scope)
     scope->ReferencesIndex.push_back(ref);
 }
 
+/// add [call] to [scope]
+void AddCallToScope(Call* call, Scope* scope)
+{
+    scope->CallsIndex.push_back(call);
+}
+
+/// return a deep copy of [scp]
 Scope* CopyScope(Scope* scp)
 {
     Scope* scpCopy = ScopeConstructor(scp->InheritedScope);
@@ -40,9 +47,9 @@ Scope* CopyScope(Scope* scp)
         BindScope(callCopy, call->BoundScope);
         BindSection(callCopy, call->BoundSection);
         BindType(callCopy, call->BoundType);
-    }
 
-    scpCopy->CallParameters = scp->CallParameters;
+        AddCallToScope(callCopy, scpCopy);
+    }
 
     return scpCopy;
 }

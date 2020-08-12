@@ -100,9 +100,9 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_ResolveScoped";
     }
-    else if(ins.Op == IndexOfInstruction(BCI_DefMethod))
+    else if(ins.Op == IndexOfInstruction(BCI_BindScope))
     {
-        str += "#BCI_DefMethod";
+        str += "#BCI_BindScope";
     }
     else if(ins.Op == IndexOfInstruction(BCI_BindSection))
     {

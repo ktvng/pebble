@@ -153,6 +153,19 @@ Call* InternalPrimitiveCallConstructor(String& value)
     }
 }
 
+Call* InternalCopyCall(const Call* call)
+{
+    auto callCopy = InternalCallConstructor();
+    
+    auto scp = InternalCopyScope(call->BoundScope);
+    BindScope(callCopy, scp);
+    BindType(callCopy, call->BoundType);
+    BindSection(callCopy, call->BoundSection);
+    callCopy->NumberOfParameters = call->NumberOfParameters;
+
+    return callCopy;
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode id helper methods
 
@@ -213,7 +226,7 @@ BCI_Method BCI_Instructions[] = {
     BCI_ResolveDirect,
 
     BCI_ResolveScoped,
-    BCI_DefMethod,
+    BCI_BindScope,
     BCI_BindSection,
     BCI_EvalHere,
     BCI_Eval,
@@ -232,7 +245,6 @@ BCI_Method BCI_Instructions[] = {
 
     BCI_DropTOS,
 };
-
 
 
 
@@ -305,12 +317,6 @@ inline Scope* ScopeOf(Call* call)
     return call->BoundScope;
 }
 
-/// adds [call] to [scp]
-inline void AddCallToScope(Call* call, Scope* scp)
-{
-    scp->CallsIndex.push_back(call);
-}
-
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -327,7 +333,7 @@ inline void InternalJumpTo(extArg_t ins)
 /// objects. changes registers appropriately but does not change the instruction pointer
 inline void EnterNewCallFrame(extArg_t callerRefId, Call* caller, Call* self)
 {
-    std::vector<Scope> localScopeStack;
+    std::vector<LabeledScope> localScopeStack;
     CallStack.push_back({ InstructionReg+1, MemoryStackSize(), callerRefId, localScopeStack, LastResultReg });
     PushTOS<Call>(caller);
     PushTOS<Call>(self);
@@ -336,6 +342,7 @@ inline void EnterNewCallFrame(extArg_t callerRefId, Call* caller, Call* self)
     SelfReg = self;
     LocalScopeReg = self->BoundScope;
     LastResultReg = nullptr;
+    LocalScopeIsDetachedReg = false;
 }
 
 /// changes the LocalScopeReg whenever a LocalScope change occurs. the base scope
@@ -352,10 +359,13 @@ void AdjustLocalScopeReg()
         {
             LocalScopeReg = ProgramReg;
         }
+
+        LocalScopeIsDetachedReg = false;
     }
     else
     {
-        LocalScopeReg = &LocalScopeStack().back();
+        LocalScopeReg = LocalScopeStack().back().Value;
+        LocalScopeIsDetachedReg = LocalScopeStack().back().IsDetached;
     }
 }
 
@@ -394,6 +404,45 @@ inline bool IsActually(const BindingType type, const Call* call)
     return call->BoundScope != &NothingScope && call->BoundType == type;
 }
 
+inline void InternalAssign(Call* lhs, const Call* rhs)
+{
+    if(lhs == &NothingCall)
+    {
+        ReportFatalError(SystemMessageType::Exception, 7, 
+            Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
+    }
+
+    if(lhs->BoundType == &NothingType)
+    {
+        if(lhs->BoundScope == &NothingScope)
+        {
+            BindType(lhs, rhs->BoundType);
+            BindSection(lhs, rhs->BoundSection);
+            BindScope(lhs, rhs->BoundScope);
+            lhs->NumberOfParameters = rhs->NumberOfParameters;
+            lhs->BoundValue = rhs->BoundValue;
+        }
+    }
+    else
+    {
+        if(lhs->BoundType == rhs->BoundType)
+        {
+            BindType(lhs, rhs->BoundType);
+            BindSection(lhs, rhs->BoundSection);
+            BindScope(lhs, rhs->BoundScope);
+            lhs->NumberOfParameters = rhs->NumberOfParameters;
+            lhs->BoundValue = rhs->BoundValue;
+        }
+        else
+        {
+            ReportFatalError(SystemMessageType::Exception, 0,
+                Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
+            return;
+        }
+    }
+}
+
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -403,10 +452,10 @@ inline bool IsActually(const BindingType type, const Call* call)
 /// used when evaluating a method
 inline void AddParamsToMethodScope(Call* methodCall, std::vector<Call*> paramsList)
 {
-    if(paramsList.size() != methodCall->BoundScope->CallParameters.size())
+    if(paramsList.size() != methodCall->NumberOfParameters)
     {
         ReportFatalError(SystemMessageType::Exception, 2, 
-            Msg("expected %i arguments but got %i", methodCall->BoundScope->CallParameters.size(), paramsList.size()));
+            Msg("expected %i arguments but got %i", methodCall->NumberOfParameters, paramsList.size()));
     }
 
     if(paramsList.size() == 0)
@@ -414,17 +463,12 @@ inline void AddParamsToMethodScope(Call* methodCall, std::vector<Call*> paramsLi
         return;
     }
 
-    for(size_t i =0; i<paramsList.size() && i<methodCall->BoundScope->CallParameters.size(); i++)
+    for(size_t i =0; i<methodCall->NumberOfParameters; i++)
     {
-        auto call = InternalCallConstructor(methodCall->BoundScope->CallParameters[i]);
-        auto callParam = paramsList[paramsList.size()-1-i];
-        BindScope(call, callParam->BoundScope);
-        BindSection(call, callParam->BoundSection);
-        /// TODO: type checking here
-        BindType(call, callParam->BoundType);
-        BindValue(call, callParam->BoundValue);
-
-        AddCallToScope(call, ScopeOf(methodCall));
+        auto methodParam = methodCall->BoundScope->CallsIndex[i];
+        auto paramInput = paramsList[paramsList.size()-1-i];
+        
+        InternalAssign(methodParam, paramInput);
     }
 }
 
@@ -668,7 +712,6 @@ String CallToString(const Call* call)
 }
 
 
-
 // ---------------------------------------------------------------------------------------------------------------------
 // Instruction Defintions
 
@@ -696,42 +739,7 @@ void BCI_Assign(extArg_t arg)
     auto rhs = PopTOS<Call>();
     auto lhs = PopTOS<Call>();
 
-    LogDiagnostics(rhs);
-    LogDiagnostics(lhs);
-
-    if(lhs == &NothingCall)
-    {
-        ReportFatalError(SystemMessageType::Exception, 7, 
-            Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
-    }
-
-    if(lhs->BoundType == &NothingType)
-    {
-        if(lhs->BoundScope == &NothingScope)
-        {
-            BindType(lhs, rhs->BoundType);
-            BindSection(lhs, rhs->BoundSection);
-            BindScope(lhs, rhs->BoundScope);
-            lhs->BoundValue = rhs->BoundValue;
-        }
-    }
-    else
-    {
-        if(lhs->BoundType == rhs->BoundType)
-        {
-            BindType(lhs, rhs->BoundType);
-            BindSection(lhs, rhs->BoundSection);
-            BindScope(lhs, rhs->BoundScope);
-            lhs->BoundValue = rhs->BoundValue;
-        }
-        else
-        {
-            ReportFatalError(SystemMessageType::Exception, 0,
-                Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
-            return;
-        }
-    }
-
+    InternalAssign(lhs, rhs);
 
     PushTOS<Call>(lhs);
 }
@@ -1073,13 +1081,7 @@ void BCI_Jump(extArg_t arg)
 void BCI_Copy(extArg_t arg)
 {
     auto call = PopTOS<Call>();
-    auto callCopy = InternalCallConstructor();
-    
-    auto scp = InternalCopyScope(call->BoundScope);
-    BindScope(callCopy, scp);
-    BindType(callCopy, call->BoundType);
-    BindSection(callCopy, call->BoundSection);
-
+    auto callCopy = InternalCopyCall(call);
     PushTOS<Call>(callCopy);
 }
 
@@ -1093,8 +1095,10 @@ void BCI_BindType(extArg_t arg)
     {
         if(originalCall->BoundScope != &NothingScope)
         {
+            /// TODO: this shouldn't copy the scope
             PopTOS<Call>();
             auto call = InternalCallConstructor();
+            call->NumberOfParameters = originalCall->NumberOfParameters;
             BindType(call, originalCall->Name);
             BindSection(call, originalCall->BoundSection);
             BindValue(call, originalCall->BoundValue);
@@ -1122,19 +1126,23 @@ void BCI_ResolveDirect(extArg_t arg)
     }
 
     auto resolvedCall = FindInScopeOnlyImmediate(LocalScopeReg, callName);
-    if(resolvedCall == nullptr)
-    {
-        resolvedCall = FindInScopeChain(SelfReg->BoundScope, callName);
-    }
 
-    if(resolvedCall == nullptr)
+    if(LocalScopeIsDetachedReg == false)
     {
-        resolvedCall = FindInScopeOnlyImmediate(CallerReg->BoundScope, callName);
-    }
+        if(resolvedCall == nullptr)
+        {
+            resolvedCall = FindInScopeChain(SelfReg->BoundScope, callName);
+        }
 
-    if(resolvedCall == nullptr)
-    {
-        resolvedCall = FindInScopeOnlyImmediate(ProgramReg, callName);
+        if(resolvedCall == nullptr)
+        {
+            resolvedCall = FindInScopeOnlyImmediate(CallerReg->BoundScope, callName);
+        }
+
+        if(resolvedCall == nullptr)
+        {
+            resolvedCall = FindInScopeOnlyImmediate(ProgramReg, callName);
+        }
     }
 
     if(resolvedCall == nullptr)
@@ -1180,36 +1188,18 @@ void BCI_ResolveScoped(extArg_t arg)
 
 /// assumes the top [arg] entities on the stack are parameter names (strings)
 /// leaves a new method object as TOS
-void BCI_DefMethod(extArg_t arg)
+void BCI_BindScope(extArg_t arg)
 {
-    String** argList;
-
-    if(arg != 0)
-    {
-        argList = new String*[arg];
-        for(extArg_t i = 1; i<=arg; i++)
-        {
-            auto str = PopTOS<String>();
-            argList[arg-i] = str;
-        }
-    }
-
     auto call = InternalCallConstructor();
-    auto scope =  InternalScopeConstructor(nullptr);
+    auto scope = PopTOS<Scope>();
+
+    call->NumberOfParameters = arg;
     BindScope(call, scope);
+
+    /// TODO: make method types more robust
     BindType(call, &MethodType);
 
-    if(arg != 0)
-    {
-        for(extArg_t i=0; i<arg; i++)
-        {
-            call->BoundScope->CallParameters.push_back(argList[i]);
-        }
-        
-        delete[] argList;
-    }
-
-    PushTOS<Call>(call);
+    PushTOS(call);
 }
 
 /// assumes TOS is a Call
@@ -1229,7 +1219,7 @@ void BCI_Eval(extArg_t arg)
     auto methodCall = PopTOS<Call>();
     auto caller = PopTOS<Call>();
 
-    if(methodCall->BoundScope == &NothingScope)
+    if(IsNothing(methodCall))
     {
         PushTOS<Call>(methodCall);
         return;
@@ -1248,7 +1238,7 @@ void BCI_Eval(extArg_t arg)
         return;
     }
 
-    extArg_t jumpIns= methodCall->BoundSection;
+    extArg_t jumpIns = methodCall->BoundSection;
     AddParamsToMethodScope(methodCall, paramsList);
 
     /// TODO: figure out caller id
@@ -1362,20 +1352,25 @@ void BCI_Array(extArg_t arg)
     PushTOS(indexedCall);
 }
 
+
+/// arg = 1 if is detached scope
 /// no assumptions
 /// does not change TOS. will update LocalScopeReg
 void BCI_EnterLocal(extArg_t arg)
 {
-    LocalScopeStack().push_back( {{}, LocalScopeReg, false} );
-    LocalScopeReg = &LocalScopeStack().back();
+    auto newScope = InternalScopeConstructor(nullptr);
+    bool isDetached = (arg == 1 ? true : false);
+    LocalScopeStack().push_back({newScope, isDetached});
+    LocalScopeReg = LocalScopeStack().back().Value;
+    LocalScopeIsDetachedReg = isDetached;
     LastResultReg = nullptr;
 }
 
 /// no assumptions
-/// does not change TOS. will update LocalScopeReg and LastResultReg
+/// leaves the scope as TOS. will update LocalScopeReg and LastResultReg
 void BCI_LeaveLocal(extArg_t arg)
 {
-    /// TODO: destroy andy local references
+    PushTOS<Scope>(LocalScopeStack().back().Value);
     LocalScopeStack().pop_back();
     AdjustLocalScopeReg();
     LastResultReg = nullptr;

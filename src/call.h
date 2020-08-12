@@ -57,6 +57,8 @@ struct Call
 
     // used for primitives
     Value BoundValue;
+
+    extArg_t NumberOfParameters;
 };
 
 /// wrapper which should always be used when creating a new instance of Call

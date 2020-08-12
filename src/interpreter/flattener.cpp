@@ -139,27 +139,35 @@ inline void AddEndLineInstruction()
 /// arg to the number of params the method takes
 inline void AddInstructionsForDefMethodParameters(Operation* op, extArg_t& arg)
 {
+    uint8_t opId;
     arg = 0;
+    
+    opId = IndexOfInstruction(BCI_EnterLocal);
+    AddByteCodeInstruction(opId, 1);
+
     /// assumes the tuple contains one argumented scope resolutions
     if(op->Type == OperationType::Tuple)
     {
         for(auto operand: op->Operands)
         {
-            uint8_t opId = IndexOfInstruction(BCI_LoadCallName);
-            extArg_t callNameId = operand->Operands[0]->EntityIndex;
-            AddByteCodeInstruction(opId, callNameId);
+            FlattenOperation(operand);
             arg++;
+
+            opId = IndexOfInstruction(BCI_EndLine);
+            AddByteCodeInstruction(opId, noArg);
         }
     }
     else
     {
-        /// TODO:
-        /// assumes operand is a scope resolution
-        uint8_t opId = IndexOfInstruction(BCI_LoadCallName);
-        extArg_t callNameId = op->Operands[0]->EntityIndex;
-        AddByteCodeInstruction(opId, callNameId);
+        FlattenOperation(op);
         arg = 1;
+
+        opId = IndexOfInstruction(BCI_EndLine);
+        AddByteCodeInstruction(opId, noArg);
     }
+
+    opId = IndexOfInstruction(BCI_LeaveLocal);
+    AddByteCodeInstruction(opId, noArg);
 }
 
 /// true if [op] is an expression (not of type OperationType::Ref)
@@ -609,12 +617,21 @@ inline void FlattenOperationDefineMethod(Operation* op)
     extArg_t arg;
     
     arg = noArg;
+
     if(op->Operands.size() > 0)
     {
         AddInstructionsForDefMethodParameters(op->Operands[0], arg);
     }
+    else
+    {
+        opId = IndexOfInstruction(BCI_EnterLocal);
+        AddByteCodeInstruction(opId, 1);
 
-    opId = IndexOfInstruction(BCI_DefMethod);
+        opId = IndexOfInstruction(BCI_LeaveLocal);
+        AddByteCodeInstruction(opId, noArg);
+    }
+
+    opId = IndexOfInstruction(BCI_BindScope);
     AddByteCodeInstruction(opId, arg);
 }
 
@@ -915,6 +932,9 @@ inline void HandleAnonymousScope(Block* block)
     FlattenBlock(block);
     
     opId = IndexOfInstruction(BCI_LeaveLocal);
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_DropTOS);
     AddByteCodeInstruction(opId, arg);
 }
 
