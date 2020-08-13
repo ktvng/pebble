@@ -127,7 +127,7 @@ Scope SomethingScope;
 Call ObjectCall
 {
     &ObjectType,
-    &ObjectType,
+    &AbstractObjectType,
     0,
     &SomethingScope,
 };
@@ -143,41 +143,41 @@ Call NothingCall
 Call ArrayCall
 {
     &ArrayType,
-    &ArrayType,
+    &AbstractArrayType,
     0,
-    &NothingScope,
+    &SomethingScope,
 };
 
 Call IntegerCall
 {
     &IntegerType,
-    &IntegerType,
+    &AbstractIntegerType,
     0,
-    &NothingScope,
+    &SomethingScope,
 };
 
 Call DecimalCall
 {
     &DecimalType,
-    &DecimalType,
+    &AbstractDecimalType,
     0,
-    &NothingScope,
+    &SomethingScope,
 };
 
 Call StringCall
 {
     &StringType,
-    &StringType,
+    &AbstractStringType,
     0,
-    &NothingScope,
+    &SomethingScope,
 };
 
 Call BooleanCall
 {
     &BooleanType,
-    &BooleanType,
+    &AbstractBooleanType,
     0,
-    &NothingScope,
+    &SomethingScope,
 };
 
 

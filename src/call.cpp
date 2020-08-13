@@ -40,6 +40,16 @@ std::string ArrayType = "Array";
 std::string TupleType = "Tuple";
 std::string MethodType = "Method";
 
+std::string AbstractObjectType = "AbstractObject";
+std::string AbstractIntegerType = "AbstractInteger";
+std::string AbstractDecimalType = "AbstractDecimal";
+std::string AbstractStringType = "AbstractString";
+std::string AbstractBooleanType = "AbstractBoolean";
+std::string AbstractArrayType = "AbstractArray";
+std::string AbstractTupleType = "AbstractTuple";
+std::string AbstractMethodType = "AbstractMethod";
+
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Call binding methods
 

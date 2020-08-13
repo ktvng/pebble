@@ -404,12 +404,24 @@ inline bool IsActually(const BindingType type, const Call* call)
     return call->BoundScope != &NothingScope && call->BoundType == type;
 }
 
+/// true if [call] cannot be rebound to anything
+inline bool IsUnassignable(const Call* call)
+{
+    return call == &NothingCall
+        || call == &ObjectCall
+        || call == &IntegerCall
+        || call == &DecimalCall
+        || call == &StringCall
+        || call == &BooleanCall
+        || call == &ArrayCall;
+}
+
 inline void InternalAssign(Call* lhs, const Call* rhs)
 {
-    if(lhs == &NothingCall)
+    if(IsUnassignable(lhs))
     {
         ReportFatalError(SystemMessageType::Exception, 7, 
-            Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
+            Msg("cannot reassign the global call %s", *lhs->Name));
     }
 
     if(lhs->BoundType == &NothingType)
@@ -432,6 +444,10 @@ inline void InternalAssign(Call* lhs, const Call* rhs)
             BindScope(lhs, rhs->BoundScope);
             BindValue(lhs, rhs->BoundValue);
             lhs->NumberOfParameters = rhs->NumberOfParameters;
+        }
+        else if(IsNothing(lhs) && IsPureNothing(rhs))
+        {
+            return;
         }
         else
         {
@@ -583,15 +599,25 @@ inline bool CallsHaveEqualValue(const Call* call1, const Call* call2)
 /// true if Calls are equal (i.e. defines the definition of equality in Pebble)
 inline bool CallsAreEqual(const Call* call1, const Call* call2)
 {
-    if(call1->BoundType == &NothingType || call2->BoundType == &NothingType)
+    if(IsPureNothing(call1) || IsPureNothing(call2))
     {
-        return call1->BoundScope == call2->BoundScope;
+        return IsNothing(call1) && IsNothing(call2);
+    }
+    else if(IsNothing(call1) && !IsNothing(call2))
+    {
+        return call1->BoundType == call2->BoundType
+        && call1->BoundSection == call2->BoundSection;
+    }
+    else if(!IsNothing(call1) && IsNothing(call2))
+    {
+        return call1->BoundType == call2->BoundType
+        && call1->BoundSection == call2->BoundSection; 
     }
 
-    return call1->BoundType == call2->BoundType &&
-        call1->BoundScope == call2->BoundScope &&
-        call1->BoundSection == call2->BoundSection &&
-        CallsHaveEqualValue(call1, call2);
+    return call1->BoundType == call2->BoundType
+        && call1->BoundScope == call2->BoundScope 
+        && call1->BoundSection == call2->BoundSection 
+        && CallsHaveEqualValue(call1, call2);
 }
 
 
@@ -1446,7 +1472,7 @@ void BCI_Swap(extArg_t arg)
 void BCI_JumpNothing(extArg_t arg)
 {
     auto TOS = PopTOS<Call>();
-    if(TOS->BoundType == &NothingType)
+    if(IsNothing(TOS))
     {
         InternalJumpTo(arg);
     }

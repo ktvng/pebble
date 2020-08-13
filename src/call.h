@@ -36,6 +36,16 @@ extern std::string TupleType;
 extern std::string MethodType;
 
 
+extern std::string AbstractObjectType;
+extern std::string AbstractIntegerType;
+extern std::string AbstractDecimalType;
+extern std::string AbstractStringType;
+extern std::string AbstractBooleanType;
+extern std::string AbstractArrayType;
+extern std::string AbstractTupleType;
+extern std::string AbstractMethodType;
+
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Call structure
 
