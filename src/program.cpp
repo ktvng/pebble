@@ -145,6 +145,29 @@ String RemoveCommas(String line)
     return returnString;
 }
 
+TokenList RemoveComment(TokenList tokens)
+{
+    TokenList tokensNoComments;
+    bool foundComment = false; 
+    for (size_t i = 0; i < tokens.size(); i++)
+    { 
+        if (tokens.at(i)->Content != "#" && !foundComment) 
+        {
+            tokensNoComments.push_back(tokens.at(i));
+        } 
+        else if (tokens.at(i)->Content != "#" && foundComment)
+        {
+            TokenDestructor(tokens.at(i));
+        } 
+        else if (tokens.at(i)->Content == "#") 
+        {
+            foundComment = true;
+            TokenDestructor(tokens.at(i));
+        }
+    }  
+    return tokensNoComments;
+}
+
 String g_tabString;
 
 bool TabStringIsSet()
@@ -229,6 +252,17 @@ bool LineIsWhitespace(std::string& line)
     return true;
 }
 
+bool LineIsComment(std::string &line)
+{
+    size_t i = 0;
+    while (i < line.size())
+    {
+        if (!CharIsWhiteSpace(line.at(i)))
+            break;
+        i++;
+    }    
+    return line[i] == '#' ? true : false;
+}
 
 /// returns a line of code and sets lineNumber to that of the next line and lineStart to
 /// the starting position of the returned line. commas allow for a line to be split
@@ -248,6 +282,9 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
         if(LineIsWhitespace(newLine))
             continue;
 
+        if (LineIsComment(newLine))
+            continue;
+
         if(FirstTime)
         {
             lineStart = lineNumber - 1;
@@ -255,7 +292,7 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
         }
         fullLine += newLine;
 
-    } while (LineIsWhitespace(newLine) || LastNonWhitespaceChar(newLine) == ',');
+    } while (LineIsWhitespace(newLine) || LineIsComment(newLine));
 
     if(!TabStringIsSet())
         SetTabString(DecideTabString(newLine));
@@ -507,10 +544,12 @@ Program* ParseProgram(const std::string filepath)
 
     for(std::string line = GetEffectiveLine(file, nextLinePos, lineStart); line != ""; line = GetEffectiveLine(file, nextLinePos, lineStart))
     {
+        // std::string removed = RemoveComment(line);
         TokenList tokens = LexLine(line);
+        TokenList noComments = RemoveComment(tokens);
         lineLevel = LevelOfLine(line);
 
-        CodeLine ls = { tokens , lineStart, lineLevel };
+        CodeLine ls = { noComments , lineStart, lineLevel };
         p->Lines.push_back(ls);
 
     }

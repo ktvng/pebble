@@ -1,0 +1,7 @@
+#comment at beginning of file (no space)
+    # weirdly indented comment
+R = 6*4+1
+X = R + 5 #X = X + 2
+print X
+print "#60"
+#comment at end of file (no space)
