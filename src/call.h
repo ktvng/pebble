@@ -23,18 +23,17 @@ typedef const std::string* BindingType;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Constant type names
+// Simple type names
 
-inline const std::string ObjectType = "Object";
-inline const std::string IntegerType = "Integer";
-inline const std::string DecimalType = "Decimal";
-inline const std::string StringType = "String";
-inline const std::string BooleanType = "Boolean";
-inline const std::string NothingType = "Nothing";
-inline const std::string ArrayType = "Array";
-inline const std::string TupleType = "Tuple";
-inline const std::string SomethingType = "Something";
-inline const std::string MethodType = "Method";
+extern std::string ObjectType;
+extern std::string IntegerType;
+extern std::string DecimalType;
+extern std::string StringType;
+extern std::string BooleanType;
+extern std::string NothingType;
+extern std::string ArrayType;
+extern std::string TupleType;
+extern std::string MethodType;
 
 
 // ---------------------------------------------------------------------------------------------------------------------

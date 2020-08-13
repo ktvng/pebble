@@ -12,17 +12,6 @@ struct JumpContext
 };
 
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Contants
-constexpr extArg_t OBJECT_CALL_ID = 0;
-constexpr extArg_t NOTHING_CALL_ID = 1;
-constexpr extArg_t ARRAY_CALL_ID = 2;
-constexpr extArg_t INTEGER_CALL_ID = 3;
-constexpr extArg_t DECIMAL_CALL_ID = 4;
-constexpr extArg_t STRING_CALL_ID = 5;
-constexpr extArg_t BOOLEAN_CALL_ID = 6;
-constexpr extArg_t PRIMITIVE_CALLS = 7;
-
 
 extern int UniversalPrimitiveCount;
 

@@ -27,6 +27,18 @@ void CallDestructor(Call* call)
     delete call;
 }
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Simple type names
+
+std::string ObjectType = "Object";
+std::string IntegerType = "Integer";
+std::string DecimalType = "Decimal";
+std::string StringType = "String";
+std::string BooleanType = "Boolean";
+std::string NothingType = "Nothing";
+std::string ArrayType = "Array";
+std::string TupleType = "Tuple";
+std::string MethodType = "Method";
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call binding methods

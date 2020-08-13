@@ -30,16 +30,16 @@ inline Scope* InternalScopeConstructor(Scope* inheritedScope)
 inline Scope* InternalCopyScope(Scope* scopeToCopy)
 {
     Scope* scope;
-    if(scopeToCopy == &NothingScope || scopeToCopy == nullptr)
+    if(scopeToCopy == &NothingScope)
     {
-       scope = ScopeConstructor(nullptr);
+        scope = &NothingScope;
     }
     else
     {
         scope = CopyScope(scopeToCopy);
+        AddRuntimeScope(scope);
     }
     
-    AddRuntimeScope(scope);
 
     return scope;
 }
@@ -377,7 +377,7 @@ void AdjustLocalScopeReg()
 /// true if [call] corresponds to the general definition of Nothing
 bool IsNothing(const Call* call)
 {
-    return call->BoundScope == &NothingScope;
+    return call->BoundScope == &NothingScope || call->BoundType == &NothingType;
 }
 
 /// true if [call] corresponds to the strict definition of Nothing
@@ -419,8 +419,8 @@ inline void InternalAssign(Call* lhs, const Call* rhs)
             BindType(lhs, rhs->BoundType);
             BindSection(lhs, rhs->BoundSection);
             BindScope(lhs, rhs->BoundScope);
+            BindValue(lhs, rhs->BoundValue);
             lhs->NumberOfParameters = rhs->NumberOfParameters;
-            lhs->BoundValue = rhs->BoundValue;
         }
     }
     else
@@ -430,8 +430,8 @@ inline void InternalAssign(Call* lhs, const Call* rhs)
             BindType(lhs, rhs->BoundType);
             BindSection(lhs, rhs->BoundSection);
             BindScope(lhs, rhs->BoundScope);
+            BindValue(lhs, rhs->BoundValue);
             lhs->NumberOfParameters = rhs->NumberOfParameters;
-            lhs->BoundValue = rhs->BoundValue;
         }
         else
         {
@@ -467,7 +467,6 @@ inline void AddParamsToMethodScope(Call* methodCall, std::vector<Call*> paramsLi
     {
         auto methodParam = methodCall->BoundScope->CallsIndex[i];
         auto paramInput = paramsList[paramsList.size()-1-i];
-        
         InternalAssign(methodParam, paramInput);
     }
 }
@@ -600,7 +599,7 @@ inline bool CallsAreEqual(const Call* call1, const Call* call2)
 // ---------------------------------------------------------------------------------------------------------------------
 // Scope resolution helpers
 
-/// resolves [callName] which is a keyword to the appropriate object which is 
+/// resolves [callName] which is a keyword to the appropriate call which is 
 /// pushed to TOS
 inline void ResolveKeywordCall(const String* callName)
 {
@@ -719,7 +718,14 @@ String CallToString(const Call* call)
 /// leaves the String callName as TOS
 void BCI_LoadCallName(extArg_t arg)
 {
-    PushTOS<String>(&CallNames[arg]);
+    if(arg < SIMPLE_CALLS)
+    {
+        PushTOS<String>(SimpleCallNames[arg]);
+    }
+    else
+    {
+        PushTOS<String>(&CallNames[arg-SIMPLE_CALLS]);
+    }
 }
 
 /// no asumptions
@@ -1166,7 +1172,7 @@ void BCI_ResolveScoped(extArg_t arg)
     auto callerCall = PopTOS<Call>();
 
     // all attributes of Nothing resolve to Nothing
-    if(callerCall->BoundScope == &NothingScope)
+    if(IsNothing(callerCall))
     {
         PushTOS<Call>(&NothingCall);
         return;
@@ -1221,7 +1227,7 @@ void BCI_Eval(extArg_t arg)
 
     if(IsNothing(methodCall))
     {
-        PushTOS<Call>(methodCall);
+        PushTOS<Call>(&NothingCall);
         return;
     }
 

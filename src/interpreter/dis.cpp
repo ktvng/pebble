@@ -17,7 +17,14 @@ String ToString(ByteCodeInstruction& ins)
     if(ins.Op == IndexOfInstruction(BCI_LoadCallName))
     {
         str += "#BCI_LoadCallName";
-        decodedArg = CallNames[ins.Arg];
+        if(ins.Arg < SIMPLE_CALLS)
+        {
+            decodedArg = *SimpleCallNames[ins.Arg];
+        }
+        else
+        {
+            decodedArg = CallNames[ins.Arg - SIMPLE_CALLS];
+        }
     }
     else if(ins.Op == IndexOfInstruction(BCI_LoadPrimitive))
     {
@@ -26,6 +33,10 @@ String ToString(ByteCodeInstruction& ins)
         if(call->BoundScope != &NothingScope)
         {
             decodedArg = StringValueOf(ConstPrimitives[ins.Arg]);
+        }
+        else
+        {
+            decodedArg = CallTypeToString(call);
         }
     }
     else if(ins.Op == IndexOfInstruction(BCI_Assign)) 
@@ -195,9 +206,15 @@ String ToString(std::vector<ByteCodeInstruction>& bciProgram)
 void LogProgramInstructions()
 {
     String refNames = "Call list\n";
+
+    for(size_t i=0; i<SIMPLE_CALLS; i++)
+    {
+        refNames +=  Msg("%i:\t %s\n", i, SimpleCallNames[i]);
+    }
+
     for(size_t i=0; i<CallNames.size(); i++)
     {
-        refNames +=  Msg("%i:\t %s\n", i, CallNames[i]);
+        refNames +=  Msg("%i:\t %s\n", i + SIMPLE_CALLS, CallNames[i]);
     }
     
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", refNames);

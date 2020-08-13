@@ -85,4 +85,7 @@ inline bool CallNameIsKeyword(const String* name)
 /// true if call is bound to NothingType or if it is bound to NothingScope
 bool IsNothing(const Call* call);
 
+/// returns the String representation of a Call's type
+String CallTypeToString(const Call* call);
+
 #endif

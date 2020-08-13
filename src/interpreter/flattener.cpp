@@ -339,15 +339,19 @@ inline bool IsPartOfIfConditional(Operation *op)
 // Flattening the AST
 
 /// true if [op] (assumed to be OperationType::Ref) points to a primitive 
-/// or instance of Object/Something/Nothing
 inline bool OperationRefIsPrimitive(Operation* op)
 {
+    return !IsReferenceStub(op->Value);
+}
+
+/// true if [op] (assumd to be OperationType::Ref) points to a Call for a
+/// primitive type i.e. Object/Nothing...
+inline bool IsSimpleCall(Operation* op)
+{
     auto ref = op->Value;
-    /// TODO: add Integer et all
     if(IsReferenceStub(ref))
     {
         return ref->Name == "Object" 
-            || ref->Name == "Something" 
             || ref->Name == "Nothing" 
             || ref->Name == "Array"
             || ref->Name == "Integer"
@@ -356,7 +360,7 @@ inline bool OperationRefIsPrimitive(Operation* op)
             || ref->Name == "Boolean";
     }
 
-    return true;
+    return false;
 }
 
 /// flatten a OperationType::Ref [op] which may point to a primitive object
@@ -640,8 +644,11 @@ inline void FlattenOperationEvaluateAsArrayInitialization(Operation* paramsOp)
     uint8_t opId;
     extArg_t arg;
 
-    opId = IndexOfInstruction(BCI_LoadPrimitive);
+    opId = IndexOfInstruction(BCI_LoadCallName);
     arg = NOTHING_CALL_ID; 
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_ResolveDirect);
     AddByteCodeInstruction(opId, arg);
 
     opId = IndexOfInstruction(BCI_LoadPrimitive);
@@ -662,9 +669,13 @@ inline void FlattenOperationNew(Operation* op)
     uint8_t opId;
     extArg_t arg; 
 
-    opId = IndexOfInstruction(BCI_LoadPrimitive);
+    opId = IndexOfInstruction(BCI_LoadCallName);
     arg = NOTHING_CALL_ID; 
     AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_ResolveDirect);
+    AddByteCodeInstruction(opId, arg);
+
 
     FlattenOperation(op->Operands[0]);
 
@@ -703,8 +714,11 @@ inline void FlattenOperationEvaluate(Operation* op)
     /// case with no caller
     if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
     {
-        opId = IndexOfInstruction(BCI_LoadPrimitive);
+        opId = IndexOfInstruction(BCI_LoadCallName);
         arg = NOTHING_CALL_ID; 
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveDirect);
         AddByteCodeInstruction(opId, arg);
 
         FlattenOperation(methodOp);
@@ -1137,11 +1151,11 @@ void IfNeededAddReferenceName(Operation* op)
     size_t atPosition;
     if(CallNamesContains(callName, atPosition))
     {
-        op->EntityIndex = atPosition;
+        op->EntityIndex = atPosition + SIMPLE_CALLS;
         return;
     }
 
-    op->EntityIndex = CallNames.size();
+    op->EntityIndex = CallNames.size() + SIMPLE_CALLS;
     CallNames.push_back(callName);
 }
 
@@ -1213,52 +1227,15 @@ void IfNeededAddConstPrimitive(Operation* op)
 {
     auto obj = op->Value->To;
     
-    /// TODO: streamline this process for GodObj and SomethingObj
-    if(op->Value->Name == "Object")
-    {
-        op->EntityIndex = OBJECT_CALL_ID;
-        return;
-    }
-    else if(op->Value->Name == "Nothing")
-    {
-        op->EntityIndex = NOTHING_CALL_ID;
-        return;
-    }
-    else if(op->Value->Name == "Array")
-    {
-        op->EntityIndex = ARRAY_CALL_ID;
-        return;
-    }
-    else if(op->Value->Name == "Integer")
-    {
-        op->EntityIndex = INTEGER_CALL_ID;
-        return;
-    }
-    else if(op->Value->Name == "Decimal")
-    {
-        op->EntityIndex = DECIMAL_CALL_ID; 
-        return;
-    }
-    else if(op->Value->Name == "String")
-    {
-        op->EntityIndex = STRING_CALL_ID;
-        return;
-    }
-    else if(op->Value->Name == "Boolean")
-    {
-        op->EntityIndex = BOOLEAN_CALL_ID;
-        return;
-    }
-
     size_t atPosition;
     if(EncounteredPrimitiveObject(obj, atPosition))
     {
-        op->EntityIndex = atPosition + PRIMITIVE_CALLS;
+        op->EntityIndex = atPosition;
         return;
     }
 
     /// TODO: this is because of the calls hardcoded
-    op->EntityIndex = PrimitiveObjectsEncountered.size() + PRIMITIVE_CALLS;
+    op->EntityIndex = PrimitiveObjectsEncountered.size();
     PrimitiveObjectsEncountered.push_back(obj);
     
     Call* call = CallConstructor();
@@ -1267,6 +1244,44 @@ void IfNeededAddConstPrimitive(Operation* op)
     /// TODO: make this more robust
     BindType(call, ObjectClassToType(op->Value->To));
     ConstPrimitives.push_back(call);
+}
+
+void AssignEntityIndexForSimpleCall(Operation* op)
+{
+    auto name = op->Value->Name;
+    if(name == "Object")
+    {
+        op->EntityIndex = OBJECT_CALL_ID;
+    }
+    else if(name == "Nothing")
+    {
+        op->EntityIndex = NOTHING_CALL_ID;
+    }
+    else if(name == "Array")
+    {
+        op->EntityIndex = ARRAY_CALL_ID;
+    }
+    else if(name == "Integer")
+    {
+        op->EntityIndex = INTEGER_CALL_ID;
+    }
+    else if(name == "Decimal")
+    {
+        op->EntityIndex = DECIMAL_CALL_ID;
+    }
+    else if(name == "String")
+    {
+        op->EntityIndex = STRING_CALL_ID;
+    }
+    else if(name == "Boolean")
+    {
+        op->EntityIndex = BOOLEAN_CALL_ID;
+    }
+    else
+    {
+        LogIt(LogSeverityType::Sev1_Notify, 
+            "AssignEntityIndexForSimpleCall", "bad simple call name");
+    }
 }
 
 /// recurses over the ast with [op] as head 
@@ -1278,9 +1293,12 @@ void FirstPassOperation(Operation* op)
         {
             IfNeededAddConstPrimitive(op);
         }
+        else if(IsSimpleCall(op))
+        {
+            AssignEntityIndexForSimpleCall(op);
+        }
         else
         {
-            // this is the case that it is a primitive
             IfNeededAddReferenceName(op);
         }
         return;
@@ -1317,8 +1335,6 @@ void InitEntityLists()
 {
     ConstPrimitives.clear();
     ConstPrimitives.reserve(64);
-    ConstPrimitives = { &ObjectCall, &NothingCall, &ArrayCall, &IntegerCall,
-        &DecimalCall, &StringCall, &BooleanCall };
 
     CallNames.clear();
     CallNames.reserve(64);

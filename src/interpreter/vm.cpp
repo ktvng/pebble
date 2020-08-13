@@ -77,6 +77,16 @@ std::vector<void*> MemoryStack;
 // ---------------------------------------------------------------------------------------------------------------------
 // Entity Arrays
 
+String* SimpleCallNames[] = {
+    &ObjectType,
+    &NothingType,
+    &ArrayType,
+    &IntegerType,
+    &DecimalType,
+    &StringType,
+    &BooleanType,
+};
+
 /// list of all reference names appearing in a program
 std::vector<String> CallNames;
 
@@ -195,6 +205,16 @@ void IfNeededAddArrayIndexCalls(size_t n)
     }
 }
 
+void AddSimpleCallsToProgramScope()
+{
+    AddCallToScope(&ObjectCall, ProgramReg);
+    AddCallToScope(&NothingCall, ProgramReg);
+    AddCallToScope(&ArrayCall, ProgramReg);
+    AddCallToScope(&IntegerCall, ProgramReg);
+    AddCallToScope(&DecimalCall, ProgramReg);
+    AddCallToScope(&StringCall, ProgramReg);
+    AddCallToScope(&BooleanCall, ProgramReg);
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Program execution helpers
@@ -207,6 +227,9 @@ void InitRuntime()
 
     RuntimeCalls.clear();
     RuntimeCalls.reserve(256);
+
+    RuntimeCalls = { &ObjectCall, &NothingCall, &ArrayCall, &IntegerCall,
+        &DecimalCall, &StringCall, &BooleanCall };
 
     RuntimeScopes.clear();
     RuntimeScopes.reserve(256);
@@ -228,6 +251,7 @@ void InitRuntime()
 
     ProgramReg = ScopeConstructor(nullptr);
     LocalScopeReg = ProgramReg;
+    AddSimpleCallsToProgramScope();
 
     FatalErrorOccured = false;
     ErrorFlag = false;
@@ -297,9 +321,9 @@ void GracefullyExit()
     DestroyedValues.clear();
     DestroyedValues.reserve(size);
     
-    for(auto call: RuntimeCalls)
+    for(size_t i=SIMPLE_CALLS; i<RuntimeCalls.size(); i++)
     {
-        DeleteCall(call);
+        DeleteCall(RuntimeCalls[i]);
     }
 
     for(auto scope: RuntimeScopes)
@@ -307,9 +331,9 @@ void GracefullyExit()
         ScopeDestructor(scope);
     }
 
-    for(size_t i=PRIMITIVE_CALLS; i<ConstPrimitives.size(); i++)
+    for(auto call: ConstPrimitives)
     {
-        DeleteCall(ConstPrimitives[i]);
+        DeleteCall(call);
     }
 
     ScopeDestructor(ProgramReg);
