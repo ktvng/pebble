@@ -611,7 +611,8 @@ inline bool CallsAreEqual(const Call* call1, const Call* call2)
     else if(!IsNothing(call1) && IsNothing(call2))
     {
         return call1->BoundType == call2->BoundType
-        && call1->BoundSection == call2->BoundSection; 
+        && call1->BoundSection == call2->BoundSection
+        && CallsHaveEqualValue(call1, call2); 
     }
 
     return call1->BoundType == call2->BoundType
@@ -1472,7 +1473,7 @@ void BCI_Swap(extArg_t arg)
 void BCI_JumpNothing(extArg_t arg)
 {
     auto TOS = PopTOS<Call>();
-    if(IsNothing(TOS))
+    if(IsPureNothing(TOS))
     {
         InternalJumpTo(arg);
     }

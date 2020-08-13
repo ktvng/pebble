@@ -75,7 +75,7 @@ build/%.o.t: src/walker/%.cpp src/walker/%.h test/src/%.cpp
 ################################################################################
 # PEBBLE MAIN BUILD 
 ################################################################################
-pebble.exe: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS)
+pebble: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS)
 	$(CC) $(CCFLAGS) -o pebble.exe $^
 
 
@@ -87,7 +87,7 @@ pebble.exe: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS)
 TEST_SRCS=$(wildcard ./test/src/*.cpp)
 TEST_OBJS=$(TEST_SRCS:./test/src/%.cpp=./build/%.o.t)
 
-TestBuilder: ./test/testbuilder.cpp
+testbuilder: ./test/testbuilder.cpp
 	$(CC) $(CCFLAGS) -o testbuilder.exe $<
 	./testbuilder.exe $(PARSER_SRCS) $(SRCS) $(INTERPRETER_SRCS) $(WALKER_SRCS)
 
@@ -97,5 +97,5 @@ build/test.o: test/test.cpp test/test.h
 build/unittests.o: test/unittests.cpp test/unittests.h test/test.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/unittests.o -c ./test/unittests.cpp
 
-pebble_testbuild.exe: $(TEST_OBJS) build/test.o build/unittests.o
+pebble_testbuild: $(TEST_OBJS) build/test.o build/unittests.o
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o pebble_testbuild.exe $^

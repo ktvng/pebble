@@ -17,7 +17,7 @@ Pebble is an interpreted language built over C++. To get started with Pebble, yo
 Steps to install:
  * Clone the Pebble repo and run your `make` command in the repo root directory. This should produce a new executable `pebble.exe`
    ```
-   $ make
+   $ make pebble
    ```
  * In this same directory create a file titled `program.pebl` and write any Pebble code you would like to run in this file.
    ```python
@@ -32,8 +32,8 @@ Steps to install:
 ## Running the unit tests
 Follow the following steps after you have installed Pebble to create the test build of the Pebble interpreter and run the unit tests
 ```
-$ make TestBuilder
-$ make pebble_testbuild.exe
+$ make testbuilder
+$ make pebble_testbuild
 $ ./pebble_testbuild.exe --ignore-custom --bytecode
 ```
 
@@ -42,12 +42,20 @@ $ ./pebble_testbuild.exe --ignore-custom --bytecode
 Currently it uses an experimental syntax (codenamed Boulder). The syntax is still in early beta and is subject to rapid change. These changes may not be reflected in this documentation. We will update this section as often as possible.
 
 ## Overview of Ideas
-Pebble uses three core primitives which can be translated into different narratives/coding-paradigms. These three concepts are **Calls**, **Scopes** and **Sections**
+Pebble uses four core primitives which can be composed in different ways as to allow their translation into different coding-paradigms. These four concepts are **Calls**, **Scopes**, **Sections**, and **Types**
 
 ### Calls
-A call is the name given to a variable. For instance, in the statement `X = 4`, `X` is a call for `4`, whatever that is. Currently calls are untyped and Pebble is a dynamically typed language, but whether this is a central design feature is still under discussion. 
+Simply put, a Call can be thought of as roughly equivalent to a variable. More precisely, it is a named container that can hold a **Scope**, a **Section**, or a **Type**, and allows for these three items to be reassigned. 
 
-By legacy convention, calls must begin with an uppercase letter and must only consist of alphanumeric characters and underscores.
+By convention, and something that is still enforced, calls must begin with an uppercase letter, and like traditional variables, consist of only alphanumeric characters with underscores.
+
+#### Example
+```python
+MyNumber = 4
+MyFavoriteNumber = 16
+```
+
+In the example above, both `MyNumber` and `MyFavoriteNumber` are calls. In fact
 
 The same “thing” can have multiple calls. 
 ```python
