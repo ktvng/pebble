@@ -58,7 +58,7 @@ int JumpStatusReg;
 /// 4: >
 /// 5: <=
 /// 6: >=
-/// 7: true if all comparisons valid, false if only == valid
+/// 7: true Nothing, overrides all else
 uint8_t CmpReg = CmpRegDefaultValue;
 
 /// stores the result of the last line of code and is updated by the BCI_Endline 
@@ -146,6 +146,8 @@ Call ArrayCall
     &AbstractArrayType,
     0,
     &SomethingScope,
+    0,
+    1
 };
 
 Call IntegerCall

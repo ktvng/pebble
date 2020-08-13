@@ -45,6 +45,7 @@ extern int JumpStatusReg;
 /// 4: >
 /// 5: <=
 /// 6: >=
+/// 7: true if Nothing, overrides all others
 extern uint8_t CmpReg;
 
 /// default value for the CmpReg to maintain the priors
