@@ -240,9 +240,6 @@ BCI_Method BCI_Instructions[] = {
     BCI_NOP,
     BCI_Dup,
     BCI_EndLine,
-    BCI_Swap,
-    BCI_JumpNothing,
-
     BCI_DropTOS,
     BCI_Is,
 };
@@ -1445,28 +1442,6 @@ void BCI_Dup(extArg_t arg)
 void BCI_EndLine(extArg_t arg)
 {
     LastResultReg = PopTOS<Call>();
-}
-
-/// swaps TOS with TOS1
-void BCI_Swap(extArg_t arg)
-{
-    void* TOS = PopTOS<void>();
-    void* TOS1 = PopTOS<void>();
-
-    PushTOS<void>(TOS);
-    PushTOS<void>(TOS1);
-}
-
-/// assumes TOS is an object
-/// pops TOS and jumps if obj == Nothing
-/// TODO: rename to JumpUndefined
-void BCI_JumpNothing(extArg_t arg)
-{
-    auto TOS = PopTOS<Call>();
-    if(IsPureNothing(TOS))
-    {
-        InternalJumpTo(arg);
-    }
 }
 
 /// assumes TOS exists

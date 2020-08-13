@@ -836,45 +836,6 @@ inline void FlattenOperationAsk(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
-// inline void FlattenOperationIs(Operation* op)
-// {
-//     uint8_t opId;
-
-//     if(op->Operands[0]->Type == OperationType::ScopeResolution)
-//     {
-//         FlattenOperationScopeResolution(op->Operands[0]);
-//     }
-//     else
-//     {
-//         FlattenOperation(op->Operands[0]);
-//     }
-
-//     extArg_t jumpStart = NextInstructionId();
-//     AddNOPS(NOPSafetyDomainSize());
-
-//     /// if not nothing, then treat as IsEquals
-//     FlattenOperationGeneric(op);
-//     extArg_t jump2Start = NextInstructionId();
-//     AddNOPS(NOPSafetyDomainSize());
-
-
-//     opId = IndexOfInstruction(BCI_JumpNothing); 
-//     extArg_t jumpTo = NextInstructionId();
-//     RewriteByteCodeInstruction(opId, jumpTo, jumpStart);
-
-//     FlattenOperationAssign(op);
-
-//     opId = IndexOfInstruction(BCI_DropTOS);
-//     AddByteCodeInstruction(opId, noArg);
-
-//     opId = IndexOfInstruction(BCI_LoadCmp);
-//     AddByteCodeInstruction(opId, 1); // 1 for true
-
-//     opId = IndexOfInstruction(BCI_Jump);
-//     jumpTo = NextInstructionId();
-//     RewriteByteCodeInstruction(opId, jumpTo, jump2Start);
-// }
-
 /// adds bytecode instructions for an [op] based on its OperationType
 void FlattenOperation(Operation* op)
 {
@@ -890,10 +851,6 @@ void FlattenOperation(Operation* op)
     {
         FlattenOperationAssign(op);
     }
-    // else if(op->Type == OperationType::Is)
-    // {
-    //     FlattenOperationIs(op);
-    // }
     else if(op->Type == OperationType::DefineMethod)
     {
         FlattenOperationDefineMethod(op);

@@ -163,14 +163,6 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_EndLine";
     }
-    else if(ins.Op == IndexOfInstruction(BCI_Swap))
-    {
-        str += "#BCI_Swap";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_JumpNothing))
-    {
-        str += "#BCI_JumpNothing";
-    }
     else if(ins.Op == IndexOfInstruction(BCI_DropTOS))
     {
         str += "#BCI_DropTOS";

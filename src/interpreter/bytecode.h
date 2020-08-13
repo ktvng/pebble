@@ -10,7 +10,7 @@
 constexpr uint8_t BitFlag = 0x1;
 
 /// number of bytecode instructions 
-constexpr int BCI_NumberOfInstructions = 37;
+constexpr int BCI_NumberOfInstructions = 35;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode instructions methods
@@ -58,9 +58,6 @@ void BCI_Extend(extArg_t arg);
 void BCI_NOP(extArg_t arg);
 void BCI_Dup(extArg_t arg);
 void BCI_EndLine(extArg_t arg);
-void BCI_Swap(extArg_t arg);
-void BCI_JumpNothing(extArg_t arg);
-
 void BCI_DropTOS(extArg_t arg);
 void BCI_Is(extArg_t arg);
 
