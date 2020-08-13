@@ -134,7 +134,6 @@ inline void AddEndLineInstruction()
     AddByteCodeInstruction(IndexOfInstruction(BCI_EndLine), noArg);
 }
 
-/// TODO: add checking to make sure that tuple only contains refs
 /// add instructions for listing params when defining a method and sets 
 /// arg to the number of params the method takes
 inline void AddInstructionsForDefMethodParameters(Operation* op, extArg_t& arg)
@@ -1196,7 +1195,6 @@ void IfNeededAddConstPrimitive(Operation* op)
         return;
     }
 
-    /// TODO: this is because of the calls hardcoded
     op->EntityIndex = PrimitiveObjectsEncountered.size();
     PrimitiveObjectsEncountered.push_back(obj);
     
