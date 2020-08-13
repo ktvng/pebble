@@ -301,7 +301,7 @@ bool HasBeenDestroyed(String* value)
 /// true if [call] has a BoundValue that should be destroyed
 bool ShouldDestroyValue(const Call* call)
 {
-    return call->BoundType == &StringType;
+    return call->BoundType == &StringType && call->BoundScope != &NothingScope;
 }
 
 /// wrapper to delete a [call] and meet all dependencies
@@ -335,7 +335,6 @@ void GracefullyExit()
     {
         DeleteCall(call);
     }
-
     ScopeDestructor(ProgramReg);
 }
 

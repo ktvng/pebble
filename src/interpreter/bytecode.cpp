@@ -244,6 +244,7 @@ BCI_Method BCI_Instructions[] = {
     BCI_JumpNothing,
 
     BCI_DropTOS,
+    BCI_Is,
 };
 
 
@@ -602,17 +603,6 @@ inline bool CallsAreEqual(const Call* call1, const Call* call2)
     if(IsPureNothing(call1) || IsPureNothing(call2))
     {
         return IsNothing(call1) && IsNothing(call2);
-    }
-    else if(IsNothing(call1) && !IsNothing(call2))
-    {
-        return call1->BoundType == call2->BoundType
-        && call1->BoundSection == call2->BoundSection;
-    }
-    else if(!IsNothing(call1) && IsNothing(call2))
-    {
-        return call1->BoundType == call2->BoundType
-        && call1->BoundSection == call2->BoundSection
-        && CallsHaveEqualValue(call1, call2); 
     }
 
     return call1->BoundType == call2->BoundType
@@ -1484,4 +1474,41 @@ void BCI_JumpNothing(extArg_t arg)
 void BCI_DropTOS(extArg_t arg)
 {
     PopTOS<void>();
+}
+
+/// assumes TOS is a call and TOS1 is a call
+void BCI_Is(extArg_t)
+{
+    auto rhs = PopTOS<Call>();
+    auto lhs = PopTOS<Call>();   
+    Call* call = nullptr;
+    if(IsPureNothing(lhs))
+    {
+        InternalAssign(lhs, rhs);
+        call = InternalPrimitiveCallConstructor(true);   
+    }
+    else
+    {
+        bool is = false;
+        if(IsNothing(lhs) && !IsNothing(rhs))
+        {
+            is = lhs->BoundType == rhs->BoundType
+                 && lhs->BoundSection == rhs->BoundSection
+                 && CallsHaveEqualValue(lhs, rhs); 
+
+        }
+        else if(!IsNothing(lhs) && IsNothing(rhs))
+        {
+            is = lhs->BoundType == rhs->BoundType
+                 && lhs->BoundSection == rhs->BoundSection;
+        }
+        else
+        {
+            is = CallsAreEqual(lhs, rhs);
+        }
+
+        call = InternalPrimitiveCallConstructor(is);
+    }
+
+    PushTOS(call);
 }

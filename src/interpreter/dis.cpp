@@ -175,6 +175,10 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_DropTOS";
     }
+    else if(ins.Op == IndexOfInstruction(BCI_Is))
+    {
+        str += "#BCI_Is";
+    }
     else
     {
         str += "#?????????" + std::to_string(ins.Op);
