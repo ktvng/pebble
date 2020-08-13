@@ -408,6 +408,19 @@ inline bool IsType(const BindingType type, const Call* call)
     return call->BoundType == type;
 }
 
+/// true if either [call1] or [call2] are pure Nothing
+inline bool WellTypedButWithNothing(const BindingType type, const Call* call1, const Call* call2)
+{
+    return (IsNothing(call1) || IsNothing(call2))
+        && (IsType(type, call1) || IsPureNothing(call1)) 
+        && (IsType(type, call2) || IsPureNothing(call2));
+}
+
+inline bool IsTypedButNothing(const BindingType type, const Call* call)
+{
+    return IsNothing(call) && IsType(type, call);
+}
+
 /// true if [call] cannot be rebound to anything
 inline bool IsUnassignable(const Call* call)
 {
@@ -734,11 +747,19 @@ String CallToString(const Call* call)
 }
 
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------------------------------------------
 // Instruction Defintions
 
-/// no assumptions
-/// leaves the String callName as TOS
+/// bytecode instruction
+/// consumption: 0
+/// assumptions: none
+/// argument:    index id of call name with lookup either in SimpleCallNames
+///              or CallNames
+/// description: leaves the <String*> representing the Call's name as TOS
+/// stack state: <String*>
 void BCI_LoadCallName(extArg_t arg)
 {
     if(arg < SIMPLE_CALLS)
@@ -751,8 +772,12 @@ void BCI_LoadCallName(extArg_t arg)
     }
 }
 
-/// no asumptions
-/// leaves the primitive specified by arg as TOS
+/// bytecode instruction
+/// consumption: 0
+/// assumptions: none 
+/// argument:    index of primitive in ConstPrimitives
+/// description: leaves the primitive call specified by arg as TOS
+/// stack state: <Call>
 void BCI_LoadPrimitive(extArg_t arg)
 {
     if(arg >= ConstPrimitives.size())
@@ -761,8 +786,11 @@ void BCI_LoadPrimitive(extArg_t arg)
     PushTOS<Call>(ConstPrimitives[arg]);
 }
 
-/// assumes TOS is the new object and TOS1 is the reference to reassign
-/// leaves the object
+/// bytecode instruction
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: reassigns TOS[1] to the bindings on TOS[0] which is retained
+///              as TOS
+/// stack state: <Call> 
 void BCI_Assign(extArg_t arg)
 {
     auto rhs = PopTOS<Call>();
@@ -773,8 +801,11 @@ void BCI_Assign(extArg_t arg)
     PushTOS<Call>(lhs);
 }
 
-/// assumes TOS1 and TOS2 are rhs object and lhs object respectively
-/// leaves the result as TOS
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the addition result as TOS
+/// stack state: <Call>
 void BCI_Add(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
@@ -809,6 +840,11 @@ void BCI_Add(extArg_t arg)
     PushTOS<Call>(call);
 }
 
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the subtraction result as TOS
+/// stack state: <Call>
 void BCI_Subtract(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
@@ -838,6 +874,11 @@ void BCI_Subtract(extArg_t arg)
     PushTOS<Call>(call);
 }
 
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the multiplication result as TOS
+/// stack state: <Call>
 void BCI_Multiply(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
@@ -867,6 +908,11 @@ void BCI_Multiply(extArg_t arg)
     PushTOS<Call>(call);
 }
 
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the division result as TOS
+/// stack state: <Call>
 void BCI_Divide(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
@@ -896,8 +942,13 @@ void BCI_Divide(extArg_t arg)
     PushTOS<Call>(call);
 }
 
-/// 0 = print
-/// 1 = ask
+/// bytecode instruction
+/// consumption: varies
+/// assumptions: TOS[0] is <Call>
+/// argument:    0 = print
+///              1 = ask
+/// description: applies the system function with TOS[0]
+/// stack state: <Call>
 void BCI_SysCall(extArg_t arg)
 {
     switch(arg)
@@ -928,50 +979,56 @@ void BCI_SysCall(extArg_t arg)
     }
 }
 
-/// TODO: nothing proof this
-/// TODO: type proof this
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the and result as TOS
+/// stack state: <Call> 
 void BCI_And(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
     auto lCall = PopTOS<Call>();
-
-    if(EitherIsNothing(lCall, rCall))
-    {
-        PushTOS<Call>(&NothingCall);    
-        return;
-    }
 
     bool b = 0;
     if(IsActually(&BooleanType, lCall) && IsActually(&BooleanType, rCall))
     {
         b = BooleanValueOf(lCall) && BooleanValueOf(rCall);
     }
+    else if(WellTypedButWithNothing(&BooleanType, lCall, rCall))
+    {
+        PushTOS<Call>(&NothingCall);    
+        return;
+    }
     else
     {
         ReportFatalError(SystemMessageType::Exception, 0, 
-            Msg("cannot 'or' %s with %s", CallTypeToString(lCall), CallTypeToString(rCall)));
+            Msg("cannot 'and' %s with %s", CallTypeToString(lCall), CallTypeToString(rCall)));
     }
 
     Call* call = InternalPrimitiveCallConstructor(b);
     PushTOS<Call>(call);
 }
 
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the or result as TOS
+/// stack state: <Call>  
 void BCI_Or(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
     auto lCall = PopTOS<Call>();
-
-    if(EitherIsNothing(lCall, rCall))
-    {
-        PushTOS<Call>(&NothingCall);    
-        return;
-    }
 
     bool b = 0;
     if(IsActually(&BooleanType, lCall) && IsActually(&BooleanType, rCall))
     {
         b = BooleanValueOf(lCall) || BooleanValueOf(rCall);
     }
+    else if(WellTypedButWithNothing(&BooleanType, lCall, rCall))
+    {
+        PushTOS<Call>(&NothingCall);    
+        return;
+    }
     else
     {
         ReportFatalError(SystemMessageType::Exception, 0, 
@@ -981,9 +1038,14 @@ void BCI_Or(extArg_t arg)
     PushTOS<Call>(call);
 }
 
+/// bytecode instruction
+/// consumption: 1
+/// assumptions: TOS[0] is <Call>
+/// description: leaves the not result as TOS
+/// stack state: <Call> 
 void BCI_Not(extArg_t arg)
 {
-    if(IsPureNothing(PeekTOS<Call>()))
+    if(IsPureNothing(PeekTOS<Call>()) || IsTypedButNothing(&BooleanType, PeekTOS<Call>()))
     {
         return;
     }
@@ -1001,8 +1063,11 @@ void BCI_Not(extArg_t arg)
     PushTOS<Call>(newCall);
 }
 
-/// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
-/// leaves obj (bool compare result) as TOS
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the resulting boolean typed Call as TOS
+/// stack state: <Call> 
 void BCI_NotEquals(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
@@ -1014,8 +1079,11 @@ void BCI_NotEquals(extArg_t arg)
     PushTOS<Call>(call);
 }
 
-/// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
-/// leaves obj (bool compare result) as TOS
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: leaves the resulting boolean typed Call as TOS
+/// stack state: <Call> 
 void BCI_Equals(extArg_t arg)
 {
     auto rCall = PopTOS<Call>();
@@ -1027,8 +1095,11 @@ void BCI_Equals(extArg_t arg)
     PushTOS<Call>(call);
 }
 
-/// assumes TOS1 1 and TOS2 are rhs object and lhs object respectively
-/// sets CmpReg to appropriate value
+/// bytecode instruction
+/// consumption: 2
+/// assumptions: TOS[0] is <Call>, TOS[1] is <Call>
+/// description: fills the CmpReg with the result of all numeric comparisons
+/// stack state: none 
 void BCI_Cmp(extArg_t arg)
 {
     CmpReg = CmpRegDefaultValue;
@@ -1050,30 +1121,30 @@ void BCI_Cmp(extArg_t arg)
     }
 }
 
-/// assumes CmpReg is valued
-/// leaves a new Boolean object as TOS 
+/// bytecode instruction
+/// consumption: 0
+/// assumptions: CmpReg is properly valued
+/// argument:    determines the specific comparison to use
+/// description: leaves the boolean call for a specific comparison as TOS
+/// stack state: <Call>
 void BCI_LoadCmp(extArg_t arg)
 {
     Call* boolCall = nullptr;
-    switch(arg)
+    if(arg < 7)
     {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        case 4: 
-        case 5:
-        case 6:
         boolCall = InternalPrimitiveCallConstructor(NthBit(CmpReg, arg));
-        break;
-
-        default:
-        return;
+        PushTOS<Call>(boolCall);
     }
 
-    PushTOS<Call>(boolCall);
+    PushTOS(&NothingCall);
 }
 
+/// bytecode instruction
+/// consumption: 1
+/// assumptions: TOS[0] is <Call>
+/// argument:    the new instruction id to jump to
+/// description: jump to [arg] if TOS[0] is boolean false
+/// stack state: none
 void BCI_JumpFalse(extArg_t arg)
 {
     auto call = PopTOS<Call>();
@@ -1097,15 +1168,21 @@ void BCI_JumpFalse(extArg_t arg)
     }
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 void BCI_Jump(extArg_t arg)
 {
     InternalJumpTo(arg);
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is an object
 /// TODO: may not work with primitives
-/// TODO: should deep copy scope
-/// TODO: maybe depreciated
 /// leaves object copy as TOS
 void BCI_Copy(extArg_t arg)
 {
@@ -1114,6 +1191,10 @@ void BCI_Copy(extArg_t arg)
     PushTOS<Call>(callCopy);
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is a Call
 /// leaves object of type as TOS
 void BCI_BindType(extArg_t arg)
@@ -1124,7 +1205,6 @@ void BCI_BindType(extArg_t arg)
     {
         if(originalCall->BoundScope != &NothingScope)
         {
-            /// TODO: this shouldn't copy the scope
             PopTOS<Call>();
             auto call = InternalCallConstructor();
             call->NumberOfParameters = originalCall->NumberOfParameters;
@@ -1142,6 +1222,10 @@ void BCI_BindType(extArg_t arg)
     
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is a String
 /// leaves resolved reference as TOS
 void BCI_ResolveDirect(extArg_t arg)
@@ -1187,6 +1271,10 @@ void BCI_ResolveDirect(extArg_t arg)
 
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is a string and TOS1 is an obj
 /// leaves resolved reference as TOS
 void BCI_ResolveScoped(extArg_t arg)
@@ -1215,6 +1303,10 @@ void BCI_ResolveScoped(extArg_t arg)
     }
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes the top [arg] entities on the stack are parameter names (strings)
 /// leaves a new method object as TOS
 void BCI_BindScope(extArg_t arg)
@@ -1231,6 +1323,10 @@ void BCI_BindScope(extArg_t arg)
     PushTOS(call);
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is a Call
 /// binds arg as the section for that call
 void BCI_BindSection(extArg_t arg)
@@ -1239,6 +1335,10 @@ void BCI_BindSection(extArg_t arg)
     BindSection(call, arg);
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// arg is number of parameters
 /// assumes TOS[arg] are objs (params), TOS[arg+1] is an object (method), TOS[arg+2] an obj (caller)
 /// adds caller and self to TOS (in that order)
@@ -1281,6 +1381,10 @@ void BCI_Eval(extArg_t arg)
     InternalJumpTo(jumpIns);
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// arg is number of parameters
 /// assumes TOS[arg] are objs (params), TOS[arg+1] is an object (method)
 /// adds caller and self to TOS (in that order)
@@ -1298,6 +1402,10 @@ void BCI_EvalHere(extArg_t arg)
     InternalJumpTo(jumpIns);
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// arg is bool flag on whether or not to return a specific object
 void BCI_Return(extArg_t arg)
 {
@@ -1347,6 +1455,10 @@ void BCI_Return(extArg_t arg)
     JumpStatusReg = 1;
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is index and TOS1 is the parent call
 /// leaves the Call indexed as TOS
 void BCI_Array(extArg_t arg)
@@ -1387,6 +1499,10 @@ void BCI_Array(extArg_t arg)
 }
 
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// arg = 1 if is detached scope
 /// no assumptions
 /// does not change TOS. will update LocalScopeReg
@@ -1400,6 +1516,10 @@ void BCI_EnterLocal(extArg_t arg)
     LastResultReg = nullptr;
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// no assumptions
 /// leaves the scope as TOS. will update LocalScopeReg and LastResultReg
 void BCI_LeaveLocal(extArg_t arg)
@@ -1410,6 +1530,10 @@ void BCI_LeaveLocal(extArg_t arg)
     LastResultReg = nullptr;
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// no assumptions
 /// adds [arg] as the (ExtensionExp + 1)th bit of ExtendedArg and increments ExtensionExp
 void BCI_Extend(extArg_t arg)
@@ -1436,6 +1560,10 @@ void BCI_Extend(extArg_t arg)
     }
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// no assumptions
 /// no actions, used for optimizations
 void BCI_NOP(extArg_t arg)
@@ -1443,6 +1571,10 @@ void BCI_NOP(extArg_t arg)
     // does nothing, used for optimizations
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// no assumptions
 /// pushes a pointer to the old TOS to the TOS
 void BCI_Dup(extArg_t arg)
@@ -1451,6 +1583,10 @@ void BCI_Dup(extArg_t arg)
     PushTOS<void>(entity);
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is an object
 /// changes LastResultReg to this object
 void BCI_EndLine(extArg_t arg)
@@ -1458,6 +1594,10 @@ void BCI_EndLine(extArg_t arg)
     LastResultReg = PopTOS<Call>();
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS exists
 /// pops TOS 
 void BCI_DropTOS(extArg_t arg)
@@ -1465,6 +1605,10 @@ void BCI_DropTOS(extArg_t arg)
     PopTOS<void>();
 }
 
+/// bytecode instruction
+/// assumptions: 
+/// description: 
+/// stack state: 
 /// assumes TOS is a call and TOS1 is a call
 void BCI_Is(extArg_t)
 {
