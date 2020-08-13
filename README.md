@@ -20,7 +20,7 @@ Steps to install:
    $ make pebble
    ```
  * In this same directory create a file titled `program.pebl` and write any Pebble code you would like to run in this file.
-   ```python
+   ```scala
    # program.pebl
    print "hello world"
    ```
@@ -45,28 +45,55 @@ Currently it uses an experimental syntax (codenamed Boulder). The syntax is stil
 Pebble uses four core primitives which can be composed in different ways as to allow their translation into different coding-paradigms. These four concepts are **Calls**, **Scopes**, **Sections**, and **Types**
 
 ### Calls
-Simply put, a Call can be thought of as roughly equivalent to a variable. More precisely, it is a named container that can hold a **Scope**, a **Section**, or a **Type**, and allows for these three items to be reassigned. 
+Simply put, a call can be thought of as roughly equivalent to a variable. More precisely, it is a named container that can hold a **Scope**, a **Section**, or a **Type**, and allows for these three items to be reassigned. 
 
 By convention, and something that is still enforced, calls must begin with an uppercase letter, and like traditional variables, consist of only alphanumeric characters with underscores.
 
+***
 #### Example
-```python
+```scala
 MyNumber = 4
 MyFavoriteNumber = 16
 ```
 
-In the example above, both `MyNumber` and `MyFavoriteNumber` are calls. In fact
+In the example above, both `MyNumber` and `MyFavoriteNumber` are calls. In fact, `4` and `16` are also both calls. Specifically, they are what are called **primitive calls**.
 
-The same “thing” can have multiple calls. 
-```python
+#### Primitive Calls
+These are calls that cannot be reassigned and refer to a specific primitive data element. Because Pebble does not have proper primitive data types, it instead expresses these by primitive calls. These are calls that hold a unique scope, section, and type which are interpreted as a primitive data element (e.g. `4`). 
+
+In other words, the assortent of scope, section, and type which are bound to a primitive call can be understood to collectively signify some primitive data type.
+
+
+#### Method Calls
+In Pebble, is no native notion of objects or methods. These are both considered higher level constructs which can be represented by assortments of scope, section, and type.
+
+***
+**Example**
+```scala
+SayHello = ():
+    print "hello"
+
+SayHello()
+```
+
+The example above demonstrates a call which is can be said to refer to a method (i.e. it is bound to a specific scope, section and type that can express a method).
+
+#### Muliple calls
+To some respect calls can be conceptualized as pointers as well, albeit pointers that can refer to three different items simultaneously. In this way, the same scope, section, or type can have multiple calls. 
+
+***
+**Example**
+```scala
 X = 4
 Y = 4
 ```
-Whatever `4` is has the call `X` and the call `Y`. 
+
+Recall that `4` is a primitive call for the particular scope, section, and type which signifies the number four. In the example above, these are also bound to the calls `X` and `Y`. The scope of `Y`, then, is exactly the scope of `Y`, which is of couse, the scope of `4`.
+
 
 ### Scope
 Conceptually speaking, Scope is used in roughly the same was as in C++ and other traditional languages. It represents all calls which are defined at a given point in the code. Specifically, scope is determined by the indent level of a statement.
-```python
+```scala
 if True:
     X = 4
 print X
@@ -77,7 +104,7 @@ Similar to other langauges, "Methods" also have their own local scope which is s
 
 ### Sections
 A section is a block of imperative instructions which are executable. These are the actual lines of code written in Pebble, and are grouped by indent level. For example
-```python
+```scala
 X = 4
 print X
     Y = 4
@@ -103,7 +130,7 @@ The `a` symbol defines a new type. It has the usage `a <Call>` and it binds the 
 ## Narratives
 Using these three core primitives, different narratives can be constructed that support either imperative, object oriented, or functional (WIP) paradigms. Understanding how to construct narratives first requires a general understanding of call binding and its three associated operators, the `a` (typebinding), `:` (sectionbinding), and `()` (scopebinding).
 
-```python
+```scala
 # evaluates the bound section of Call
 Call()
 
@@ -117,7 +144,7 @@ Call():
 ### Object Oriented Pebble
 Classes can be considered to be typed scopes bound to a section
 
-```python
+```scala
 a Rock:
     Color
     Weight
@@ -125,12 +152,12 @@ a Rock:
 ```
 
 Instantiating an instance of a class is equivalent to evaluating the bound section of a typed scope
-```python
+```scala
 MyRock = Rock()
 ```
 
 Methods are scopes bound to a section. They can be invoked by the `()` (sectioneval) operator
-```python
+```scala
 # binding a scope and section, section is not evaluated here
 Throw():
     print "thrown"
@@ -140,7 +167,7 @@ Throw()
 ```
 
 The `.` (dot) operator functions as expected. An additional feature is that it preserves an additional relationship between the caller and the called "thing". This is illustrated in the following example
-```python
+```scala
 a Rock:
     Color = "Grey"
     Weight
@@ -156,7 +183,7 @@ MyRock.Info()
 In this example, the keyword `caller` is a call to the "Object" to the left of the dot, which is whatever scope is calling the "Method". The `self` keyword refers to the current scope, which, inside a "Method" is the method's own scope. 
 
 The last operator is the `here` operator. It is aliased to `inherits` to bootstrap inheritance
-```python
+```scala
 a Rock:
     Color = "Grey"
 
@@ -234,7 +261,7 @@ ow
 ```
 
 Additionally, to query for user input, use the `ask` keyword.
-```python
+```scala
 ask "what day is today?"
 # what day is today?
 # <wait for user input>
@@ -253,7 +280,7 @@ In the first case, if `<Call> == Nothing`, i.e it is yet unbound, then `<Call>` 
 In the second case `is` functions as the `==` operator.
 
 Example:
-```python
+```scala
 X is 4
 print X
 # 4
@@ -274,7 +301,7 @@ if X is 4
 The `here` operator executes a bound section without changing scope. Its usage is `here <Call>()`. The section bound to `<Call>` is executed using the local scope, instead of the scope bound to `<Call>`.
 
 Example
-```python
+```scala
 CreateVariable():
     X = 4
     Y = 7
