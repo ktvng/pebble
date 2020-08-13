@@ -191,87 +191,59 @@ ow
 
 @ IsEqual == Reduce
 Expr -> Expr == Expr
-Expr -> Expr == SRef
-Expr -> SRef == Expr
 
 @ IsNotEqual != Reduce
 Expr -> Expr != Expr
-Expr -> Expr != SRef
-Expr -> SRef != Expr
+
+
 
 @ IsGreaterThan > Reduce
 Expr -> Expr > Expr
-Expr -> Expr > SRef
-Expr -> SRef > Expr
 
 @ IsLessThan < Reduce
 Expr -> Expr < Expr
-Expr -> Expr < SRef
-Expr -> SRef < Expr
 
 @ IsGreaterThanOrEqualTo >= Reduce
 Expr -> Expr >= Expr
-Expr -> Expr >= SRef
-Expr -> SRef >= Expr
 
 @ IsLessThanOrEqualTo <= Reduce
 Expr -> Expr <= Expr
-Expr -> Expr <= SRef
-Expr -> SRef <= Expr
-
-@ DoTypeBinding a Reduce
-Expr -> a Ref
-Expr -> a Expr
 
 
-@ New new Reduce
-Expr -> new Ref
 
+@ Is is Reduce
+Expr -> Expr is Expr
 
-@ ScopeResolution . Reduce
-> (
-SRef -> Expr . Ref
-SRef -> SRef . Ref
-SRef -> Ref
+@ Assign = Reduce
+Expr -> Expr = ( Tuple )
+Expr -> Expr = Expr
+Expr -> Expr = Lambda
 
-
-@ Return = Reduce
-Line -> return Expr
-Line -> return
 
 
 @ Add + Reduce
 Expr -> Expr + Expr
-Expr -> Expr + SRef
-Expr -> SRef + Expr
 
 @ Subtract - Reduce
 Expr -> Expr - Expr
-Expr -> Expr - SRef
-Expr -> SRef - Expr
 
 @ Multiply * Reduce
 Expr -> Expr * Expr
-Expr -> Expr * SRef
-Expr -> SRef * Expr
 
 @ Divide / Reduce
 Expr -> Expr / Expr
-Expr -> Expr / SRef
-Expr -> SRef / Expr
+
+
 
 @ And && Reduce
 Expr -> Expr && Expr
-Expr -> Expr && SRef
-Expr -> SRef && Expr
 
 @ Or || Reduce
 Expr -> Expr || Expr
-Expr -> Expr || SRef
-Expr -> SRef || Expr
 
 @ Not ! Reduce
 Expr -> ! Expr
+
 
 
 @ Ask lowest Reduce
@@ -285,38 +257,32 @@ Line -> say Expr
 @ EvaluateHere ! Reduce
 Expr -> here Expr
 
-@ Evaluate ( ScopedEval
+@ Evaluate ( Reduce
 > :
-Expr -> SRef . Ref ( )
-Expr -> SRef . Ref ( Expr )
-Expr -> SRef . Ref ( Tuple )
-
 Expr -> Expr . Ref ( )
 Expr -> Expr . Ref ( Expr )
 Expr -> Expr . Ref ( Tuple )
 
-Expr -> SRef  Ref ( )
-Expr -> SRef  Ref ( Expr )
-Expr -> SRef  Ref ( Tuple )
-
-Expr -> Expr  Ref ( )
-Expr -> Expr  Ref ( Expr )
-Expr -> Expr  Ref ( Tuple )
-
+Expr -> Expr  Expr ( )
+Expr -> Expr  Expr ( Expr )
+Expr -> Expr  Expr ( Tuple )
 
 @ Evaluate ( UnscopedEval
 > :
-Expr -> Ref ( )
-Expr -> Ref ( Expr )
-Expr -> Ref ( Tuple )
-
 Expr -> Expr ( )
 Expr -> Expr ( Expr )
 Expr -> Expr ( Tuple )
 
+@ Return = Reduce
+Line -> return Expr
+Line -> return
+
+
+
 @ Array [ Reduce
 Expr -> Expr [ Expr ]
-Expr -> SRef [ Expr ]
+
+
 
 @ Else lowest Reduce
 > if
@@ -329,6 +295,7 @@ Line -> else if Expr
 Line -> if Expr
 
 
+
 @ While lowest Reduce
 Line -> while Expr
 
@@ -337,7 +304,8 @@ Line -> for each ( Ref in Expr )
 Line -> for each Ref in Expr 
 
 
-@ DefineMethod : Custom
+
+@ DefineMethod : Reduce
 Lambda -> ( Tuple ) :
 Lambda -> ( Expr ) :
 Lambda -> ( ) :
@@ -345,20 +313,13 @@ Lambda -> :
 
 @ Assign highest Reduce
 Line -> Expr Lambda
-Line -> SRef Lambda
 Line -> Ref Lambda
 
-@ Is is Reduce
-Expr -> SRef is Expr
-Expr -> Expr is Expr
+@ DoTypeBinding a Reduce
+Expr -> a Ref
 
-
-@ Assign = Reduce
-Expr -> SRef = Expr
-Expr -> SRef = ( Tuple )
-Expr -> Expr = Expr
-Expr -> Expr = Lambda
-Expr -> SRef = Lambda
+@ New new Reduce
+Expr -> new Ref
 
 
 
@@ -369,13 +330,21 @@ Tuple -> Tuple , Expr
 Tuple -> Expr , Expr
 
 
+
+@ ScopeResolution . Reduce
+SRef -> Expr . Ref
+
+@ NoOperationType highest Retain
+> a
+SRef -> Ref
+
+@ NoOperationType highest Retain
+Expr -> SRef
+
 @ NoOperationType ( Retain
 Expr -> ( Expr )
 
-@ NoOperationType ! Retain
-> = is
-< [
-Expr -> SRef
+
 
 @ NoOperationType lowest Retain
 Line -> consider Expr

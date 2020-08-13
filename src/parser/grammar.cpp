@@ -133,7 +133,7 @@ int PrecedenceOf(String opSymbol)
         i++;
     }
     LogIt(Sev2_Important, "PrecedenceOf", Msg("unknown operation symbol %s", opSymbol));
-    return PrecedenceRules.size() - 1;
+    return PrecedenceOf(".");
 }
 
 int PrecedenceOf(Token* lookaheadToken)

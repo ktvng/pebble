@@ -250,18 +250,22 @@ geq
 geq to
 is greater than or equal to
 
+@ >
+is greater than
+
+@ <
+is less than
+
 @ ==
 equals
 is equal
 is equal to
-is
 
 @ !=
 does not equal
 not equal
 not equal to
 not equals
-is not
 
 @ !
 not
@@ -278,7 +282,6 @@ or
 @ here
 inherits
 
-# system call to write to std::cout
 @ say
 print
 

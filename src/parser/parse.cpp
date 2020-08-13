@@ -272,14 +272,6 @@ Operation* NothingStubOperation()
     return OperationConstructor(OperationType::Ref, { ReferenceStubConstructor(c_nullStubName) }); 
 }
 
-Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)
-{
-    if(components.size() < 3)
-        components.push_back(NothingStubOperation());
-
-    return OperationConstructor(rule.OpType, components);
-}
-
 /// order is caller, method, params
 Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
 {
@@ -289,7 +281,6 @@ Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
         components.clear();
         components.push_back(NothingStubOperation());
         components.push_back(op);
-        components.push_back(NothingStubOperation());
     }
     else
     {
@@ -303,18 +294,6 @@ Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
     }
 
     return OperationConstructor(rule.OpType, components);
-}
-
-/// collapse a rule corresponding to defining a method
-Operation* CollapseAsDefineMethod(CFGRule& rule, OperationsList& components)
-{
-
-    return OperationConstructor(OperationType::DefineMethod, components );
-}
-
-Operation* CollapseByChain(CFGRule& rule, OperationsList& components)
-{
-    return OperationConstructor(rule.OpType, { components.at(0), components.at(1) } );
 }
 
 Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
@@ -331,21 +310,9 @@ Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
     {
         return CollapseByMerge(rule, components);
     }
-    else if(rule.ParseMethod == "Custom")
-    {
-        return CollapseAsDefineMethod(rule, components);
-    }
-    else if(rule.ParseMethod == "ScopedEval")
-    {
-        return CollapseByScopedEval(rule, components);
-    }
     else if(rule.ParseMethod == "UnscopedEval")
     {
         return CollapseByUnscopedEval(rule, components);
-    }
-    else if(rule.ParseMethod == "Rewrite")
-    {
-        return nullptr;
     }
     else
     {

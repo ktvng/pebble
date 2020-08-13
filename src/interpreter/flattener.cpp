@@ -178,8 +178,16 @@ inline bool OperationIsExpression(Operation* op)
 
 /// add instructions for listing params when evaluating a method and sets
 /// arg to the number of params the method takes
-inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
+inline void AddInstructionsForEvaluateParameters(Operation* evalOp, extArg_t& arg)
 {
+    if(evalOp->Operands.size() < 3)
+    {
+        arg = 0;
+        return;
+    }
+
+    auto op = evalOp->Operands[2];
+
     if(op->Type == OperationType::Tuple)
     {
         for(auto operand: op->Operands)
@@ -196,11 +204,6 @@ inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
         }
         else
         {
-            if(op->Value->Name == "Nothing")
-            {
-                return;
-            }
-
             FlattenOperationRefDirect(op);
         }
         arg = 1;
@@ -641,7 +644,7 @@ inline void FlattenOperationDefineMethod(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
-inline void FlattenOperationEvaluateAsArrayInitialization(Operation* paramsOp)
+inline void FlattenOperationEvaluateAsArrayInitialization(Operation* op)
 {
     uint8_t opId;
     extArg_t arg;
@@ -653,14 +656,17 @@ inline void FlattenOperationEvaluateAsArrayInitialization(Operation* paramsOp)
     opId = IndexOfInstruction(BCI_ResolveDirect);
     AddByteCodeInstruction(opId, arg);
 
-    opId = IndexOfInstruction(BCI_LoadPrimitive);
+    opId = IndexOfInstruction(BCI_LoadCallName);
     arg = ARRAY_CALL_ID;
     AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_ResolveDirect);
+    AddByteCodeInstruction(opId, noArg);
 
     opId = IndexOfInstruction(BCI_Copy);
     AddByteCodeInstruction(opId, noArg);
 
-    AddInstructionsForEvaluateParameters(paramsOp, arg);
+    AddInstructionsForEvaluateParameters(op, arg);
 
     opId = IndexOfInstruction(BCI_Eval);
     AddByteCodeInstruction(opId, 1);
@@ -696,20 +702,19 @@ inline void FlattenOperationEvaluate(Operation* op)
     /// order of operands is caller, method, params
     auto callerOp = op->Operands[0];
     auto methodOp = op->Operands[1];
-    auto paramsOp = op->Operands[2];
 
     uint8_t opId;
     extArg_t arg;
 
     if(methodOp->Type == OperationType::DoTypeBinding && methodOp->Operands[0]->EntityIndex == ARRAY_CALL_ID)
     {
-        FlattenOperationEvaluateAsArrayInitialization(paramsOp);
+        FlattenOperationEvaluateAsArrayInitialization(op);
         return;
     }
 
     if(methodOp->Type == OperationType::Ref && OperationRefIsPrimitive(methodOp) && methodOp->EntityIndex == ARRAY_CALL_ID)
     {
-        FlattenOperationEvaluateAsArrayInitialization(paramsOp);
+        FlattenOperationEvaluateAsArrayInitialization(op);
         return;
     }
 
@@ -747,7 +752,7 @@ inline void FlattenOperationEvaluate(Operation* op)
     AddByteCodeInstruction(opId, noArg);
     
     arg = 0;
-    AddInstructionsForEvaluateParameters(paramsOp, arg);
+    AddInstructionsForEvaluateParameters(op, arg);
 
     opId = IndexOfInstruction(BCI_Eval);
     AddByteCodeInstruction(opId, arg);
@@ -760,7 +765,6 @@ inline void FlattenOperationEvaluateHere(Operation* op)
     /// order of operands is caller, method, params
     auto callerOp = op->Operands[0];
     auto methodOp = op->Operands[1];
-    auto paramsOp = op->Operands[2];
 
     uint8_t opId;
     extArg_t arg;
@@ -791,7 +795,7 @@ inline void FlattenOperationEvaluateHere(Operation* op)
     AddByteCodeInstruction(opId, noArg);
     
     arg = 0;
-    AddInstructionsForEvaluateParameters(paramsOp, arg);
+    AddInstructionsForEvaluateParameters(op, arg);
 
     opId = IndexOfInstruction(BCI_EvalHere);
     AddByteCodeInstruction(opId, arg);

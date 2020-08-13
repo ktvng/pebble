@@ -402,6 +402,12 @@ inline bool IsActually(const BindingType type, const Call* call)
     return call->BoundScope != &NothingScope && call->BoundType == type;
 }
 
+/// true if [call] is type
+inline bool IsType(const BindingType type, const Call* call)
+{
+    return call->BoundType == type;
+}
+
 /// true if [call] cannot be rebound to anything
 inline bool IsUnassignable(const Call* call)
 {
@@ -677,18 +683,21 @@ inline void HandleObjectInitialization(Call* call)
 /// true if a type corresponds to a primitive, predefined method
 inline bool IsPrimitiveMethodType(const BindingType type)
 {
-    return type == &ArrayType || type == &ObjectType; 
+    return type == &ArrayType 
+        || type == &ObjectType 
+        || type == &AbstractArrayType 
+        || type == &AbstractObjectType; 
 }
 
-void HandlePrimitiveTypeInstantiation(Call* primitiveCall, std::vector<Call*>& paramsList)
+void HandlePrimitiveTypeInstantiation(Call* call, std::vector<Call*>& paramsList)
 {
-    if(primitiveCall->BoundType == &ArrayType)
+    if(IsType(&ArrayType, call) || IsType(&AbstractArrayType, call))
     {
-        HandleArrayInitialization(primitiveCall, paramsList[0]);
+        HandleArrayInitialization(call, paramsList[0]);
     }
-    else if(primitiveCall->BoundType == &ObjectType)
+    else if(IsType(&ObjectType, call) || IsType(&AbstractObjectType, call))
     {
-        HandleObjectInitialization(primitiveCall);
+        HandleObjectInitialization(call);
     }
 }
 
@@ -1239,7 +1248,7 @@ void BCI_Eval(extArg_t arg)
     auto methodCall = PopTOS<Call>();
     auto caller = PopTOS<Call>();
 
-    if(IsNothing(methodCall))
+    if(IsPureNothing(methodCall))
     {
         PushTOS<Call>(&NothingCall);
         return;
@@ -1256,6 +1265,11 @@ void BCI_Eval(extArg_t arg)
         auto methodName = (methodCall->Name == nullptr ? "anonymous variable" : *methodCall->Name);
         ReportFatalError(SystemMessageType::Exception, 3, Msg("%s cannot be called", methodName));
         return;
+    }
+
+    if(IsNothing(methodCall))
+    {
+        BindScope(methodCall, InternalScopeConstructor(nullptr));
     }
 
     extArg_t jumpIns = methodCall->BoundSection;
@@ -1455,7 +1469,8 @@ void BCI_DropTOS(extArg_t arg)
 void BCI_Is(extArg_t)
 {
     auto rhs = PopTOS<Call>();
-    auto lhs = PopTOS<Call>();   
+    auto lhs = PopTOS<Call>();
+
     Call* call = nullptr;
     if(IsPureNothing(lhs))
     {
