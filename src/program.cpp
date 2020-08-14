@@ -12,8 +12,8 @@
 #include "decision.h"
 #include "parse.h"
 #include "object.h"
-#include "execute.h"
 #include "scope.h"
+#include "executable.h"
 
 /// program to execute
 Program* PROGRAM;
@@ -60,21 +60,6 @@ void ReportCompileMsg(SystemMessageType type, String message)
 // ---------------------------------------------------------------------------------------------------------------------
 // Constructors
 
-/// creates a new block with [inheritedScope]. all new scopes should be created from this
-/// constructor method
-Block* BlockConstructor()
-{
-    Block* b = new Block;
-    b->ExecType = ExecutableType::Block;
-    b->Executables = {};
-
-    return b;
-}
-
-void BlockDestructor(Block* b)
-{
-    delete b;
-}
 
 void Reset()
 {
@@ -89,30 +74,11 @@ void Reset()
     CompileMsgCount = 0;
 }
 
-void EnterProgram(Program* p)
-{
-    PROGRAM = p;
-}
-
-void ExitProgram()
-{
-    PROGRAM = nullptr;
-}
-
 Program* ProgramConstructor()
 {
     Program* p = new Program;
     p->GlobalScope = ScopeConstructor(nullptr);
     p->GlobalScope->IsDurable = true;
-
-    EnterProgram(p);
-    EnterScope(p->GlobalScope);
-    {
-        Reference* ref = CreateReferenceToNewObject("Object", BaseClass, nullptr);
-        AddReferenceToCurrentScope(ref);
-    }
-    ExitScope();
-    ExitProgram();
 
     return p;
 }
@@ -307,23 +273,25 @@ std::string GetEffectiveLine(std::fstream& file, int& lineNumber, int& lineStart
 /// parses an atomic operation into an Operation tree
 Operation* ParseOutAtomic(PossibleOperationsList& typeProbabilities, TokenList& tokens)
 {
-    OperationType opType;
-    DecideOperationType(typeProbabilities, opType);
+    return nullptr;
+    /// EDITED
+    // OperationType opType;
+    // DecideOperationType(typeProbabilities, opType);
 
-    LogItDebug(Msg("operation type is %s", ToString(opType)), "ParseOutAtomic");
-    // these operands act on references!
-    Reference* refValue = nullptr;
-    if(opType == OperationType::Ref)
-    {
-        DecideValueRef(tokens, &refValue);
-    }
+    // LogItDebug(Msg("operation type is %s", ToString(opType)), "ParseOutAtomic");
+    // // these operands act on references!
+    // Reference* refValue = nullptr;
+    // if(opType == OperationType::Ref)
+    // {
+    //     DecideValueRef(tokens, &refValue);
+    // }
 
-    OperationsList operands;
-    DecideOperands(opType, tokens, operands);
+    // OperationsList operands;
+    // DecideOperands(opType, tokens, operands);
 
-    Operation* op = OperationConstructor(opType, operands, refValue);
+    // Operation* op = OperationConstructor(opType, operands, refValue);
 
-    return op;
+    // return op;
 }
 
 // TODO: Implement
@@ -384,31 +352,33 @@ LineTypeFunctions lineFunctions[] = {ParseOutAtomic, ParseComposite};
 /// parses a line of code
 Operation* ParseLine(TokenList& tokens)
 {
-    PossibleOperationsList typeProbabilities;
-    DecideOperationTypeProbabilities(typeProbabilities, tokens);
+    return ExpressionParser(tokens);
+    /// EDITED
+    // PossibleOperationsList typeProbabilities;
+    // DecideOperationTypeProbabilities(typeProbabilities, tokens);
 
-    LineType lineType;
-    DecideLineType(typeProbabilities, tokens, lineType);
+    // LineType lineType;
+    // DecideLineType(typeProbabilities, tokens, lineType);
     
-    // fPtr
-    switch(lineType)
-    {
-        case LineType::Atomic:
-        return ParseOutAtomic(typeProbabilities, tokens);
+    // // fPtr
+    // switch(lineType)
+    // {
+    //     case LineType::Atomic:
+    //     return ParseOutAtomic(typeProbabilities, tokens);
 
-        case LineType::Composite:
-        return ParseComposite(typeProbabilities, tokens);
+    //     case LineType::Composite:
+    //     return ParseComposite(typeProbabilities, tokens);
 
-        case LineType::IfLine:
-        return ParseIf(typeProbabilities, tokens);
+    //     case LineType::IfLine:
+    //     return ParseIf(typeProbabilities, tokens);
 
-        case LineType::WhileLine:
-        return ParseWhile(typeProbabilities, tokens);
+    //     case LineType::WhileLine:
+    //     return ParseWhile(typeProbabilities, tokens);
 
-        default:
-        LogIt(LogSeverityType::Sev1_Notify, "ParseLine", "unimplemented in case");
-        return nullptr;
-    }
+    //     default:
+    //     LogIt(LogSeverityType::Sev1_Notify, "ParseLine", "unimplemented in case");
+    //     return nullptr;
+    // }
 }
 
 int SizeOfBlock(std::vector<CodeLine>::iterator it, std::vector<CodeLine>::iterator end)
@@ -441,28 +411,7 @@ void HandleDefineMethod(
     Scope* blockInheritedScope,
     Operation* op)
 {
-    // if(op->Type != OperationType::DefineMethod)
-    //     return;
 
-    // auto method = ObjectOf(op->Operands[0]->Value)->Action;
-
-    // // assumes there is a block
-    // int blockSize = SizeOfBlock((*it)+1, *end);
-    // Block* b;
-    // Scope* scope = ScopeConstructor(CurrentScope());
-    // EnterScope(scope);
-    // {
-    //     for(auto param: method->ParameterNames)
-    //     {
-    //         NullReference(param);
-    //     }
-    //     b = ParseBlock((*it)+1, (*it)+blockSize+1);
-    // }
-    // ExitScope(true);
-
-    // *it += blockSize;
-    // ObjectOf(op->Operands.at(0)->Value)->Action->CodeBlock = b;
-    // LogItDebug("exit method", "HandleDefineMethod");
 }
 
 Block* ParseBlock(
@@ -475,13 +424,13 @@ Block* ParseBlock(
     LogItDebug("entered new block", "ParseBlock");
     bool scopeIsLocal = false;
 
-    if(scope == nullptr)
-    {
-        scope = ScopeConstructor(CurrentScope());
-        scopeIsLocal = true;
-    }
+    // if(scope == nullptr)
+    // {
+    //     scope = ScopeConstructor(CurrentScope());
+    //     scopeIsLocal = true;
+    // }
 
-    EnterScope(scope);
+    // EnterScope(scope);
     {
         int previousLineLevel = it->Level;
 
@@ -512,23 +461,23 @@ Block* ParseBlock(
                 NumberOperation(op, it->LineNumber);
                 LogItDebug(Msg("finishes compile line [%i]", it->LineNumber), "ParseBlock");
 
-                HandleDefineMethod(&it, &end, CurrentScope(), op);
-
-
+                // HandleDefineMethod(&it, &end, CurrentScope(), op);
+                HandleDefineMethod(&it, &end, nullptr, op);
 
                 thisBlock->Executables.push_back(op);
             }
         }
     }
-    ExitScope(scopeIsLocal);
+    // ExitScope(scopeIsLocal);
 
     return thisBlock;
 }
 
 Program* ParseProgram(const std::string filepath)
 {
+    InitParser();
+    
     Program* p = ProgramConstructor();
-    EnterProgram(p);
 
     std::fstream file;
     file.open(filepath, std::ios::in);
@@ -558,37 +507,11 @@ Program* ParseProgram(const std::string filepath)
     Block* b = ParseBlock(p->Lines.begin(), p->Lines.end(), p->GlobalScope);
     p->Main = b;
 
-    ExitProgram();
     return p;
 }
 
-void DeleteBlockRecursive(Block* b)
-{
-    for(auto exec: b->Executables)
-    {
-        if(exec->ExecType == ExecutableType::Block)
-            DeleteBlockRecursive(static_cast<Block*>(exec));
-        else
-            DeleteOperationRecursive(static_cast<Operation*>(exec));
-    }
-    BlockDestructor(b);
-}
-
-
 void ProgramDestructor(Program* p)
 {
-    for(size_t i=0; i<p->ObjectsIndex.size(); i++)
-    {
-        auto& map = p->ObjectsIndex[i];
-        for(auto ref: map.References)
-        {
-            ReferenceDestructor(ref);
-        }
-        if(map.IndexedObject == NullObject())
-            continue;
-        ObjectDestructor(map.IndexedObject);
-    }
-
     ScopeDestructor(p->GlobalScope);
 
     for(auto codeLine: p->Lines)

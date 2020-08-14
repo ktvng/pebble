@@ -17,7 +17,7 @@ Pebble is an interpreted language built over C++. To get started with Pebble, yo
 Steps to install:
  * Clone the Pebble repo and run your `make` command in the repo root directory. This should produce a new executable `pebble.exe`
    ```
-   $ make
+   $ make pebble
    ```
  * In this same directory create a file titled `program.pebl` and write any Pebble code you would like to run in this file.
    ```python
@@ -32,8 +32,8 @@ Steps to install:
 ## Running the unit tests
 Follow the following steps after you have installed Pebble to create the test build of the Pebble interpreter and run the unit tests
 ```
-$ make TestBuilder
-$ make pebble_testbuild.exe
+$ make testbuilder
+$ make pebble_testbuild
 $ ./pebble_testbuild.exe --ignore-custom --bytecode
 ```
 
@@ -42,30 +42,88 @@ $ ./pebble_testbuild.exe --ignore-custom --bytecode
 Currently it uses an experimental syntax (codenamed Boulder). The syntax is still in early beta and is subject to rapid change. These changes may not be reflected in this documentation. We will update this section as often as possible.
 
 ## Overview of Ideas
-Pebble uses three core primitives which can be translated into different narratives/coding-paradigms. These three concepts are **Calls**, **Scopes** and **Sections**
+Pebble uses four core primitives which can be composed in different ways as to allow their translation into different coding-paradigms. These four concepts are **Calls**, **Scopes**, **Sections**, and **Types**
 
 ### Calls
-A call is the name given to a variable. For instance, in the statement `X = 4`, `X` is a call for `4`, whatever that is. Currently calls are untyped and Pebble is a dynamically typed language, but whether this is a central design feature is still under discussion. 
+Simply put, a call can be thought of as roughly equivalent to a variable. More precisely, it is a named container that can hold a **Scope**, a **Section**, or a **Type**, and allows for these three items to be reassigned. 
 
-By legacy convention, calls must begin with an uppercase letter and must only consist of alphanumeric characters and underscores.
+By convention, and something that is still enforced, calls must begin with an uppercase letter, and like traditional variables, consist of only alphanumeric characters with underscores.
 
-The same “thing” can have multiple calls. 
+
+#### Example
+```python
+MyNumber = 4
+MyFavoriteNumber = 16
+```
+
+In the example above, both `MyNumber` and `MyFavoriteNumber` are calls. In fact, `4` and `16` are also both calls. Specifically, they are what are called **primitive calls**.
+
+#### Primitive Calls
+These are calls that cannot be reassigned and refer to a specific primitive data element. Because Pebble does not have proper primitive data types, it instead expresses these by primitive calls. These are calls that hold a unique scope, section, and type which are interpreted as a primitive data element (e.g. `4`). 
+
+In other words, the assortent of scope, section, and type which are bound to a primitive call can be understood to collectively signify some primitive data type.
+
+There are primitive calls for Integers, Decimals (floating point numbers), Strings, and Booleans. Primitive calls for Integers and Decimals are just the number itself, with the stipulation that a decimal point automatically promotes the number to the Decimal type (i.e. `1.` is a decimal). String primitive calls are just characters between double quotes (i.e. `"hello"`), and the only Boolean primitive calls are `true` and `false`.
+
+
+#### Method Calls
+In Pebble, is no native notion of objects or methods. These are both considered higher level constructs which can be represented by assortments of scope, section, and type.
+
+
+**Example**
+```python
+SayHello = ():
+    print "hello"
+
+SayHello()
+```
+
+The example above demonstrates a call which is can be said to refer to a method (i.e. it is bound to a specific scope, section and type that can express a method).
+
+#### Muliple calls
+To some respect calls can be conceptualized as pointers as well, albeit pointers that can refer to three different items simultaneously. In this way, the same scope, section, or type can have multiple calls. 
+
+
+**Example**
 ```python
 X = 4
 Y = 4
 ```
-Whatever `4` is has the call `X` and the call `Y`. 
+
+Recall that `4` is a primitive call for the particular scope, section, and type which signifies the number four. In the example above, these are also bound to the calls `X` and `Y`. The scope of `Y`, then, is exactly the scope of `Y`, which is of couse, the scope of `4`.
+
 
 ### Scope
-Conceptually speaking, Scope is used in roughly the same was as in C++ and other traditional languages. It represents all calls which are defined at a given point in the code. Specifically, scope is determined by the indent level of a statement.
+Conceptually speaking, Scope is used in roughly the same was as in C++ and other traditional languages. A given scope represents all calls which are defined and accessible at a given point in the code. 
+
+Scope can change throughout the execution of a program and can be modifed depending on the "caller" of a specific call. 
+
+#### Contextual scope change
+Contextual scope changes refer to changes in local scope based on the location in the code and the context surrounding that location. It is visualized/specified by the indentation level of the line.
+
+***Example***
+
 ```python
-if True:
+if true:
     X = 4
 print X
 ```
-In the example above, `Nothing` will be printed because `X` is defined in the scope of the `if` statement (i.e. it is defined on a higher indent level) and thus not visible in the scope where `print X` is called
+In the example above, `<Nothing>` will be printed because `X` is defined in the scope of the `if` statement (i.e. it is defined on a higher indent level) and thus not visible in the scope where `print X` is called.
 
 Similar to other langauges, "Methods" also have their own local scope which is separate from the scope where a Method is called. When statements are defined at indent level 0, however, this is considered to be **program scope** and all calls defined in this scope are accessible everywhere.
+
+#### Caller scope change
+Apart from contextual scope, which is unbound to any specific call and can be considered a property of the program, a line, and its immediate context, scopes can also be bound to calls.
+
+When using the `'.'` dot operator, the preceding call defines the scope in which the following call is resolved.
+
+```python
+Alice.Wallet
+Bob.Wallet
+```
+
+In the example above, although both lines use the same call name `Wallet`, these refer to different calls because they are resolved in different scopes.
+
 
 ### Sections
 A section is a block of imperative instructions which are executable. These are the actual lines of code written in Pebble, and are grouped by indent level. For example
@@ -77,26 +135,27 @@ print X
 ```
 contains two sections of code. 
 
+In general, a section is coupled with a contextual scope.
+
 ## Call Binding (under construction)
-Calls can be associated with a scope, a section, or both. The act of association is defined as call binding. (Type binding is currently in the design phase and will be introduced fully to effect a type system) This can be done by the following operators
+Calls can be associated with a scope, a section, and/or a type. The act of association is defined as call binding. This can be done by the following operators. 
+
+The binding operators can also be used in the absence of a user defined, named call `<Call>`. In the case that `<Call>` is missing, an anonymous (unnamed) call is created which accepts the bindings.
 
 ### Transfer binding operator
 The `=` symbol denotes the transfer binding operator. It has the usage `<Call1> = <Call2>` and transfers whatever bindings are associated with `<Call2>` to `<Call1>`. 
 
-### Section binding operator
-The `:` symbol binds a section to call. It has the usage `<Call>:` and it binds the next section to `<Call>`. Note that `<Call>` may be an anonymous call
-
 ### Scope binding operator
-The `()` symbol binds an new scope with optional parameters. It has the usage `<Call>()`, `<Call>(args)` where `(args)`. Note that `<Call>` may be an anonymous call. 
+The `()` symbol binds an new, empty scope with optional parameters. It has the usage `<Call>()` or `<Call>(args)`. In the latter, `(args)` is a comma separated list of calls which will be accessible in the new scope.
 
-### Type binding operator
-The `a` symbol defines a new type. It has the usage `a <Call>` and it binds the type with name `<Call>` to the scope bound to `<Call>`
+If `<Call>` is bound to a section, then the scope binding operator will also trigger the section to be executed using the new scope as its contextual scope, thus populating the new scope. This will not occur if a new section is concurrently being bound (see next).
 
-## Narratives
-Using these three core primitives, different narratives can be constructed that support either imperative, object oriented, or functional (WIP) paradigms. Understanding how to construct narratives first requires a general understanding of call binding and its three associated operators, the `a` (typebinding), `:` (sectionbinding), and `()` (scopebinding).
+### Section binding operator
+The `:` symbol binds a section to call. It has the usage `<Call>:` and it binds the next section to `<Call>`. If `<Call>` does not have a bound scope, it will also bind a new, empty scope to `<Call>`. Effectively, this is equivalent to `<Call>():`.
+
 
 ```python
-# evaluates the bound section of Call
+# evaluates the bound section of Call, provided this exists
 Call()
 
 # does not evaluate the bound section of Call because rebinding is concurrently specified
@@ -106,11 +165,17 @@ Call():
 
 ```
 
+### Type binding operator
+The `a` and `an` symbols bind a type name. They have the usage `a <Call> / an <Call>` which binds a type name to `<Call>`. This type name is the same as the name of `<Call>` and hence the type binding operator cannot be used on an anonymous call.
+
+## Narratives
+Using these four core primitives, different narratives can be constructed that support either imperative, object oriented, or functional (WIP) paradigms. Understanding how to construct narratives first requires a general understanding of call binding and its three associated operators, the `a` (typebinding), `:` (sectionbinding), and `()` (scopebinding).
+
 ### Object Oriented Pebble
-Classes can be considered to be typed scopes bound to a section
+Classes can be considered to calls with a scope and a section
 
 ```python
-a Rock:
+Rock:
     Color
     Weight
 
@@ -185,18 +250,22 @@ geq
 geq to
 is greater than or equal to
 
+@ >
+is greater than
+
+@ <
+is less than
+
 @ ==
 equals
 is equal
 is equal to
-is
 
 @ !=
 does not equal
 not equal
 not equal to
 not equals
-is not
 
 @ !
 not
@@ -213,7 +282,6 @@ or
 @ here
 inherits
 
-# system call to write to std::cout
 @ say
 print
 

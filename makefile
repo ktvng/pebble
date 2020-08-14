@@ -1,7 +1,7 @@
 SOURCE_DIR=./src
 BUILD_DIR=./build
-CCFLAGS=-g -pedantic -ansi -Wall -std=c++17
-INCLUDE_PATHS=-I./src/ -I./src/parser/ -I./src/interpreter
+CCFLAGS=-g -pedantic -ansi -Wall -std=c++17 -static
+INCLUDE_PATHS=-I./src/ -I./src/parser/ -I./src/interpreter -I./src/walker
 TEST_INCLUDE_PATH=-I./test/
 CC=g++
 
@@ -56,10 +56,27 @@ build/%.o.t: src/interpreter/%.cpp src/interpreter/%.h test/src/%.cpp
 
 
 ################################################################################
+# AST WALKER 
+################################################################################
+WALKER_SRCS=$(wildcard ./src/walker/*.cpp)
+WALKER_OBJS=$(WALKER_SRCS:./src/walker/%.cpp=./build/%.o)
+
+# STANDARD BUILD .O
+build/%.o: src/walker/%.cpp src/walker/%.h
+	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) -o $@ -c $<
+
+# TEST BUILD .O 
+build/%.o.t: src/walker/%.cpp src/walker/%.h test/src/%.cpp
+	./testbuilder.exe $<
+	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o $@ -c $(word 3, $^)
+
+
+
+################################################################################
 # PEBBLE MAIN BUILD 
 ################################################################################
-pebble.exe: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS)
-	$(CC) $(CCFLAGS) -o pebble.exe $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS)
+pebble: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS)
+	$(CC) $(CCFLAGS) -o pebble.exe $^
 
 
 
@@ -70,9 +87,9 @@ pebble.exe: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS)
 TEST_SRCS=$(wildcard ./test/src/*.cpp)
 TEST_OBJS=$(TEST_SRCS:./test/src/%.cpp=./build/%.o.t)
 
-TestBuilder: ./test/testbuilder.cpp
+testbuilder: ./test/testbuilder.cpp
 	$(CC) $(CCFLAGS) -o testbuilder.exe $<
-	./testbuilder.exe $(PARSER_SRCS) $(SRCS) $(INTERPRETER_SRCS)
+	./testbuilder.exe $(PARSER_SRCS) $(SRCS) $(INTERPRETER_SRCS) $(WALKER_SRCS)
 
 build/test.o: test/test.cpp test/test.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/test.o -c ./test/test.cpp
@@ -80,5 +97,5 @@ build/test.o: test/test.cpp test/test.h
 build/unittests.o: test/unittests.cpp test/unittests.h test/test.h
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o ./build/unittests.o -c ./test/unittests.cpp
 
-pebble_testbuild.exe: $(TEST_OBJS) build/test.o build/unittests.o
+pebble_testbuild: $(TEST_OBJS) build/test.o build/unittests.o
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o pebble_testbuild.exe $^

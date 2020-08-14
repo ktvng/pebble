@@ -2,8 +2,8 @@
 
 #include "bytecode.h"
 #include "vm.h"
-#include "object.h"
 #include "diagnostics.h"
+#include "call.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Diagnostics
@@ -14,19 +14,30 @@ String ToString(ByteCodeInstruction& ins)
     String str;
     String decodedArg;
 
-    if(ins.Op == IndexOfInstruction(BCI_LoadRefName))
+    if(ins.Op == IndexOfInstruction(BCI_LoadCallName))
     {
-        str += "#BCI_LoadRefName";
-        decodedArg = ReferenceNames[ins.Arg];
+        str += "#BCI_LoadCallName";
+        if(ins.Arg < SIMPLE_CALLS)
+        {
+            decodedArg = *SimpleCallNames[ins.Arg];
+        }
+        else
+        {
+            decodedArg = CallNames[ins.Arg - SIMPLE_CALLS];
+        }
     }
     else if(ins.Op == IndexOfInstruction(BCI_LoadPrimitive))
     {
         str += "#BCI_LoadPrimitive";
-        decodedArg = GetStringValue(*ConstPrimitives[ins.Arg]);
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_Dereference))
-    {
-        str += "#BCI_Dereference";
+        auto call = ConstPrimitives[ins.Arg];
+        if(call->BoundScope != &NothingScope)
+        {
+            decodedArg = StringValueOf(ConstPrimitives[ins.Arg]);
+        }
+        else
+        {
+            decodedArg = CallTypeToString(call);
+        }
     }
     else if(ins.Op == IndexOfInstruction(BCI_Assign)) 
     {
@@ -100,13 +111,17 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_ResolveScoped";
     }
-    else if(ins.Op == IndexOfInstruction(BCI_DefMethod))
+    else if(ins.Op == IndexOfInstruction(BCI_BindScope))
     {
-        str += "#BCI_DefMethod";
+        str += "#BCI_BindScope";
     }
-    else if(ins.Op == IndexOfInstruction(BCI_DefType))
+    else if(ins.Op == IndexOfInstruction(BCI_BindSection))
     {
-        str += "#BCI_DefType";
+        str += "#BCI_BindSection";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_BindType))
+    {
+        str += "#BCI_BindType";
     }
     else if(ins.Op == IndexOfInstruction(BCI_Eval))
     {
@@ -119,6 +134,10 @@ String ToString(ByteCodeInstruction& ins)
     else if(ins.Op == IndexOfInstruction(BCI_Return))
     {
         str += "#BCI_Return";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_Array))
+    {
+        str += "#BCI_Array";
     }
     else if(ins.Op == IndexOfInstruction(BCI_EnterLocal))
     {
@@ -144,17 +163,13 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_EndLine";
     }
-    else if(ins.Op == IndexOfInstruction(BCI_Swap))
-    {
-        str += "#BCI_Swap";
-    }
-    else if(ins.Op == IndexOfInstruction(BCI_JumpNothing))
-    {
-        str += "#BCI_JumpNothing";
-    }
     else if(ins.Op == IndexOfInstruction(BCI_DropTOS))
     {
         str += "#BCI_DropTOS";
+    }
+    else if(ins.Op == IndexOfInstruction(BCI_Is))
+    {
+        str += "#BCI_Is";
     }
     else
     {
@@ -186,11 +201,26 @@ String ToString(std::vector<ByteCodeInstruction>& bciProgram)
 /// logs the references and instructions of ByteCodeProgram
 void LogProgramInstructions()
 {
-    String refNames = "References list\n";
-    for(size_t i=0; i<ReferenceNames.size(); i++)
+    String refNames = "Call list\n";
+
+    for(size_t i=0; i<SIMPLE_CALLS; i++)
     {
-        refNames +=  Msg("%i:\t %s\n", i, ReferenceNames[i]);
+        refNames +=  Msg("%i:\t %s\n", i, SimpleCallNames[i]);
     }
+
+    for(size_t i=0; i<CallNames.size(); i++)
+    {
+        refNames +=  Msg("%i:\t %s\n", i + SIMPLE_CALLS, CallNames[i]);
+    }
+    
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", refNames);
+
+    String primitives = "Const Primitives\n";
+    for(size_t i=0; i<ConstPrimitives.size(); i++)
+    {
+        primitives += Msg("%i: %s", i, ToString(ConstPrimitives[i]));
+    }
+    
+    LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", primitives);
     LogIt(LogSeverityType::Sev2_Important, "ByteCodeProgram", Msg("\n%s", ToString(ByteCodeProgram)));
 }

@@ -9,7 +9,6 @@
 #include "abstract.h"
 #include "diagnostics.h"
 #include "program.h"
-#include "execute.h"
 #include "parse.h"
 #include "flattener.h"
 #include "vm.h"
@@ -21,8 +20,10 @@ extern std::string testBuffer;
 extern std::string assertName;
 extern std::string failureDescription;
 extern std::string testName;
+extern std::string expected;
 
 extern std::string programFile;
+extern std::string programName;
 
 extern int failedAsserts;
 extern int succeededAsserts;
@@ -47,6 +48,44 @@ bool Test();
 void ResetRun();
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Program output wrapper
+
+class NotResult
+{
+    public:
+    bool Equals(std::string msg);
+    bool Contains(std::string msg);
+    bool EncounteredFatalException();
+    bool EncounteredNonFatalException();
+    bool AsExpected();
+};
+
+class ProgramResult
+{
+    public:
+    bool Equals(std::string msg);
+    bool Contains(std::string msg);
+    bool EncounteredFatalException();
+    bool EncounteredNonFatalException();
+    bool AsExpected();
+    std::string Output();
+    NotResult Not;
+};
+
+
+
+extern ProgramResult Result;
+void Valgrind();
+void TestConstantsFidelity();
+
+inline void ResetAssert()
+{
+    assertName = "N/A";
+    failureDescription = "N/A";
+    expected = "N/A";
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Test fundementals
 
 /// describes the current assertion. MUST BE CALLED BEFORE EACH UNIQUE ASSERTION
@@ -60,34 +99,24 @@ inline void OtherwiseReport(const std::string& descriptionOfFailureCase)
     failureDescription = descriptionOfFailureCase;
 }
 
-/// assert that [b] is true. logs error if this is not the case
-inline void Assert(bool b)
-{
-    if(!b)
-    {
-        failedAsserts++;
-        testBuffer.append("(" + std::to_string(failedAsserts) + "):\n");
-        testBuffer.append(testName + "\n");
-        testBuffer.append("  failed assertion: (should) " + assertName + "\n");
-        testBuffer.append("    > " + IndentStringToLevel(failureDescription, 3) + "\n\n");
-        SetConsoleColor(ConsoleColor::Red);
-        std::cout << ".";
-        SetConsoleColor(ConsoleColor::White);
-    }
-    else
-    {
-        succeededAsserts++;
-        SetConsoleColor(ConsoleColor::Green);
-        std::cout << ".";
-        SetConsoleColor(ConsoleColor::White);
-    }
+std::string Diff();
 
-    assertName = "*unspecified*";
-    failureDescription = "*unspecified*";
+inline void Expected(std::string& msg)
+{
+    expected = msg;
 }
 
+inline void Expected(const char* msg)
+{
+    expected = std::string(msg);
+}
+
+/// assert that [b] is true. logs error if this is not the case
+void Assert(bool b);
+
+
 /// name of test
-inline void It(const std::string& name)
+inline void ItTests(const std::string& name)
 {
     ResetRun();
     testName = name;
@@ -132,19 +161,24 @@ inline void Compile()
 /// execute the program
 inline void Execute()
 {
+    ResetAssert();
+
     if(!FatalCompileError)
     {
         if(g_useBytecodeRuntime)
         {
             FlattenProgram(programToRun);
-            DoByteCodeProgram();
+            DoByteCodeProgram(programToRun);
             ProgramDestructor(programToRun);
         }
         else
         {
-            DoProgram(programToRun);
+            // DoProgram(programToRun);
             ProgramDestructor(programToRun);
         }
+
+        Valgrind();
+        TestConstantsFidelity();
     }
 }
 
@@ -156,12 +190,11 @@ inline int NumberOfCallsTo(const std::string& methodName)
 
 inline void SetProgramToRun(const std::string& fileName)
 {
+    programName = fileName;
     programFile = "./test/programs/" + fileName + ".pebl";
     if(g_noisyReport)
     {        
-        SetConsoleColor(ConsoleColor::Purple2);
-        std::cout << "\nstarting: " << fileName;
-        SetConsoleColor(ConsoleColor::White);
+        std::cout << CONSOLE_MAGENTA << "\n" << fileName << "\n  >> " << CONSOLE_RESET;
     }
 }
 
@@ -170,9 +203,7 @@ inline void RunCustomProgram()
     programFile = "./program.pebl";
     if(g_noisyReport)
     {        
-        SetConsoleColor(ConsoleColor::Purple2);
-        std::cout << "\nstarting: CustomProgram";
-        SetConsoleColor(ConsoleColor::White);
+        std::cout << CONSOLE_MAGENTA << "\nstarting: CustomProgram" << CONSOLE_RESET;
     }
 }
 
@@ -185,8 +216,6 @@ inline void CompileAndExecuteProgram(const std::string& programName)
 }
 
 void TestGenericMemoryLoss(String className);
-void IncludeStandardAssertSuite();
-void Valgrind();
 
 
 #endif

@@ -3,8 +3,8 @@ while X > 0
     print X
     X = X - 1
 
-X = false
-while X
+Y = false
+while Y
     print "in"
 
 X = 0 - 5

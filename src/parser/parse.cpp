@@ -5,11 +5,13 @@
 #include "diagnostics.h"
 #include "reference.h"
 #include "operation.h"
-#include "scope.h"
+#include "executable.h"
 #include "object.h"
 #include "program.h"
 #include "grammar.h"
 
+
+std::vector<Object*> ConstantPrimitiveObjects;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Formal expression parser
@@ -62,20 +64,85 @@ void ParseTokenDestructor(ParseToken* token)
     delete token;
 }
 
+bool TokenRefersToExistingPrimitiveObject(Token* token, Object** matchedObject)
+{
+    Object* obj;
+    auto value = token->Content;
+    bool found = false;
+    switch(token->Type)
+    {
+        case TokenType::Integer:
+        found = ListContainsPrimitiveObject(ConstantPrimitiveObjects, std::stoi(value), &obj);
+        break;
+
+        case TokenType::Boolean:
+        {
+            bool b = (value == "true" ? true : false);
+            found = ListContainsPrimitiveObject(ConstantPrimitiveObjects, b, &obj);
+        }
+        break;
+
+        case TokenType::String:
+        found = ListContainsPrimitiveObject(ConstantPrimitiveObjects, value, &obj);
+        break;
+
+        case TokenType::Decimal:
+        found = ListContainsPrimitiveObject(ConstantPrimitiveObjects, std::stod(value), &obj);
+        break;
+
+        default:
+        return false;
+    }
+
+    *matchedObject = obj;
+    return found;
+}
+
+Object* CreateObjectFromToken(Token* token)
+{
+    switch(token->Type)
+    {
+        case TokenType::Integer:
+        return ObjectConstructor(IntegerClass, ObjectValueConstructor(std::stoi(token->Content)));
+        
+        case TokenType::Decimal:
+        return ObjectConstructor(DecimalClass, ObjectValueConstructor(std::stod(token->Content)));
+
+        case TokenType::Boolean:
+        {
+            bool b = (token->Content == "true" ? true : false);
+            return ObjectConstructor(BooleanClass, ObjectValueConstructor(b));
+        }
+
+        case TokenType::String:
+        return ObjectConstructor(StringClass, ObjectValueConstructor(token->Content));
+
+        default:
+        return nullptr;
+    }
+}
+
 /// constructs a operation of type OperationType::Ref with either a primitive value or a named Reference stub
 Operation* RefOperation(Token* refToken)
 {
-    Reference* ref = ReferenceForPrimitive(refToken, c_operationReferenceName);
+    Reference* ref = nullptr;
+    Object* obj = nullptr;
 
-    if(ref == nullptr)
+    if(TokenMatchesType(refToken, PrimitiveTokenTypes))
     {
-        ref = ReferenceStubConstructor(refToken->Content);
+        if(!TokenRefersToExistingPrimitiveObject(refToken, &obj))
+        {
+            obj = CreateObjectFromToken(refToken);
+            ConstantPrimitiveObjects.push_back(obj);
+        }
+
+        ref = ReferenceConstructor(c_operationReferenceName, obj);
     }
     else
     {
-        ref->Name += ref->To->Class + GetStringValue(*ref->To);
+        ref = ReferenceStubConstructor(refToken->Content);    
     }
-
+    
     Operation* op = OperationConstructor(OperationType::Ref, ref);
 
     return op;
@@ -205,14 +272,6 @@ Operation* NothingStubOperation()
     return OperationConstructor(OperationType::Ref, { ReferenceStubConstructor(c_nullStubName) }); 
 }
 
-Operation* CollapseByScopedEval(CFGRule& rule, OperationsList& components)
-{
-    if(components.size() < 3)
-        components.push_back(NothingStubOperation());
-
-    return OperationConstructor(rule.OpType, components);
-}
-
 /// order is caller, method, params
 Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
 {
@@ -222,7 +281,6 @@ Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
         components.clear();
         components.push_back(NothingStubOperation());
         components.push_back(op);
-        components.push_back(NothingStubOperation());
     }
     else
     {
@@ -236,29 +294,6 @@ Operation* CollapseByUnscopedEval(CFGRule& rule, OperationsList& components)
     }
 
     return OperationConstructor(rule.OpType, components);
-}
-
-Reference* ScopeChainTerminal(Operation* op)
-{
-    if(op->Type != OperationType::ScopeResolution)
-        return nullptr;
-    
-    if(op->Operands.size() == 1)
-        return op->Operands.at(0)->Value;
-
-    return op->Operands.at(1)->Value;
-}
-
-/// collapse a rule corresponding to defining a method
-Operation* CollapseAsDefineMethod(CFGRule& rule, OperationsList& components)
-{
-
-    return OperationConstructor(OperationType::DefineMethod, components );
-}
-
-Operation* CollapseByChain(CFGRule& rule, OperationsList& components)
-{
-    return OperationConstructor(rule.OpType, { components.at(0), components.at(1) } );
 }
 
 Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
@@ -275,21 +310,9 @@ Operation* CollapseRuleInternal(CFGRule& rule, OperationsList& components)
     {
         return CollapseByMerge(rule, components);
     }
-    else if(rule.ParseMethod == "Custom")
-    {
-        return CollapseAsDefineMethod(rule, components);
-    }
-    else if(rule.ParseMethod == "ScopedEval")
-    {
-        return CollapseByScopedEval(rule, components);
-    }
     else if(rule.ParseMethod == "UnscopedEval")
     {
         return CollapseByUnscopedEval(rule, components);
-    }
-    else if(rule.ParseMethod == "Rewrite")
-    {
-        return nullptr;
     }
     else
     {
@@ -506,4 +529,10 @@ Operation* ExpressionParser(TokenList& rawline)
     DestroyList(listHead);
 
     return ast;
+}
+
+void InitParser()
+{
+    ConstantPrimitiveObjects.clear();
+    ConstantPrimitiveObjects.reserve(64);
 }

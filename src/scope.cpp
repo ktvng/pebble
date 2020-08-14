@@ -1,8 +1,9 @@
 #include "scope.h"
 
-#include "diagnostics.h"
 #include "reference.h"
-#include "utils.h"
+#include "call.h"
+#include "diagnostics.h"
+#include <iostream>
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Constructors
@@ -19,61 +20,36 @@ Scope* ScopeConstructor(Scope* inheritedScope)
     return s;
 }
 
-void WipeScope(Scope* scope)
-{
-    for(auto ref: scope->ReferencesIndex)
-    {
-        RemoveReferenceFromObjectIndex(ref);
-        ReferenceDestructor(ref);
-    }
-    ScopeDestructor(scope);
-}
-
 void ScopeDestructor(Scope* scope)
 {
     delete scope;
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Scopestack
-
-using namespace utils;
-
-/// stack which contains the hierarchy of scopes building up to the current Scope of execution
-static Stack<Scope*> ScopeStack;
-
-/// returns the current scope
-Scope* CurrentScope()
+void AddReferenceToScope(Reference* ref, Scope* scope)
 {
-    return ScopeStack.Peek();
+    scope->ReferencesIndex.push_back(ref);
 }
 
-/// enters a new scope
-void EnterScope(Scope* newScope)
+/// add [call] to [scope]
+void AddCallToScope(Call* call, Scope* scope)
 {
-    ScopeStack.Push(newScope);
+    scope->CallsIndex.push_back(call);
 }
 
-/// exit the current scope and return to the previous scope (i.e. the scope before entering this one)
-void ExitScope(bool andDestroy)
+/// return a deep copy of [scp]
+Scope* CopyScope(Scope* scp)
 {
-    auto scope = ScopeStack.Pop();
-    if(andDestroy)
-        ScopeDestructor(scope);
-}
+    Scope* scpCopy = ScopeConstructor(scp->InheritedScope);
 
-/// add [ref] to current scope
-void AddReferenceToCurrentScope(Reference* ref)
-{
-    if(CurrentScope() == nullptr)
+    for(auto call: scp->CallsIndex)
     {
-        LogIt(LogSeverityType::Sev2_Important, "AddReferenceToCurrentScope", "current scope is not set");
-        return;
-    }
-    CurrentScope()->ReferencesIndex.push_back(ref);
-}
+        Call* callCopy = CallConstructor(call->Name);
+        BindScope(callCopy, call->BoundScope);
+        BindSection(callCopy, call->BoundSection);
+        BindType(callCopy, call->BoundType);
 
-bool ScopeStackIsEmpty()
-{
-    return ScopeStack.Size() == 0;
+        AddCallToScope(callCopy, scpCopy);
+    }
+
+    return scpCopy;
 }

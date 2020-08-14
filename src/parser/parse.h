@@ -23,12 +23,13 @@ struct ParseToken
     ParseToken* Prev = nullptr;
 }; 
 
-
+extern std::vector<Object*> ConstantPrimitiveObjects;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods
 
 /// parses a [line] of code into an AST of Operations
 Operation* ExpressionParser(TokenList& line);
+void InitParser();
 
 #endif

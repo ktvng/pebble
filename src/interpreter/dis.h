@@ -3,6 +3,9 @@
 
 #include "abstract.h"
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Display methods
+
 void LogProgramInstructions();
 String ToString(ByteCodeInstruction& ins);
 

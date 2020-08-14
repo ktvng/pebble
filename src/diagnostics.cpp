@@ -19,21 +19,11 @@
 #include "reference.h"
 #include "operation.h"
 #include "scope.h"
+#include "astvm.h"
+#include "executable.h"
+#include "call.h"
+#include "bytecode.h"
 
-
-#ifdef _WIN32 
-#include <windows.h>
-#endif
-void SetConsoleColor(ConsoleColor color)
-{
-#ifdef _WIN32
-    HANDLE hConsole;
-    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, color);
-#else
-    LogIt(LogSeverityType::Sev1_Notify, "SetConsoleColor", "console color is not supported on linux");
-#endif
-}
 
 // indent formatting
 const String c_indentString = "  ";
@@ -158,21 +148,18 @@ String SystemMessageTypeString(SystemMessageType type)
     }
 }
 
-void SetConsoleColorForMessage(SystemMessageType type)
+const char* ConsoleColorForMessage(SystemMessageType type)
 {
     switch(type)
     {
         case SystemMessageType::Exception:
-        SetConsoleColor(ConsoleColor::Red);
-        return;
+        return CONSOLE_RED;
 
         case SystemMessageType::Warning:
-        SetConsoleColor(ConsoleColor::Yellow2);
-        return;
+        return CONSOLE_YELLOW;
 
         case SystemMessageType::Advice:
-        SetConsoleColor(ConsoleColor::Cyan);
-        return;
+        return CONSOLE_CYAN;
     }
 }
 
@@ -187,10 +174,8 @@ void ReportMsgInternal(std::vector<SystemMessage>& msgBuffer, int lineNumber)
     for(SystemMessage msg: msgBuffer)
     {
         auto stringMsg = Msg("(!) %s %s at line[%i]: ", fatalStatus, SystemMessageTypeString(msg.Type), lineNumber) + msg.Content + "\n";
-        SetConsoleColorForMessage(msg.Type);
         if(g_outputOn)
-            std::cerr << stringMsg;
-        SetConsoleColor(ConsoleColor::White);
+            std::cerr << ConsoleColorForMessage(msg.Type) << stringMsg << CONSOLE_RESET;
         ProgramMsgs.append(stringMsg);
         
     }
@@ -332,6 +317,27 @@ String ToString(const String& str)
     return str;
 }
 
+String ToString(const Call* call)
+{
+    String callString = "<Call>\n";
+    
+    if(call->Name != nullptr)
+        callString += IndentLevel(1) +
+            StringForAttrbute("Name", *call->Name);
+
+    callString += IndentLevel(1) +
+        StringForAttrbute("BoundType", *call->BoundType);
+    
+    callString += IndentLevel(1) +
+        StringForAttrbute("BoundSection", std::to_string(call->BoundSection));
+
+    if(!IsNothing(call))
+        callString += IndentLevel(1) +
+            StringForAttrbute("Value", StringValueOf(call));
+
+    return callString;
+}
+
 // Diagnostic printing
 
 String ToString(const Method* method)
@@ -359,7 +365,7 @@ String ToString(const Object& obj)
         StringForAttrbute("Class", obj.Class);
 
     objString += IndentLevel(1) +
-        StringForAttrbute("Value", GetStringValue(obj));
+        StringForAttrbute("Value", GetStringValue(&obj));
 
     objString += IndentLevel(1) +
         StringForAttrbute("Attributes", IndentStringToLevel(ToString(obj.Attributes->ReferencesIndex, "Reference"), 1));
@@ -501,9 +507,6 @@ String ToString(const OperationType& type)
         case OperationType::New:
         return "New";
 
-        case OperationType::Class:
-        return "Class";
-
         case OperationType::Tuple:
         return "Tuple";
 
@@ -530,6 +533,15 @@ String ToString(const OperationType& type)
 
         case OperationType::Is:
         return "Is";
+
+        case OperationType::DoTypeBinding:
+        return "DoTypeBinding";
+
+        case OperationType::NoOperationType:
+        return "NoOperationType";
+
+        case OperationType::Array:
+        return "Array";
 
         default:
         LogIt(LogSeverityType::Sev2_Important, "ToString", "unimplemented OperationType");
@@ -565,7 +577,7 @@ String ToString(const Operation& op, int level)
                         Msg("Ref <Reference> %s to %s %s", 
                             op.Value->Name, 
                             ObjectOf(op.Value)->Class,
-                            GetStringValue(*ObjectOf(op.Value))));
+                            GetStringValue(ObjectOf(op.Value))));
             }
 
         else
@@ -589,7 +601,7 @@ String ToString(const Operation& op, int level)
                 "<Reference> %s to %s %s",
                 op.Value->Name, 
                 ObjectOf(op.Value)->Class,
-                GetStringValue(*ObjectOf(op.Value)
+                GetStringValue(ObjectOf(op.Value)
                 )));
     }
 
@@ -704,6 +716,11 @@ void LogDiagnostics(const TokenList* tokenList, String message, String method)
 void LogDiagnostics(const ObjectReferenceMap& map, String message, String method)
 {
     DebugDumpObjectToLog(DisplayString(map), message, method);
+}
+
+void LogDiagnostics(const Call* call, String message, String method)
+{
+    DebugDumpObjectToLog(DisplayString(call), message, method);
 }
 
 #endif

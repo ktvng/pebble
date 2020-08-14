@@ -3,6 +3,7 @@
 #include "bytecode.h"
 #include "errormsg.h"
 #include "dis.h"
+#include "flattener.h"
 
 #include "object.h"
 #include "scope.h"
@@ -11,6 +12,9 @@
 #include "program.h"
 #include "main.h"
 #include "program.h"
+#include "call.h"
+#include "value.h"
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Scope Registers
@@ -19,10 +23,10 @@
 Scope* ProgramReg = nullptr;
 
 /// stores the caller object
-Object* CallerReg = nullptr;
+Call* CallerReg = nullptr;
 
 /// stores the self object;
-Object* SelfReg = nullptr;
+Call* SelfReg = nullptr;
 
 /// stores the local (possibly anonymous) scope
 /// in general this is equivalent to the scope of SelfReg, when in the base level of the program
@@ -54,13 +58,14 @@ int JumpStatusReg;
 /// 4: >
 /// 5: <=
 /// 6: >=
-/// 7: true if all comparisons valid, false if only == valid
+/// 7: true Nothing, overrides all else
 uint8_t CmpReg = CmpRegDefaultValue;
 
 /// stores the result of the last line of code and is updated by the BCI_Endline 
 /// instruction
-Object* LastResultReg = nullptr;
+Call* LastResultReg = nullptr;
 
+bool LocalScopeIsDetachedReg = 0;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -72,17 +77,28 @@ std::vector<void*> MemoryStack;
 // ---------------------------------------------------------------------------------------------------------------------
 // Entity Arrays
 
+String* SimpleCallNames[] = {
+    &ObjectType,
+    &NothingType,
+    &ArrayType,
+    &IntegerType,
+    &DecimalType,
+    &StringType,
+    &BooleanType,
+};
+
 /// list of all reference names appearing in a program
-std::vector<String> ReferenceNames;
+std::vector<String> CallNames;
 
 /// list of all constant primitives appearing in a program
-std::vector<Object*> ConstPrimitives;
+std::vector<Call*> ConstPrimitives;
 
-/// list of all objects that are created during runtime which are not ConstPrimitives
-std::vector<Object*> RuntimeObjects;
+/// list of all calls created during runtime
+std::vector<Call*> RuntimeCalls;
 
-/// list of all references that are created during runtime
-std::vector<Reference*> RuntimeReferences;
+/// list of all scopes created during runtime
+std::vector<Scope*> RuntimeScopes;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call Stack
@@ -90,6 +106,7 @@ std::vector<Reference*> RuntimeReferences;
 /// the call stack, stores information about different function calls and 
 /// how to return after a given function returns
 std::vector<CallFrame> CallStack;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode program
@@ -101,55 +118,123 @@ std::vector<ByteCodeInstruction> ByteCodeProgram;
 // ---------------------------------------------------------------------------------------------------------------------
 // Statics
 
-/// the "Object" of Pebble programs
-Object GodObject
+/// scope used for Calls which have not been bound to a speciic scope prior
+Scope NothingScope;
+
+/// scope used for primitives which are valued 
+Scope SomethingScope;
+
+Call ObjectCall
 {
-    BaseClass,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr
+    &ObjectType,
+    &AbstractObjectType,
+    0,
+    &SomethingScope,
 };
 
-/// the "Nothing" object
-Object NothingObject
+Call NothingCall
 {
-    NullClass,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr
+    &NothingType,
+    &NothingType,
+    0,
+    &NothingScope,
 };
 
-/// the "Something" object
-Object SomethingObject
+Call ArrayCall
 {
-    SomethingClass,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr
+    &ArrayType,
+    &AbstractArrayType,
+    0,
+    &SomethingScope,
+    0,
+    1
+};
+
+Call IntegerCall
+{
+    &IntegerType,
+    &AbstractIntegerType,
+    0,
+    &SomethingScope,
+};
+
+Call DecimalCall
+{
+    &DecimalType,
+    &AbstractDecimalType,
+    0,
+    &SomethingScope,
+};
+
+Call StringCall
+{
+    &StringType,
+    &AbstractStringType,
+    0,
+    &SomethingScope,
+};
+
+Call BooleanCall
+{
+    &BooleanType,
+    &AbstractBooleanType,
+    0,
+    &SomethingScope,
 };
 
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Program Execution
+// Array methods
+/// TODO: fix arrays
+
+const String SizeCallName = "Size";
+
+std::vector<String> ArrayIndexCalls;
+
+String* CallNamePointerFor(int i)
+{
+    return &ArrayIndexCalls[i];
+}
+
+void IfNeededAddArrayIndexCalls(size_t n)
+{
+    if(n > ArrayIndexCalls.size())
+    {
+        for(size_t i=ArrayIndexCalls.size(); i<n; i++)
+        {
+            ArrayIndexCalls.push_back("?");
+        }
+    }
+}
+
+void AddSimpleCallsToProgramScope()
+{
+    AddCallToScope(&ObjectCall, ProgramReg);
+    AddCallToScope(&NothingCall, ProgramReg);
+    AddCallToScope(&ArrayCall, ProgramReg);
+    AddCallToScope(&IntegerCall, ProgramReg);
+    AddCallToScope(&DecimalCall, ProgramReg);
+    AddCallToScope(&StringCall, ProgramReg);
+    AddCallToScope(&BooleanCall, ProgramReg);
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Program execution helpers
 
 /// initializes all registers and pushes the program CallFrame onto the CallStack
 void InitRuntime()
 {
-    GodObject.Attributes = ScopeConstructor(nullptr);
-    NothingObject.Attributes = ScopeConstructor(nullptr);
-    SomethingObject.Attributes = ScopeConstructor(nullptr);
-
-    std::vector<Scope> localScopeStack;
+    std::vector<LabeledScope> localScopeStack;
     extArg_t programEnd = ByteCodeProgram.size();
 
-    RuntimeObjects.clear();
-    RuntimeObjects.reserve(256);
+    RuntimeCalls.clear();
+    RuntimeCalls.reserve(256);
 
-    RuntimeReferences.clear();
-    RuntimeReferences.reserve(256);
+    RuntimeCalls = { &ObjectCall, &NothingCall, &ArrayCall, &IntegerCall,
+        &DecimalCall, &StringCall, &BooleanCall };
+
+    RuntimeScopes.clear();
+    RuntimeScopes.reserve(256);
 
     CallStack.clear();
     CallStack.reserve(256);
@@ -157,8 +242,8 @@ void InitRuntime()
     /// TODO: update arg 3 (caller ID);
     CallStack.push_back( {programEnd, 0, 0, localScopeStack });
 
-    CallerReg = &NothingObject;
-    SelfReg = &NothingObject;
+    CallerReg = &NothingCall;
+    SelfReg = &NothingCall;
 
     MemoryStack.clear();
     MemoryStack.reserve(256);
@@ -168,6 +253,10 @@ void InitRuntime()
 
     ProgramReg = ScopeConstructor(nullptr);
     LocalScopeReg = ProgramReg;
+    AddSimpleCallsToProgramScope();
+
+    FatalErrorOccured = false;
+    ErrorFlag = false;
 
     InstructionReg = 0;
 }
@@ -185,27 +274,78 @@ inline bool IsNOP(const ByteCodeInstruction& ins)
     return ins.Op == IndexOfInstruction(BCI_NOP);
 }
 
-/// TODO: implement
-void GracefullyExit()
+// ---------------------------------------------------------------------------------------------------------------------
+// Program post-execution cleanup
+
+/// list containing the memory addresses of Call values which have already
+/// been destroyed
+std::vector<String*> DestroyedValues;
+
+/// true if [value] has already been destroyed and appears in DestroyedValues
+/// otherwise will return false and add [value] to the list
+bool HasBeenDestroyed(String* value)
 {
-    for(auto ref: RuntimeReferences)
+    if(value == nullptr)
+        return true;
+
+    for(auto val: DestroyedValues)
     {
-        ReferenceDestructor(ref);
+        if(val == value)
+        {
+            return true;
+        }
     }
 
-    for(auto obj: RuntimeObjects)
-    {
-        ObjectDestructor(obj);
-    }
-
-    ScopeDestructor(ProgramReg);
-    ScopeDestructor(SomethingObject.Attributes);
-    ScopeDestructor(NothingObject.Attributes);
-    ScopeDestructor(GodObject.Attributes);
+    DestroyedValues.push_back(value);
+    return false;
 }
 
+/// true if [call] has a BoundValue that should be destroyed
+bool ShouldDestroyValue(const Call* call)
+{
+    return call->BoundType == &StringType && call->BoundScope != &NothingScope;
+}
+
+/// wrapper to delete a [call] and meet all dependencies
+void DeleteCall(Call* call)
+{
+    if(ShouldDestroyValue(call) && !HasBeenDestroyed(call->BoundValue.s))
+    {
+        StringDestructor(call->BoundValue.s);
+    }
+    CallDestructor(call);
+}
+
+/// free all allocated memory and stop program execution
+void GracefullyExit()
+{
+    size_t size = RuntimeCalls.size() + ConstPrimitives.size();
+    DestroyedValues.clear();
+    DestroyedValues.reserve(size);
+    
+    for(size_t i=SIMPLE_CALLS; i<RuntimeCalls.size(); i++)
+    {
+        DeleteCall(RuntimeCalls[i]);
+    }
+
+    for(auto scope: RuntimeScopes)
+    {
+        ScopeDestructor(scope);
+    }
+
+    for(auto call: ConstPrimitives)
+    {
+        DeleteCall(call);
+    }
+    ScopeDestructor(ProgramReg);
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Program Execution
+
 /// iterates and executes the instructions stored in BytecodeProgram
-void DoByteCodeProgram()
+int DoByteCodeProgram(Program* p)
 {
     InitRuntime();
 
@@ -213,6 +353,7 @@ void DoByteCodeProgram()
     {
         auto ins = ByteCodeProgram[InstructionReg];
         LogItDebug(Msg("%i: %s", (int)InstructionReg, ToString(ins)));
+
         if(IsNOP(ins))
         {
             InstructionReg++;
@@ -230,11 +371,11 @@ void DoByteCodeProgram()
             BCI_Instructions[ins.Op](ins.Arg);
         }
 
-        IfNeededDisplayError();
+        IfNeededDisplayError(p);
         if(FatalErrorOccured)
         {
             GracefullyExit();
-            return;
+            return 1;
         }
 
         if(!JumpStatusReg)
@@ -252,64 +393,18 @@ void DoByteCodeProgram()
         std::cout << "\nmem#" << MemoryStack.size() << "\n";
     }
     GracefullyExit();
+    return 0;
 }
 
-/// add [obj] to RuntimeObjects
-void AddRuntimeObject(Object* obj)
+// ---------------------------------------------------------------------------------------------------------------------
+// Recording created entities
+
+void AddRuntimeCall(Call* call)
 {
-    RuntimeObjects.push_back(obj);
+    RuntimeCalls.push_back(call);
 }
 
-/// add [ref] to RuntimeReferences
-void AddRuntimeReference(Reference* ref)
+void AddRuntimeScope(Scope* scope)
 {
-    RuntimeReferences.push_back(ref);
-}
-
-bool ValuesMatch(ObjectClass cls, void* value, Object* obj)
-{
-    if(cls != obj->Class)
-    {
-        return false;
-    }
-
-    if(cls == StringClass)
-    {
-        return *static_cast<String*>(value) == *static_cast<String*>(obj->Value);
-    }
-    else if(cls == IntegerClass)
-    {
-        return *static_cast<int*>(value) == *static_cast<int*>(obj->Value); 
-    }
-    else if(cls == DecimalClass)
-    {
-        return *static_cast<double*>(value) == *static_cast<double*>(obj->Value); 
-    }
-    else if(cls == BooleanClass)
-    {
-        return *static_cast<bool*>(value) == *static_cast<bool*>(obj->Value); 
-    }
-
-    return false;    
-}
-
-Object* FindExistingObject(ObjectClass cls, void* value)
-{
-    for(auto obj: ConstPrimitives)
-    {
-        if(ValuesMatch(cls, value, obj))
-        {
-            return obj;
-        }
-    }
-
-    for(auto obj: RuntimeObjects)
-    {
-        if(IsPrimitiveObject(obj) && ValuesMatch(cls, value, obj))
-        {
-            return obj;
-        }
-    }
-
-    return nullptr;
+    RuntimeScopes.push_back(scope);
 }

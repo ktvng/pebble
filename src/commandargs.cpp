@@ -50,18 +50,18 @@ void ParseCommandArgs(int argc, char* argv[], ProgramConfiguration* config)
         Setting* newSetting = nullptr;
         if(MatchesFlag(arg, &newSetting))
         {
-            if(CurrentState->Action(CurrentSettingOptions))
+            if(newSetting->Action(CurrentSettingOptions))
             {
                 inFlag = true;
             }
-                
-            CurrentSettingOptions.clear();
         }
         else if(inFlag)
         {
             // Flags consume at most one argument
             SettingOption option = arg;
             CurrentSettingOptions.push_back(option);
+            CurrentState->Action(CurrentSettingOptions);
+            CurrentSettingOptions.clear();
             inFlag = false;
         }
         else

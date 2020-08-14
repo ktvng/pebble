@@ -12,9 +12,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: make TestBuilder
-      run: make TestBuilder
-    - name: make pebble_testbuild.exe
-      run: make pebble_testbuild.exe
-    - name: run pebble_testbuild.exe
+    - name: make testbuilder
+      run: make testbuilder
+    - name: make pebble_testbuild
+      run: make pebble_testbuild
+    - name: run pebble_testbuild
       run: ./pebble_testbuild.exe --ignore-custom --bytecode

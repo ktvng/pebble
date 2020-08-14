@@ -8,6 +8,8 @@
 #include "reference.h"
 #include "operation.h"
 #include "diagnostics.h"
+#include "executable.h"
+#include "call.h"
 
 
 #include "vm.h"
@@ -20,11 +22,7 @@
 // 1. Add checking for reference assignment (should throw error) ie. 4 =5
 // 2. Allow scoped references to exist even for primitives, ie. A.5 ??? maybe
 
-// ---------------------------------------------------------------------------------------------------------------------
-// Contants
-inline constexpr extArg_t GOD_OBJECT_ID = 0;
-inline constexpr extArg_t SOMETHING_OBJECT_ID = 1;
-inline constexpr extArg_t NOTHING_OBJECT_ID = 2;
+static Operation* GlobalBlockOwner;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -130,47 +128,45 @@ inline void AddNOPS(int i)
     }
 }
 
-/// adds a dereference operation if [shouldDereference] is true
-inline void IfNecessaryAddDereference(bool shouldDereference)
-{
-    if(shouldDereference)
-    {
-        uint8_t opId = IndexOfInstruction(BCI_Dereference);
-        AddByteCodeInstruction(opId, noArg);
-    }
-}
-
 /// add an instruction marking the end of a line of code
 inline void AddEndLineInstruction()
 {
     AddByteCodeInstruction(IndexOfInstruction(BCI_EndLine), noArg);
 }
 
-/// TODO: add checking to make sure that tuple only contains refs
 /// add instructions for listing params when defining a method and sets 
 /// arg to the number of params the method takes
 inline void AddInstructionsForDefMethodParameters(Operation* op, extArg_t& arg)
 {
+    uint8_t opId;
     arg = 0;
+    
+    opId = IndexOfInstruction(BCI_EnterLocal);
+    AddByteCodeInstruction(opId, 1);
+
     /// assumes the tuple contains one argumented scope resolutions
     if(op->Type == OperationType::Tuple)
     {
         for(auto operand: op->Operands)
         {
-            uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
-            extArg_t refNameId = operand->Operands[0]->EntityIndex;
-            AddByteCodeInstruction(opId, refNameId);
+            FlattenOperation(operand);
             arg++;
+
+            opId = IndexOfInstruction(BCI_EndLine);
+            AddByteCodeInstruction(opId, noArg);
         }
     }
     else
     {
-        /// assumes operand is a scope resolution
-        uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
-        extArg_t refNameId = op->Operands[0]->EntityIndex;
-        AddByteCodeInstruction(opId, refNameId);
+        FlattenOperation(op);
         arg = 1;
+
+        opId = IndexOfInstruction(BCI_EndLine);
+        AddByteCodeInstruction(opId, noArg);
     }
+
+    opId = IndexOfInstruction(BCI_LeaveLocal);
+    AddByteCodeInstruction(opId, noArg);
 }
 
 /// true if [op] is an expression (not of type OperationType::Ref)
@@ -181,8 +177,16 @@ inline bool OperationIsExpression(Operation* op)
 
 /// add instructions for listing params when evaluating a method and sets
 /// arg to the number of params the method takes
-inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
+inline void AddInstructionsForEvaluateParameters(Operation* evalOp, extArg_t& arg)
 {
+    if(evalOp->Operands.size() < 3)
+    {
+        arg = 0;
+        return;
+    }
+
+    auto op = evalOp->Operands[2];
+
     if(op->Type == OperationType::Tuple)
     {
         for(auto operand: op->Operands)
@@ -199,14 +203,7 @@ inline void AddInstructionsForEvaluateParameters(Operation* op, extArg_t& arg)
         }
         else
         {
-            if(op->Value->Name == "Nothing")
-            {
-                return;
-            }
-
-            bool isRef = false;
-            FlattenOperationRefDirect(op, isRef);
-            IfNecessaryAddDereference(isRef);
+            FlattenOperationRefDirect(op);
         }
         arg = 1;
     }
@@ -344,20 +341,32 @@ inline bool IsPartOfIfConditional(Operation *op)
 // Flattening the AST
 
 /// true if [op] (assumed to be OperationType::Ref) points to a primitive 
-/// or instance of Object/Something/Nothing
 inline bool OperationRefIsPrimitive(Operation* op)
+{
+    return !IsReferenceStub(op->Value);
+}
+
+/// true if [op] (assumd to be OperationType::Ref) points to a Call for a
+/// primitive type i.e. Object/Nothing...
+inline bool IsSimpleCall(Operation* op)
 {
     auto ref = op->Value;
     if(IsReferenceStub(ref))
     {
-        return ref->Name == "Object" || ref->Name == "Something" || ref->Name == "Nothing";
+        return ref->Name == "Object" 
+            || ref->Name == "Nothing" 
+            || ref->Name == "Array"
+            || ref->Name == "Integer"
+            || ref->Name == "Decimal"
+            || ref->Name == "String"
+            || ref->Name == "Boolean";
     }
 
-    return true;
+    return false;
 }
 
 /// flatten a OperationType::Ref [op] which may point to a primitive object
-void FlattenOperationRefDirect(Operation* op, bool& isRef)
+void FlattenOperationRefDirect(Operation* op)
 {
     uint8_t opId;
     extArg_t arg = op->EntityIndex;
@@ -365,20 +374,22 @@ void FlattenOperationRefDirect(Operation* op, bool& isRef)
     if(OperationRefIsPrimitive(op))
     {
         opId = IndexOfInstruction(BCI_LoadPrimitive);
-        isRef = false;
+        AddByteCodeInstruction(opId, arg);
     }
     else
     {
-        opId = IndexOfInstruction(BCI_LoadRefName);
-        isRef = true;
+        opId = IndexOfInstruction(BCI_LoadCallName);
+        AddByteCodeInstruction(opId, arg);
+
+        opId = IndexOfInstruction(BCI_ResolveDirect);
+        AddByteCodeInstruction(opId, noArg);
     }
-    AddByteCodeInstruction(opId, arg);
 }
 
 /// flattens an OperationType::Ref [op] which cannot be a primitive (it is scoped)
 void FlattenOperationRefScoped(Operation* op, bool& isRef)
 {
-    uint8_t opId = IndexOfInstruction(BCI_LoadRefName);
+    uint8_t opId = IndexOfInstruction(BCI_LoadCallName);
     extArg_t arg = op->EntityIndex;
 
     isRef = true;
@@ -388,37 +399,26 @@ void FlattenOperationRefScoped(Operation* op, bool& isRef)
 
 /// flattens a OperationType::ScopeResolution [op] assuming it is direct and has
 /// only 1 operand
-void FlattenOperationScopeResolutionDirect(Operation* op, bool shouldDereference)
+void FlattenOperationScopeResolutionDirect(Operation* op)
 {
     auto firstOperand = op->Operands[0];
-    bool isRef = false;
-    FlattenOperationRefDirect(firstOperand, isRef);
-    
-    // primitives (isRef == false) are loaded directly and do not need to be
-    // resolved
-    if(isRef)
-    {
-        uint8_t opId = IndexOfInstruction(BCI_ResolveDirect);
-        AddByteCodeInstruction(opId, noArg);
-        IfNecessaryAddDereference(shouldDereference && !RefNameIsKeyword(firstOperand->Value->Name));
-    }
+    FlattenOperationRefDirect(firstOperand);
 }
 
 /// flattens a OperationType::ScopeResolution [op] assuming it is scoped and has
 /// exactly 2 operands
-void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference)
+void FlattenOperationScopeResolutionScoped(Operation* op)
 {
     auto firstOperand = op->Operands[0];
     if(firstOperand->Type == OperationType::ScopeResolution)
     {
-        FlattenOperationScopeResolutionWithDereference(firstOperand);
+        FlattenOperationScopeResolution(firstOperand);
     }
     else
     {
         /// must be an expression
         FlattenOperation(firstOperand);
     }
-    
 
     auto secondOperand = op->Operands[1];
     bool isRef = false;
@@ -428,37 +428,21 @@ void FlattenOperationScopeResolutionScoped(Operation* op, bool shouldDereference
     {
         uint8_t opId = IndexOfInstruction(BCI_ResolveScoped);
         AddByteCodeInstruction(opId, noArg);
-        IfNecessaryAddDereference(shouldDereference);
     }
 }
 
 /// TODO: might (won't) work with scoped pritmitives (ie X.4)
-/// flattens an OperationType::ScopeResolution [op] without dereferencing the 
-/// result which is used only with the OperationType::Assign operations
+/// flattens an OperationType::ScopeResolution [op] w
 void FlattenOperationScopeResolution(Operation* op)
 {
     if(op->Operands.size() == 1)
     {
-        FlattenOperationScopeResolutionDirect(op, false);
+        FlattenOperationScopeResolutionDirect(op);
     }
     else
     {
         // must be case of scoped resolution
-        FlattenOperationScopeResolutionScoped(op, false);
-    }
-}
-
-/// flattens an OperationType::ScopeResolution [op] with a final dereference if needed
-void FlattenOperationScopeResolutionWithDereference(Operation* op)
-{
-    if(op->Operands.size() == 1)
-    {
-        FlattenOperationScopeResolutionDirect(op, true);
-    }
-    else
-    {
-        // must be case of scoped resolution
-        FlattenOperationScopeResolutionScoped(op, true);
+        FlattenOperationScopeResolutionScoped(op);
     }
 }
 
@@ -529,7 +513,9 @@ inline void FlattenOperationComparison(Operation* op)
 /// and/or/not
 /// syscall (print)
 /// while/if/elseif/else
-/// isequal
+/// isequal/is
+/// array
+/// dotypebinding new
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -569,14 +555,28 @@ inline void FlattenOperationGeneric(Operation* op)
         opId = IndexOfInstruction(BCI_Not);
         break;
 
-        // used for when OperationType::Is is treated as assign
+        case OperationType::DoTypeBinding:
+        opId = IndexOfInstruction(BCI_BindType);
+        break;
+
+        case OperationType::New:
+        opId = IndexOfInstruction(BCI_Copy);
+        break;
+
         case OperationType::Is:
+        opId = IndexOfInstruction(BCI_Is);
+        break;
+        
         case OperationType::IsEqual:
         opId = IndexOfInstruction(BCI_Equals);
         break; 
 
         case OperationType::IsNotEqual:
         opId = IndexOfInstruction(BCI_NotEquals);
+        break;
+
+        case OperationType::Array:
+        opId = IndexOfInstruction(BCI_Array);
         break;
 
         case OperationType::Print:
@@ -600,27 +600,21 @@ inline void FlattenOperationGeneric(Operation* op)
 /// adds bytecode instructions for [op] with OperationType::Assign
 inline void FlattenOperationAssign(Operation* op)
 {
-    FlattenOperationScopeResolution(op->Operands[0]);
+    if(op->Operands[0]->Type == OperationType::ScopeResolution)
+    {
+        FlattenOperationScopeResolution(op->Operands[0]);
+    }
+    else if(op->Operands[0]->Type == OperationType::Ref)
+    {
+        FlattenOperationRefDirect(op->Operands[0]);
+    }
+    else
+    {
+        FlattenOperation(op->Operands[0]);
+    }
+
     FlattenOperation(op->Operands[1]);
     uint8_t opId = IndexOfInstruction(BCI_Assign);
-    AddByteCodeInstruction(opId, noArg);
-}
-
-/// adds bytecode instructions for [op] with OperationType::New
-inline void FlattenOperationNew(Operation* op)
-{
-    bool isRef;
-    FlattenOperationRefDirect(op->Operands[0], isRef);
-
-    uint8_t opId;
-    if(isRef)
-    {
-        opId = IndexOfInstruction(BCI_ResolveDirect);
-        AddByteCodeInstruction(opId, noArg);
-        IfNecessaryAddDereference(isRef);
-    }
-    
-    opId = IndexOfInstruction(BCI_Copy);
     AddByteCodeInstruction(opId, noArg);
 }
 
@@ -630,51 +624,75 @@ inline void FlattenOperationDefineMethod(Operation* op)
     uint8_t opId;
     extArg_t arg;
     
-    /// name comes first because of assign order
-    Operation* methodNameRefOp = op->Operands[0];
-
-    bool isRef;
-    FlattenOperationRefDirect(methodNameRefOp, isRef);
-
-    opId = IndexOfInstruction(BCI_ResolveDirect);
-    AddByteCodeInstruction(opId, noArg);
-    
-    /// case for operands
     arg = noArg;
-    if(op->Operands.size() > 1)
+
+    if(op->Operands.size() > 0)
     {
-        AddInstructionsForDefMethodParameters(op->Operands[1], arg);
+        AddInstructionsForDefMethodParameters(op->Operands[0], arg);
+    }
+    else
+    {
+        opId = IndexOfInstruction(BCI_EnterLocal);
+        AddByteCodeInstruction(opId, 1);
+
+        opId = IndexOfInstruction(BCI_LeaveLocal);
+        AddByteCodeInstruction(opId, noArg);
     }
 
-    opId = IndexOfInstruction(BCI_DefMethod);
+    opId = IndexOfInstruction(BCI_BindScope);
     AddByteCodeInstruction(opId, arg);
-
-    opId = IndexOfInstruction(BCI_Assign);
-    AddByteCodeInstruction(opId, noArg);
 }
 
-inline void FlattenOperationClass(Operation* op)
+inline void FlattenOperationEvaluateAsArrayInitialization(Operation* op)
 {
-    auto refOp = op->Operands[0];
     uint8_t opId;
     extArg_t arg;
 
-    opId = IndexOfInstruction(BCI_LoadRefName);
-    arg = refOp->EntityIndex;
+    opId = IndexOfInstruction(BCI_LoadCallName);
+    arg = NOTHING_CALL_ID; 
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_ResolveDirect);
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_LoadCallName);
+    arg = ARRAY_CALL_ID;
     AddByteCodeInstruction(opId, arg);
 
     opId = IndexOfInstruction(BCI_ResolveDirect);
     AddByteCodeInstruction(opId, noArg);
 
-    opId = IndexOfInstruction(BCI_LoadRefName);
-    arg = refOp->EntityIndex;
+    opId = IndexOfInstruction(BCI_Copy);
+    AddByteCodeInstruction(opId, noArg);
+
+    AddInstructionsForEvaluateParameters(op, arg);
+
+    opId = IndexOfInstruction(BCI_Eval);
+    AddByteCodeInstruction(opId, 1);
+}
+
+inline void FlattenOperationNew(Operation* op)
+{
+    uint8_t opId;
+    extArg_t arg; 
+
+    opId = IndexOfInstruction(BCI_LoadCallName);
+    arg = NOTHING_CALL_ID; 
     AddByteCodeInstruction(opId, arg);
 
-    opId = IndexOfInstruction(BCI_DefType);
-    AddByteCodeInstruction(opId, noArg);
+    opId = IndexOfInstruction(BCI_ResolveDirect);
+    AddByteCodeInstruction(opId, arg);
 
-    opId = IndexOfInstruction(BCI_Assign);
+
+    FlattenOperation(op->Operands[0]);
+
+    /// methods are done on cloned objects
+    opId = IndexOfInstruction(BCI_Copy);
     AddByteCodeInstruction(opId, noArg);
+    
+    opId = IndexOfInstruction(BCI_Eval);
+    arg = 0;
+    AddByteCodeInstruction(opId, arg);
 }
 
 /// adds bytecode instructions for [op] with OperationType::Evaluate
@@ -683,66 +701,47 @@ inline void FlattenOperationEvaluate(Operation* op)
     /// order of operands is caller, method, params
     auto callerOp = op->Operands[0];
     auto methodOp = op->Operands[1];
-    auto paramsOp = op->Operands[2];
 
     uint8_t opId;
     extArg_t arg;
 
-    /// TODO: make this nicer
+    if(methodOp->Type == OperationType::DoTypeBinding && methodOp->Operands[0]->EntityIndex == ARRAY_CALL_ID)
+    {
+        FlattenOperationEvaluateAsArrayInitialization(op);
+        return;
+    }
+
+    if(methodOp->Type == OperationType::Ref && OperationRefIsPrimitive(methodOp) && methodOp->EntityIndex == ARRAY_CALL_ID)
+    {
+        FlattenOperationEvaluateAsArrayInitialization(op);
+        return;
+    }
+
     /// case with no caller
     if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
     {
-        opId = IndexOfInstruction(BCI_LoadPrimitive);
-        arg = NOTHING_OBJECT_ID; 
-        AddByteCodeInstruction(opId, arg);
-
-        opId = IndexOfInstruction(BCI_LoadRefName);
-        arg = methodOp->EntityIndex;
+        opId = IndexOfInstruction(BCI_LoadCallName);
+        arg = NOTHING_CALL_ID; 
         AddByteCodeInstruction(opId, arg);
 
         opId = IndexOfInstruction(BCI_ResolveDirect);
-        AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_Dereference);
-        AddByteCodeInstruction(opId, noArg);
-    }
-    else if(callerOp->Type == OperationType::ScopeResolution)
-    {
-        FlattenOperationScopeResolutionWithDereference(callerOp);
-
-        opId = IndexOfInstruction(BCI_Dup);
-        AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_LoadRefName);
-        arg = methodOp->EntityIndex;
         AddByteCodeInstruction(opId, arg);
 
-        opId = IndexOfInstruction(BCI_ResolveScoped);
-        AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_Dereference);
-        AddByteCodeInstruction(opId, noArg);
-    }
-    else if(callerOp->Type == OperationType::Class)
-    {
-        /// TODO: implement
+        FlattenOperation(methodOp);
     }
     else
     {
-        // case for expression 
+        // case for Expr.Ref()
         FlattenOperation(callerOp);
 
         opId = IndexOfInstruction(BCI_Dup);
         AddByteCodeInstruction(opId, noArg);
 
-        opId = IndexOfInstruction(BCI_LoadRefName);
+        opId = IndexOfInstruction(BCI_LoadCallName);
         arg = methodOp->EntityIndex;
         AddByteCodeInstruction(opId, arg);
 
         opId = IndexOfInstruction(BCI_ResolveScoped);
-        AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_Dereference);
         AddByteCodeInstruction(opId, noArg);
     }
     
@@ -752,7 +751,7 @@ inline void FlattenOperationEvaluate(Operation* op)
     AddByteCodeInstruction(opId, noArg);
     
     arg = 0;
-    AddInstructionsForEvaluateParameters(paramsOp, arg);
+    AddInstructionsForEvaluateParameters(op, arg);
 
     opId = IndexOfInstruction(BCI_Eval);
     AddByteCodeInstruction(opId, arg);
@@ -765,35 +764,28 @@ inline void FlattenOperationEvaluateHere(Operation* op)
     /// order of operands is caller, method, params
     auto callerOp = op->Operands[0];
     auto methodOp = op->Operands[1];
-    auto paramsOp = op->Operands[2];
 
     uint8_t opId;
     extArg_t arg;
 
     if(callerOp->Type == OperationType::Ref && callerOp->Value->Name == "Nothing")
     {
-        opId = IndexOfInstruction(BCI_LoadRefName);
+        opId = IndexOfInstruction(BCI_LoadCallName);
         arg = methodOp->EntityIndex;
         AddByteCodeInstruction(opId, arg);
 
         opId = IndexOfInstruction(BCI_ResolveDirect);
         AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_Dereference);
-        AddByteCodeInstruction(opId, noArg);
     }
     else
     {
-        FlattenOperationScopeResolutionWithDereference(callerOp);
+        FlattenOperation(callerOp);
 
-        opId = IndexOfInstruction(BCI_LoadRefName);
+        opId = IndexOfInstruction(BCI_LoadCallName);
         arg = methodOp->EntityIndex;
         AddByteCodeInstruction(opId, arg);
 
         opId = IndexOfInstruction(BCI_ResolveScoped);
-        AddByteCodeInstruction(opId, noArg);
-
-        opId = IndexOfInstruction(BCI_Dereference);
         AddByteCodeInstruction(opId, noArg);
     }
 
@@ -802,7 +794,7 @@ inline void FlattenOperationEvaluateHere(Operation* op)
     AddByteCodeInstruction(opId, noArg);
     
     arg = 0;
-    AddInstructionsForEvaluateParameters(paramsOp, arg);
+    AddInstructionsForEvaluateParameters(op, arg);
 
     opId = IndexOfInstruction(BCI_EvalHere);
     AddByteCodeInstruction(opId, arg);
@@ -838,7 +830,7 @@ inline void FlattenOperationAsk(Operation* op)
     {
         FlattenOperation(op->Operands[0]);
         arg = 0;
-        AddByteCodeInstruction(opId, arg);
+        AddByteCodeInstruction(opId, noArg);
 
         AddEndLineInstruction();
     }
@@ -847,59 +839,25 @@ inline void FlattenOperationAsk(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
-/// adds bytecode instructions for [op] with OperationType::Is
-inline void FlattenOperationIs(Operation* op)
-{
-    uint8_t opId;
-
-    FlattenOperationScopeResolutionWithDereference(op->Operands[0]);
-
-    extArg_t jumpStart = NextInstructionId();
-    AddNOPS(NOPSafetyDomainSize());
-
-    /// if not nothing, then treat as IsEquals
-    FlattenOperationGeneric(op);
-    extArg_t jump2Start = NextInstructionId();
-    AddNOPS(NOPSafetyDomainSize());
-
-
-    opId = IndexOfInstruction(BCI_JumpNothing); 
-    extArg_t jumpTo = NextInstructionId();
-    RewriteByteCodeInstruction(opId, jumpTo, jumpStart);
-
-    FlattenOperationAssign(op);
-
-    opId = IndexOfInstruction(BCI_Jump);
-    jumpTo = NextInstructionId();
-    RewriteByteCodeInstruction(opId, jumpTo, jump2Start);
-}
-
 /// adds bytecode instructions for an [op] based on its OperationType
 void FlattenOperation(Operation* op)
 {
     if(op->Type == OperationType::ScopeResolution)
     {
-        FlattenOperationScopeResolutionWithDereference(op);
+        FlattenOperationScopeResolution(op);
+    }
+    else if(op->Type == OperationType::Ref)
+    {
+        FlattenOperationRefDirect(op);
     }
     else if(op->Type == OperationType::Assign)
     {
         FlattenOperationAssign(op);
     }
-    else if(op->Type == OperationType::Is)
-    {
-        FlattenOperationIs(op);
-    }
-    else if(op->Type == OperationType::New)
-    {
-        FlattenOperationNew(op);
-    }
     else if(op->Type == OperationType::DefineMethod)
     {
         FlattenOperationDefineMethod(op);
-    }
-    else if(op->Type == OperationType::Class)
-    {
-        FlattenOperationClass(op);
+        GlobalBlockOwner = op;
     }
     else if(op->Type == OperationType::Evaluate)
     {
@@ -920,6 +878,10 @@ void FlattenOperation(Operation* op)
     else if(op->Type == OperationType::Ask)
     {
         FlattenOperationAsk(op);
+    }
+    else if(op->Type == OperationType::New)
+    {
+        FlattenOperationNew(op);
     }
     else
     {
@@ -945,6 +907,9 @@ inline void HandleAnonymousScope(Block* block)
     FlattenBlock(block);
     
     opId = IndexOfInstruction(BCI_LeaveLocal);
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_DropTOS);
     AddByteCodeInstruction(opId, arg);
 }
 
@@ -976,8 +941,14 @@ inline void HandleDefineMethod(Block* block)
     uint8_t opId;
     extArg_t arg = noArg;
 
+    extArg_t BindInstructionStart = NextInstructionId();
+    AddNOPS(NOPSafetyDomainSize());
     extArg_t JumpInstructionStart = NextInstructionId();
     AddNOPS(NOPSafetyDomainSize());
+
+    opId = IndexOfInstruction(BCI_BindSection);
+    arg = NextInstructionId();
+    RewriteByteCodeInstruction(opId, arg, BindInstructionStart);
 
     FlattenBlock(block);
 
@@ -987,6 +958,7 @@ inline void HandleDefineMethod(Block* block)
     opId = IndexOfInstruction(BCI_Jump);
     arg = NextInstructionId();
     RewriteByteCodeInstruction(opId, arg, JumpInstructionStart);
+    AddEndLineInstruction();
 }
 
 /// add instructions enteri if and else-if clauses
@@ -1026,7 +998,8 @@ inline void HandleFlatteningControlFlow(Block* block, Operation* blockOwner, ext
     {
         HandleDefineMethod(block);
     }
-    else if(blockOwner->Type == OperationType::Class)
+    /// TODO: figure this out
+    else if(blockOwner->Type == OperationType::Ref)
     {
         HandleDefineMethod(block);
     }
@@ -1050,11 +1023,21 @@ inline void HandleFlatteningOperation(Operation* op, extArg_t& blockOwnerInstruc
     }
     
     blockOwnerInstructionStart = NextInstructionId();
+    GlobalBlockOwner = nullptr;
     FlattenOperation(op);
-    *blockOwner = op;
+    if(GlobalBlockOwner != nullptr)
+    {
+        *blockOwner = GlobalBlockOwner;
+    }
+    else
+    {
+        *blockOwner = op;
+    }
+    
+
     ByteCodeLineAssociation.push_back(NextInstructionId());
     
-    if(!IsConditionalJump(op) && op->Type != OperationType::Else)
+    if(!IsConditionalJump((*blockOwner)) && (*blockOwner)->Type != OperationType::Else && (*blockOwner)->Type != OperationType::DefineMethod) 
     {
         AddEndLineInstruction();
     }
@@ -1099,17 +1082,19 @@ void FlattenBlock(Block* block)
 
 // ---------------------------------------------------------------------------------------------------------------------
 // First Pass
-// The first pass fills in the ReferenceNames and ConstPrimitives arrrays and maps 
+// The first pass fills in the CallNames and ConstPrimitives arrrays and maps 
 // from the string representation to the integer encoding (position in list) for references
 // and constant primitives
 
-/// true if ReferenceNames array contains [refName], sets [atPosition] to this position
-bool ReferenceNamesContains(String refName, size_t& atPosition)
+std::vector<Object*> PrimitiveObjectsEncountered;
+
+/// true if CallNames array contains [callName], sets [atPosition] to this position
+bool CallNamesContains(String callName, size_t& atPosition)
 {
-    for(size_t i=0; i<ReferenceNames.size(); i++)
+    for(size_t i=0; i<CallNames.size(); i++)
     {
-        auto name = ReferenceNames[i];
-        if(name == refName)
+        auto name = CallNames[i];
+        if(name == callName)
         {
             atPosition = i;
             return true;
@@ -1118,49 +1103,83 @@ bool ReferenceNamesContains(String refName, size_t& atPosition)
     return false;
 }
 
-/// add a new entry to ReferenceNames if needed
+/// add a new entry to CallNames if needed
 /// assumes [op] is OperationType::Ref
 void IfNeededAddReferenceName(Operation* op)
 {
-    auto refName = op->Value->Name;
+    auto callName = op->Value->Name;
 
     size_t atPosition;
-    if(ReferenceNamesContains(refName, atPosition))
+    if(CallNamesContains(callName, atPosition))
     {
-        op->EntityIndex = atPosition;
+        op->EntityIndex = atPosition + SIMPLE_CALLS;
         return;
     }
 
-    op->EntityIndex = ReferenceNames.size();
-    ReferenceNames.push_back(refName);
+    op->EntityIndex = CallNames.size() + SIMPLE_CALLS;
+    CallNames.push_back(callName);
 }
 
-/// true if ConstPrimitives array contains [obj], sets [atPosition] to this position
-bool ConstPrimitivesContains(Object* obj, size_t& atPosition)
+bool EncounteredPrimitiveObject(Object* obj, size_t& atPosition)
 {
-    // GodObject and Something object always 0 and 1
-    if(obj == &GodObject)
+    for(size_t i=0; i<PrimitiveObjectsEncountered.size(); i++)
     {
-        atPosition = 0;
-        return true;
-    }
-    else if(obj == &SomethingObject)
-    {
-        atPosition = 1;
-        return true;
-    }
-
-
-    for(size_t i=0; i<ConstPrimitives.size(); i++)
-    {
-        auto constPrimObj = ConstPrimitives[i];
-        if(obj == constPrimObj)
+        auto encounteredObj = PrimitiveObjectsEncountered[i];
+        if(obj == encounteredObj)
         {
             atPosition = i;
             return true;
         }
     }
     return false;
+}
+
+BindingType ObjectClassToType(Object* obj)
+{
+    if(obj->Class == IntegerClass)
+    {
+        return &IntegerType;
+    }
+    else if(obj->Class == DecimalClass)
+    {
+        return &DecimalType;
+    }
+    else if(obj->Class == BooleanClass)
+    {
+        return &BooleanType;
+    }
+    else if(obj->Class == StringClass)
+    {
+        return &StringType;
+    }
+    else if(obj->Class == MethodClass)
+    {
+        return &MethodType;
+    }
+    else
+    {
+        return &NothingType;
+    }
+}
+
+void AssignValueFromObject(Call* c, Object* obj)
+{
+    if(obj->Class == IntegerClass)
+    {
+        c->BoundValue.i = *static_cast<int*>(obj->Value);
+    }
+    else if(obj->Class == DecimalClass)
+    {
+        c->BoundValue.d = *static_cast<double*>(obj->Value);
+    }
+    else if(obj->Class == StringClass)
+    {
+        c->BoundValue.s = StringConstructor(*static_cast<String*>(obj->Value));
+    }
+    else if(obj->Class == BooleanClass)
+    {
+        c->BoundValue.b = *static_cast<bool*>(obj->Value);
+    }
 }
 
 /// add a new entry to ConstPrimitives if needed
@@ -1169,32 +1188,60 @@ void IfNeededAddConstPrimitive(Operation* op)
 {
     auto obj = op->Value->To;
     
-    /// TODO: streamline this process for GodObj and SomethingObj
-    if(op->Value->Name == "Object")
-    {
-        op->EntityIndex = 0;
-        return;
-    }
-    else if(op->Value->Name == "Something")
-    {
-        op->EntityIndex = 1;
-        return;
-    }
-    else if(op->Value->Name == "Nothing")
-    {
-        op->EntityIndex = 2;
-        return;
-    }
-
     size_t atPosition;
-    if(ConstPrimitivesContains(obj, atPosition))
+    if(EncounteredPrimitiveObject(obj, atPosition))
     {
         op->EntityIndex = atPosition;
         return;
     }
 
-    op->EntityIndex = ConstPrimitives.size();
-    ConstPrimitives.push_back(obj);
+    op->EntityIndex = PrimitiveObjectsEncountered.size();
+    PrimitiveObjectsEncountered.push_back(obj);
+    
+    Call* call = CallConstructor();
+    AssignValueFromObject(call, obj);
+    BindScope(call, &SomethingScope);
+    /// TODO: make this more robust
+    BindType(call, ObjectClassToType(op->Value->To));
+    ConstPrimitives.push_back(call);
+}
+
+void AssignEntityIndexForSimpleCall(Operation* op)
+{
+    auto name = op->Value->Name;
+    if(name == "Object")
+    {
+        op->EntityIndex = OBJECT_CALL_ID;
+    }
+    else if(name == "Nothing")
+    {
+        op->EntityIndex = NOTHING_CALL_ID;
+    }
+    else if(name == "Array")
+    {
+        op->EntityIndex = ARRAY_CALL_ID;
+    }
+    else if(name == "Integer")
+    {
+        op->EntityIndex = INTEGER_CALL_ID;
+    }
+    else if(name == "Decimal")
+    {
+        op->EntityIndex = DECIMAL_CALL_ID;
+    }
+    else if(name == "String")
+    {
+        op->EntityIndex = STRING_CALL_ID;
+    }
+    else if(name == "Boolean")
+    {
+        op->EntityIndex = BOOLEAN_CALL_ID;
+    }
+    else
+    {
+        LogIt(LogSeverityType::Sev1_Notify, 
+            "AssignEntityIndexForSimpleCall", "bad simple call name");
+    }
 }
 
 /// recurses over the ast with [op] as head 
@@ -1206,9 +1253,12 @@ void FirstPassOperation(Operation* op)
         {
             IfNeededAddConstPrimitive(op);
         }
+        else if(IsSimpleCall(op))
+        {
+            AssignEntityIndexForSimpleCall(op);
+        }
         else
         {
-            // this is the case that it is a primitive
             IfNeededAddReferenceName(op);
         }
         return;
@@ -1238,17 +1288,26 @@ void FirstPassBlock(Block* b)
     }
 }
 
-/// resets the ReferenceNames and ConstPrimtiives lists
+std::vector<void*> DeletedValueAddrs;
+
+/// resets the CallNames and ConstPrimtiives lists
 void InitEntityLists()
 {
     ConstPrimitives.clear();
-    ConstPrimitives = { &GodObject, &SomethingObject, &NothingObject };
+    ConstPrimitives.reserve(64);
 
-    ReferenceNames.clear();
+    CallNames.clear();
+    CallNames.reserve(64);
+
+    PrimitiveObjectsEncountered.clear();
+    PrimitiveObjectsEncountered.reserve(64);
     
     ByteCodeProgram.clear();
     ByteCodeLineAssociation.clear();
     ByteCodeLineAssociation.push_back(0);
+
+    DeletedValueAddrs.clear();
+    DeletedValueAddrs.reserve(64);
 }
 
 /// iterates through the main block of [p]
@@ -1257,10 +1316,47 @@ void FirstPassProgram(Program* p)
     FirstPassBlock(p->Main);
 }
 
+void SafeDeleteObjectValue(Object* obj)
+{
+    if(obj->Value == nullptr)
+    {
+        return;
+    }
+
+
+    for(void* addr: DeletedValueAddrs)
+    {
+        if(obj->Value == addr)
+        {
+            return;
+        }
+    }
+
+    DeletedValueAddrs.push_back(obj->Value);
+    ObjectValueDestructor(obj->Class, obj->Value);
+}
+
+void InternalDeleteObject(Object* obj)
+{
+    ScopeDestructor(obj->Attributes);
+    if(IsCallable(obj))
+    {
+        MethodDestructor(obj->Action);
+    }
+    SafeDeleteObjectValue(obj);
+    
+    ObjectDestructor(obj);
+}
+
 /// performs first pass and the flattens [p] to generate a BytecodeProgram
 void FlattenProgram(Program* p)
 {
     InitEntityLists();
     FirstPassProgram(p);
     FlattenBlock(p->Main);
+
+    for(auto obj: PrimitiveObjectsEncountered)
+    {
+        InternalDeleteObject(obj);
+    }
 }

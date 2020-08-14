@@ -8,28 +8,10 @@
 #include "scope.h"
 #include "token.h"
 
-Reference* ReferenceConstructor()
-{
-    Reference* ref = new Reference; 
-    ref->Name = "";
-    ref->To = nullptr;
-
-    return ref;
-}
-
-Reference* ReferenceConstructor(String refName, Object* obj)
-{
-    Reference* ref = new Reference; 
-    ref->Name = refName;
-    ref->To = obj;
-
-    return ref;
-}
-
 Object* ObjectConstructor()
 {
     Object* obj = new Object;
-    obj->Attributes = ScopeConstructor(CurrentScope());
+    obj->Attributes = ScopeConstructor(nullptr);
     obj->Attributes->IsDurable = true;
     obj->Class = NullClass;
     obj->Value = nullptr;
@@ -95,6 +77,11 @@ void ObjectValueDestructor(ObjectClass klass, void* val)
 
 void ObjectDestructor(Object* obj)
 {
+    delete obj;
+}
+
+void DeleteObject(Object* obj)
+{
     ScopeDestructor(obj->Attributes);
     if(IsCallable(obj))
     {
@@ -104,9 +91,35 @@ void ObjectDestructor(Object* obj)
     {
         ObjectValueDestructor(obj);
     }
-    delete obj;
+    
+    ObjectDestructor(obj);
 }
 
+
+String* ObjectValueConstructor(String value)
+{
+    std::string* s = new std::string;
+    *s = value;
+    return s;
+}
+bool* ObjectValueConstructor(bool value)
+{
+    bool* s = new bool;
+    *s = value;
+    return s;
+}
+double* ObjectValueConstructor(double value)
+{
+    double* s = new double;
+    *s = value;
+    return s;
+}
+int* ObjectValueConstructor(int value)
+{
+    int* s = new int;
+    *s = value;
+    return s;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Methods
@@ -130,9 +143,6 @@ void MethodDestructor(Method* m)
 
 Object* ObjectOf(const Reference* ref)
 {
-    if(ref->To == nullptr)
-        return nullptr;
-
     return ref->To;
 }
 
@@ -162,306 +172,95 @@ bool IsString(const Reference* ref)
 
 
 
-bool ObjectHasReference(const ObjectReferenceMap& map, const Reference* ref)
+
+ObjectClass GetPrecedenceClass(const Object* obj1, const Object* obj2)
 {
-    for(Reference* objRef: map.References)
-    {
-        if(ref == objRef)
-            return true;
-    }
-    return false;
-}
-
-/// returns the ObjectReferenceMap corresonding to [obj] or nullptr if not found
-bool FoundEntryInIndexOf(const Object* obj, ObjectReferenceMap** foundMap)
-{
-    for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-    {
-        if(map.IndexedObject == obj)
-        {
-            *foundMap = &map;            
-            return true;
-        }
-    }
-    foundMap = nullptr;
-    return false;
-}
-
-void IndexObject(Object* obj, Reference* ref)
-{
-    ObjectReferenceMap* map = nullptr;
-    if(FoundEntryInIndexOf(obj, &map))
-    {
-        map->References.push_back(ref);
-    }
-    else
-    {
-        std::vector<Reference*> refs = { ref };
-        
-        ObjectReferenceMap objMap = { obj, refs };
-        PROGRAM->ObjectsIndex.push_back(objMap);
-    }
-
-}
-
-Reference* CreateReferenceInternal(String name, ObjectClass objClass)
-{
-    Reference* ref = ReferenceConstructor();
-    Object* obj = ObjectConstructor();
-
-    IndexObject(obj, ref);
-
-    ref->Name = name;
-    ref->To = obj;
-
-    obj->Class = objClass;
-    obj->Value = nullptr;
-    
-    return ref;
-}
-
-
-Reference* CreateReferenceToArrayObject(String name, ObjectClass objClass, int value){
-    Reference* ref = CreateReferenceInternal(name, objClass);
-
-    int* i = new int;
-    *i = value;
-
-    // TODO: Make arrays
-    // ref->ToObject->Value = i;
-    // ref->ToObject->Attributes.reserve(value);
-
-
-    return ref;
-}
-
-int* ObjectValueConstructor(int value)
-{
-    int* s = new int;
-    *s = value;
-    return s;
-}
-
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, int value)
-{
-    Reference* ref = CreateReferenceInternal(name, objClass);
-    ObjectOf(ref)->Value = ObjectValueConstructor(value);
-
-    return ref;
-}
-
-double* ObjectValueConstructor(double value)
-{
-    double* s = new double;
-    *s = value;
-    return s;
-}
-
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, double value)
-{
-    Reference* ref = CreateReferenceInternal(name, objClass);
-    ObjectOf(ref)->Value = ObjectValueConstructor(value);
-
-    return ref;
-}
-
-bool* ObjectValueConstructor(bool value)
-{
-    bool* s = new bool;
-    *s = value;
-    return s;
-}
-
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, bool value)
-{
-    Reference* ref = CreateReferenceInternal(name, objClass);
-    ObjectOf(ref)->Value = ObjectValueConstructor(value);
-
-    return ref;
-}
-
-String* ObjectValueConstructor(String value)
-{
-    std::string* s = new std::string;
-    *s = value;
-    return s;
-}
-
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, const String value)
-{
-    Reference* ref = CreateReferenceInternal(name, objClass);
-    ObjectOf(ref)->Value = ObjectValueConstructor(value);
-    
-    return ref;
-}
-
-Reference* CreateReferenceToNewObject(String name, ObjectClass objClass, void* value){
-    if(objClass == StringClass)
-    {
-        return CreateReferenceToNewObject(name, objClass, *static_cast<String*>(value));
-    }
-    else if(objClass == DecimalClass)
-    {
-        return CreateReferenceToNewObject(name, objClass, *static_cast<double*>(value));
-    }
-    else if(objClass == BooleanClass)
-    {
-        return CreateReferenceToNewObject(name, objClass, *static_cast<bool*>(value));
-    }
-    else if(objClass == IntegerClass)
-    {
-        return CreateReferenceToNewObject(name, objClass, *static_cast<int*>(value));
-    }
-    else if(objClass == ArrayClass)
-    {
-        return CreateReferenceToArrayObject(name, objClass, *static_cast<int*>(value));
-    }
-    else if(objClass == TupleClass)
-    {
-        return CreateReferenceInternal(name, TupleClass);
-    }
-    else if(objClass == BaseClass)
-    {
-        return CreateReferenceInternal(name, BaseClass);
-    }
-    else 
-    {
-        return CreateReferenceInternal(name, objClass);
-    }
-}
-
-
-
-Reference* CreateReference(String name, Object* obj)
-{
-    Reference* ref = ReferenceConstructor();
-    IndexObject(obj, ref);
-
-    ref->Name = name;
-    ref->To = obj;
-
-    return ref;
-}
-
-
-Object* NullObject()
-{
-    static Object nullObject;
-    static Scope nullScope;
-    nullObject.Class = NullClass;
-    nullObject.Value = nullptr;
-    nullObject.Attributes = &nullScope;
-
-    return &nullObject;
-}
-
-Reference* CreateNullReference(String name)
-{
-    Object* nullObject = NullObject();
-    Reference* ref = ReferenceConstructor();
-    ref->Name = name;
-    ref->To = nullObject;
-
-    IndexObject(nullObject, ref);
-    
-    return ref;
-}
-
-Reference* CreateNullReference()
-{
-    return CreateNullReference(c_temporaryReferenceName);
-}
-
-
-
-ObjectClass GetPrecedenceClass(const Object& obj1, const Object& obj2)
-{
-    if(obj1.Class == DecimalClass || obj2.Class == DecimalClass)
+    if(obj1->Class == DecimalClass || obj2->Class == DecimalClass)
         return DecimalClass;
     return IntegerClass;
 }
 
 
 
-String GetStringValue(const Object& obj)
+String GetStringValue(const Object* obj)
 {
-    if(obj.Class == IntegerClass)
+    if(obj->Class == IntegerClass)
     {
-        return std::to_string(*static_cast<int*>(obj.Value));
+        return std::to_string(*static_cast<int*>(obj->Value));
     }
-    else if(obj.Class == DecimalClass)
+    else if(obj->Class == DecimalClass)
     {
-        return std::to_string(*static_cast<double*>(obj.Value));
+        return std::to_string(*static_cast<double*>(obj->Value));
     }
-    else if(obj.Class == BooleanClass)
+    else if(obj->Class == BooleanClass)
     {
-        if(*static_cast<bool*>(obj.Value))
+        if(*static_cast<bool*>(obj->Value))
         {
             return "true";
         }
         return "false";
     }
-    else if(obj.Class == StringClass)
+    else if(obj->Class == StringClass)
     {
-        return *static_cast<String*>(obj.Value);
+        return *static_cast<String*>(obj->Value);
     }
-    else if(obj.Class == NullClass)
+    else if(obj->Class == NullClass)
     {
         return "Nothing";
     }
-    else if(obj.Class == BaseClass)
+    else if(obj->Class == BaseClass)
     {
         return "Object";
     }
-    else if(obj.Class == SomethingClass)
+    else if(obj->Class == SomethingClass)
     {
         return "Something";
     }
-    else if(obj.Class == MethodClass)
+    else if(obj->Class == MethodClass)
     {
         return "Method";
     }
     else
     {
-        return "<" + obj.Class + ">";
+        return "<" + obj->Class + ">";
     }
 }
 
-int GetIntValue(const Object& obj)
+int GetIntValue(const Object* obj)
 {
-    if(obj.Class != IntegerClass)
+    if(obj->Class != IntegerClass)
     {
         LogIt(LogSeverityType::Sev1_Notify, "GetIntValue", "only implemented for IntegerClass");
         return 0;
     }
-    return *static_cast<int*>(obj.Value);
+    return *static_cast<int*>(obj->Value);
 }
 
-double GetDecimalValue(const Object& obj)
+double GetDecimalValue(const Object* obj)
 {
-    if(obj.Class == DecimalClass)
+    if(obj->Class == DecimalClass)
     {
-        return *static_cast<double*>(obj.Value);
+        return *static_cast<double*>(obj->Value);
     }
-    if(obj.Class == IntegerClass)
+    if(obj->Class == IntegerClass)
     {
-        return static_cast<double>(*static_cast<int*>(obj.Value));
+        return static_cast<double>(*static_cast<int*>(obj->Value));
     }
     LogIt(LogSeverityType::Sev1_Notify, "GetDecimalValue", "only implemented for Integer and Decimal classes");
     return 0;
 }
 
-bool GetBoolValue(const Object& obj)
+bool GetBoolValue(const Object* obj)
 {
-    if(obj.Class == BooleanClass)
+    if(obj->Class == BooleanClass)
     {
-        return *static_cast<bool*>(obj.Value);
+        return *static_cast<bool*>(obj->Value);
     }
-    else if (obj.Class == IntegerClass)
+    else if (obj->Class == IntegerClass)
     {
-        return static_cast<bool>(*static_cast<int*>(obj.Value));
+        return static_cast<bool>(*static_cast<int*>(obj->Value));
     }
-    else if(obj.Class == NullClass)
+    else if(obj->Class == NullClass)
     {
         return false;
     }
@@ -472,35 +271,92 @@ bool GetBoolValue(const Object& obj)
 }
 
 
-Reference* CreateReferenceToNewObject(String name, Token* valueToken)
-{
-    String value = valueToken->Content;
-    bool b;
 
-    switch(valueToken->Type)
+// ---------------------------------------------------------------------------------------------------------------------
+// object class matching
+bool ObjectIsClass(Object* obj, ObjectClass cls)
+{
+    return obj->Class == cls;
+}
+
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Matching primitives
+
+bool ValueMatchesPrimitiveObject(int value, Object* obj)
+{
+    return ObjectIsClass(obj, IntegerClass) && *static_cast<int*>(obj->Value) == value;
+}
+
+bool ValueMatchesPrimitiveObject(String value, Object* obj)
+{
+    return ObjectIsClass(obj, StringClass) && *static_cast<String*>(obj->Value) == value;
+}
+
+bool ValueMatchesPrimitiveObject(double value, Object* obj)
+{
+    return ObjectIsClass(obj, DecimalClass) && *static_cast<double*>(obj->Value) == value;
+}
+
+bool ValueMatchesPrimitiveObject(bool value, Object* obj)
+{
+    return ObjectIsClass(obj, BooleanClass) && *static_cast<bool*>(obj->Value) == value;
+}
+
+bool ListContainsPrimitiveObject(std::vector<Object*> list, int value, Object** foundObject)
+{
+    for(auto obj: list)
     {
-        case TokenType::Integer:
-        return CreateReferenceToNewObject(name, IntegerClass, std::stoi(value));
-
-        case TokenType::Boolean:
-        b = value == "true" ? true : false;
-        return CreateReferenceToNewObject(name, BooleanClass, b);
-
-        case TokenType::String:
-        return CreateReferenceToNewObject(name, StringClass, value);
-
-        case TokenType::Decimal:
-        return CreateReferenceToNewObject(name, DecimalClass, std::stod(value));
-
-        case TokenType::Reference:
-        default:
-        LogIt(LogSeverityType::Sev1_Notify, "CreateReferenceToNewObject", "unimplemented in this case (generic References/Simple)");
-        return CreateNullReference();
+        if(ValueMatchesPrimitiveObject(value, obj))
+        {
+            *foundObject = obj;
+            return true;
+        }
     }
+    
+    *foundObject = nullptr; 
+    return false;
 }
 
-Reference* CreateReferenceToNewObject(Token* nameToken, Token* valueToken)
+bool ListContainsPrimitiveObject(std::vector<Object*> list, String& value, Object** foundObject)
 {
-    return CreateReferenceToNewObject(nameToken->Content, valueToken);
+    for(auto obj: list)
+    {
+        if(ValueMatchesPrimitiveObject(value, obj))
+        {
+            *foundObject = obj;
+            return true;
+        }
+    }
+    
+    return false;
 }
 
+bool ListContainsPrimitiveObject(std::vector<Object*> list, double value, Object** foundObject)
+{
+    for(auto obj: list)
+    {
+        if(ValueMatchesPrimitiveObject(value, obj))
+        {
+            *foundObject = obj;
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+bool ListContainsPrimitiveObject(std::vector<Object*> list, bool value, Object** foundObject)
+{
+    for(auto obj: list)
+    {
+        if(ValueMatchesPrimitiveObject(value, obj))
+        {
+            *foundObject = obj;
+            return true;
+        }
+    }
+    
+    return false;
+}

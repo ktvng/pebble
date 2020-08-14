@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+union Value;
+
 struct Token;
 struct OperationTypeProbability;
 struct SystemMessage;
@@ -15,6 +17,7 @@ struct Program;
 struct Reference;
 struct ByteCodeInstruction;
 struct CFGRule;
+struct Call;
 
 class Object;
 class Method;
@@ -48,9 +51,11 @@ enum LogSeverityType
 enum OperationType
 {
     Assign,                         // change what a Reference points to
+
     Is,
     IsEqual,                        // returns Reference to BooleanClass result of ==
     IsNotEqual,                     // returns Reference to BooleanClass result of !=
+
     IsLessThan,                     // returns Reference to BooleanClass result of <
     IsGreaterThan,                  // returns Reference to BooleanClass result of >
     IsLessThanOrEqualTo,            // returns Reference to BooleanClass result of <=
@@ -64,8 +69,10 @@ enum OperationType
     And,                            // returns Reference to result of &&
     Or,                             // returns Reference to result of ||
     Not,                            // returns Reference to result of !
+
     Evaluate,                       // returns Reference to result of method call
     EvaluateHere,
+
     Print,                          // prints a Ref to the screen
     Ask,
     
@@ -77,12 +84,14 @@ enum OperationType
     ElseIf,
     Else,
     While,
-    EndLabel,                       // end of an if statement
+    
     Tuple,                          // constructs and returns a (>1) ordering of references
     
     New,
     ScopeResolution,
-    Class,
+    DoTypeBinding,
+
+    Array,
 
     NoOperationType,
 };

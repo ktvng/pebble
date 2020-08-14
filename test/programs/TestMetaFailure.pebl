@@ -1,0 +1,5 @@
+print "this is the output of a pebble program"
+print "which has been run in order to test"
+print "that test can fail"
+print "..."
+print "very meta, right?"

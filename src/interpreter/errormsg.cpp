@@ -6,6 +6,7 @@
 #include "diagnostics.h"
 #include "program.h"
 #include "main.h"
+#include "program.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Error Handling
@@ -18,25 +19,25 @@ bool FatalErrorOccured = false;
 
 std::vector<extArg_t> ByteCodeLineAssociation;
 
-inline int GetLineNumberFromInstructionNumber(extArg_t instructionNumber)
+inline int GetLineNumberFromInstructionNumber(extArg_t instructionNumber, Program* p)
 {
     extArg_t i = 0;
     for(; i< ByteCodeLineAssociation.size() && ByteCodeLineAssociation[i] < instructionNumber; i++);
-    return i;
+    return p->Lines[i-1].LineNumber;
 }
 
-void IfNeededDisplayError()
+void IfNeededDisplayError(Program* p)
 {
     if(ErrorFlag)
     {
         ErrorFlag = false;
-        int lineNumber = GetLineNumberFromInstructionNumber(InstructionReg);
-        String fatalStatus = (ErrorType == SystemMessageType::Exception ? "Fatal" : "");
+        int lineNumber = GetLineNumberFromInstructionNumber(InstructionReg, p);        
+        String fatalStatus = (ErrorType == SystemMessageType::Exception ? "Fatal" : "");        
         auto stringMsg = Msg("(!) %s %s at line[%i]: %s\n     >>   %s\n", fatalStatus, SystemMessageTypeString(ErrorType), lineNumber, ErrorClasses[ErrorCode].ErrorMsg, ErrorMsg);
-        SetConsoleColorForMessage(ErrorType);
+
+        ProgramOutput += stringMsg;
         if(g_outputOn)
-            std::cerr << stringMsg;
-        SetConsoleColor(ConsoleColor::White);
+            std::cerr << ConsoleColorForMessage(ErrorType) << stringMsg << CONSOLE_RESET;
         ProgramMsgs.append(stringMsg);
     }
 }
@@ -58,5 +59,25 @@ ByteCodeError ErrorClasses[] =
     {
         2,
         "method call arguments mismatch"
+    },
+    {
+        3,
+        "variable is not callable"
+    },
+    {
+        4,
+        "variable is not indexable"
+    },
+    {
+        5,
+        "array index must be Integer typed"
+    },
+    {
+        6,
+        "array index out of bounds"
+    },
+    {
+        7,
+        "unassignable left operand"
     }
 };

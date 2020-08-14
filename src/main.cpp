@@ -10,13 +10,13 @@
 #include "operation.h"
 #include "reference.h"
 #include "parse.h"
-#include "execute.h"
 #include "commandargs.h"
 #include "vm.h"
 #include "flattener.h"
 #include "scope.h"
 #include "dis.h"
 #include "grammar.h"
+#include "astvm.h"
 
 #include "dfa.h"
 
@@ -55,6 +55,24 @@ bool ChangeLogType(std::vector<SettingOption> options)
     return true;
 }
 
+bool ChangeRuntime(std::vector<SettingOption> options)
+{
+    if(options.size() < 1)
+        return true;
+
+    SettingOption option = options[0];
+    if(option == "ast")
+    {
+        g_useBytecodeRuntime = false;
+    }
+    else if(option == "bc")
+    {
+        g_useBytecodeRuntime = true;
+    }
+
+    return true;
+}
+
 ProgramConfiguration Config
 {
     {
@@ -72,10 +90,13 @@ ProgramConfiguration Config
     { 
         "Log Setting", "--log", ChangeLogType
     },
+    {
+        "Runtime version", "--runtime", ChangeRuntime
+    }
 };
 
 // Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev0_Debug;
+LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 bool g_outputOn = true;
 
 // Runtime
@@ -86,7 +107,6 @@ int main(int argc, char* argv[])
     ParseCommandArgs(argc, argv, &Config);
 
     bool ShouldPrintInitialCompileResult = true; 
-    bool ShouldPrintProgramExecutionFinalResult = true;
 
     PurgeLog();                         // cleans log between each run
     CompileGrammar();                   // compile grammar from grammar.txt
@@ -99,16 +119,12 @@ int main(int argc, char* argv[])
     if(FatalCompileError || prog == nullptr)
         return 1;
 
+    PROGRAM = prog;
     LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
 
     if(ShouldPrintInitialCompileResult)
     {
-        EnterProgram(prog);
         LogDiagnostics(PROGRAM->Main, "initial program parse structure", "main");
-        for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-        {
-            LogDiagnostics(map, "initial object reference state", "main");
-        }
     }
 
     if(g_useBytecodeRuntime)
@@ -118,15 +134,12 @@ int main(int argc, char* argv[])
     }
 
     // run program
-    SetConsoleColor(ConsoleColor::LightBlue);
-    std::cout << "################################################################################\n";
-    SetConsoleColor(ConsoleColor::White);
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
     auto start = std::chrono::high_resolution_clock::now();
     
     if(g_useBytecodeRuntime)
     {
-        DoByteCodeProgram();
+        DoByteCodeProgram(prog);
     }   
     else
     {
@@ -135,20 +148,12 @@ int main(int argc, char* argv[])
     
     auto end = std::chrono::high_resolution_clock::now();
     LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
-    SetConsoleColor(ConsoleColor::LightBlue);
-    std::cout << "################################################################################\n";
-    SetConsoleColor(ConsoleColor::White);
 
     std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
-    std::cout << time_span.count() << std::endl;
-
-    if(ShouldPrintProgramExecutionFinalResult && !g_useBytecodeRuntime)
+    
+    if(LogAtLevel == LogSeverityType::Sev1_Notify)
     {
-        EnterProgram(prog);
-        for(ObjectReferenceMap& map: PROGRAM->ObjectsIndex)
-        {
-            LogDiagnostics(map, "final object reference state", "main");
-        }
+        std::cout << time_span.count() << std::endl;
     }
 
     /// clean up traditional
@@ -163,6 +168,10 @@ int main(int argc, char* argv[])
     
 
     LogItDebug("end reached.", "main");
+
+    String endStr;
+    std::cout << "Press (ENTER) to quit\n";
+    std::getline(std::cin, endStr);
     return 0;
 }
 

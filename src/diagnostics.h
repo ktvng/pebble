@@ -25,29 +25,17 @@ const std::map<LogSeverityType, String> LogSeverityTypeString =
 // Console
 
 /// console display color
-enum ConsoleColor
-{
-    None,
-    Blue,
-    DarkGreen,
-    LightBlue,
-    Red,
-    Purple,
-    Yellow,
-    White,
-    Grey,
-    DarkBlue,
-    Green,
-    Cyan,
-    DarkRed,
-    Purple2,
-    Yellow2,
-    StarkWhite
-};
+#define CONSOLE_RESET   "\033[0m"
+#define CONSOLE_BLACK   "\033[30m"
+#define CONSOLE_RED     "\033[31m"
+#define CONSOLE_GREEN   "\033[32m"
+#define CONSOLE_YELLOW  "\033[33m"
+#define CONSOLE_BLUE    "\033[34m"
+#define CONSOLE_MAGENTA "\033[35m"
+#define CONSOLE_CYAN    "\033[36m"
+#define CONSOLE_WHITE   "\033[37m"
 
-/// changes the color for std::cout
-void SetConsoleColor(ConsoleColor color);
-
+const char* ConsoleColorForMessage(SystemMessageType type);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // String formatting utilties
@@ -69,7 +57,6 @@ void RuntimeMsgPrint(int lineNumber);
 void CompileMsgPrint(int lineNumber);
 
 String SystemMessageTypeString(SystemMessageType type);
-void SetConsoleColorForMessage(SystemMessageType type);
 // ---------------------------------------------------------------------------------------------------------------------
 // General logging
 
@@ -86,7 +73,7 @@ String ToString(const Operation& op, int level=0);
 String ToString(const Operation* op, int level=0);
 String ToString(const Block* block, int level=0);
 String ToString(const Block& block, int level=0);
-
+String ToString(const Call* call);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Logging object dump
@@ -104,5 +91,6 @@ void LogDiagnostics(const TokenList* tokenList, String message="object dumpLogIt
 void LogDiagnostics(const Token* token, String message="object dumpLogItDebug", String method="unspecified");
 
 void LogDiagnostics(const Block* b, String message="object dumpLogItDebug", String method="unspecified");
+void LogDiagnostics(const Call* call, String message="object dumpLogItDebug", String method="unspecified");
 
 #endif

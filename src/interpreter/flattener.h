@@ -11,6 +11,10 @@ struct JumpContext
     bool HasUnresolvedJumpFalse;
 };
 
+
+
+extern int UniversalPrimitiveCount;
+
 void FlattenProgram(Program* p);
 void FlattenBlock(Block* block);
 void FlattenOperation(Operation* op);
@@ -18,7 +22,6 @@ void FlattenOperation(Operation* op);
 int NOPSafetyDomainSize();
 
 void FlattenOperationScopeResolution(Operation* op);
-void FlattenOperationScopeResolutionWithDereference(Operation* op);
-void FlattenOperationRefDirect(Operation* op, bool& isRef);
+void FlattenOperationRefDirect(Operation* op);
 
 #endif

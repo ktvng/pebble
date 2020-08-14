@@ -91,10 +91,15 @@ OperationType StringNameToOperationType(String Name)
         return OperationType::New;
     else if(Name=="ScopeResolution")
         return OperationType::ScopeResolution;
-    else if(Name=="Class")
-        return OperationType::Class;
     else if(Name=="Ref")
         return OperationType::Ref;
+
+
+    else if(Name=="DoTypeBinding")
+        return OperationType::DoTypeBinding;
+    else if(Name=="Array")
+        return OperationType::Array;
+
     else if(Name=="NoOperationType")
         return OperationType::NoOperationType;
     
@@ -128,7 +133,7 @@ int PrecedenceOf(String opSymbol)
         i++;
     }
     LogIt(Sev2_Important, "PrecedenceOf", Msg("unknown operation symbol %s", opSymbol));
-    return PrecedenceRules.size() - 1;
+    return PrecedenceOf(".");
 }
 
 int PrecedenceOf(Token* lookaheadToken)

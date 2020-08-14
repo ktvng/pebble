@@ -1,0 +1,16 @@
+X is an Integer
+X = 4
+
+Y is a String
+Y = "hello"
+
+Z is a Boolean
+Z = false
+
+W is a Decimal
+W = 1.45
+
+Hello(a String):
+    print the String
+
+Hello("hello")
