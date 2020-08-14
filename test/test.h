@@ -57,7 +57,7 @@ class NotResult
     bool Contains(std::string msg);
     bool EncounteredFatalException();
     bool EncounteredNonFatalException();
-    bool Expected();
+    bool AsExpected();
 };
 
 class ProgramResult
@@ -67,7 +67,7 @@ class ProgramResult
     bool Contains(std::string msg);
     bool EncounteredFatalException();
     bool EncounteredNonFatalException();
-    bool Expected();
+    bool AsExpected();
     std::string Output();
     NotResult Not;
 };
@@ -75,7 +75,15 @@ class ProgramResult
 
 
 extern ProgramResult Result;
+void Valgrind();
+void TestConstantsFidelity();
 
+inline void ResetAssert()
+{
+    assertName = "N/A";
+    failureDescription = "N/A";
+    expected = "N/A";
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test fundementals
@@ -91,10 +99,7 @@ inline void OtherwiseReport(const std::string& descriptionOfFailureCase)
     failureDescription = descriptionOfFailureCase;
 }
 
-inline std::string Diff()
-{
-    return "different between result and expected\ngot:\n" + ProgramOutput + "\nexpected:\n" + expected;
-}
+std::string Diff();
 
 inline void Expected(std::string& msg)
 {
@@ -107,33 +112,11 @@ inline void Expected(const char* msg)
 }
 
 /// assert that [b] is true. logs error if this is not the case
-inline void Assert(bool b)
-{
-    if(!b)
-    {
-        failedAsserts++;
-        testBuffer.append("(" + std::to_string(failedAsserts) + "): " + programName + "\n");
-        testBuffer.append(testName + "\n");
-        testBuffer.append("  failed assertion: (should) " + assertName + "\n");
-        testBuffer.append("    > " + IndentStringToLevel(failureDescription, 3) + "\n\n");
-        SetConsoleColor(ConsoleColor::Red);
-        std::cout << ".";
-        SetConsoleColor(ConsoleColor::White);
-    }
-    else
-    {
-        succeededAsserts++;
-        SetConsoleColor(ConsoleColor::Green);
-        std::cout << ".";
-        SetConsoleColor(ConsoleColor::White);
-    }
+void Assert(bool b);
 
-    assertName = "*unspecified*";
-    failureDescription = "*unspecified*";
-}
 
 /// name of test
-inline void It(const std::string& name)
+inline void ItTests(const std::string& name)
 {
     ResetRun();
     testName = name;
@@ -178,6 +161,8 @@ inline void Compile()
 /// execute the program
 inline void Execute()
 {
+    ResetAssert();
+
     if(!FatalCompileError)
     {
         if(g_useBytecodeRuntime)
@@ -191,6 +176,9 @@ inline void Execute()
             // DoProgram(programToRun);
             ProgramDestructor(programToRun);
         }
+
+        Valgrind();
+        TestConstantsFidelity();
     }
 }
 
@@ -207,7 +195,7 @@ inline void SetProgramToRun(const std::string& fileName)
     if(g_noisyReport)
     {        
         SetConsoleColor(ConsoleColor::Purple2);
-        std::cout << "\nstarting: " << fileName;
+        std::cout << "\n" << fileName << "\n  >> ";
         SetConsoleColor(ConsoleColor::White);
     }
 }
@@ -232,8 +220,6 @@ inline void CompileAndExecuteProgram(const std::string& programName)
 }
 
 void TestGenericMemoryLoss(String className);
-void IncludeStandardAssertSuite();
-void Valgrind();
 
 
 #endif

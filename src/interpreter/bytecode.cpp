@@ -39,7 +39,6 @@ inline Scope* InternalCopyScope(Scope* scopeToCopy)
         scope = CopyScope(scopeToCopy);
         AddRuntimeScope(scope);
     }
-    
 
     return scope;
 }
@@ -388,27 +387,9 @@ inline bool Loosely(const BindingType type, const Call* call)
     return call->BoundType == type;
 }
 
-inline bool Strictly(const BindingType type, const Call* call)
-{
-    return call->BoundType == type 
-        && call->BoundScope != &NothingScope;
-}
-
 inline bool IsNotNothing(const Call* call)
 {
     return call->BoundScope != &NothingScope;
-}
-
-/// true if [call] corresponds to the general definition of Nothing
-bool IsNothing(const Call* call)
-{
-    return call->BoundScope == &NothingScope;
-}
-
-/// true if [call] corresponds to the strict definition of Nothing
-bool IsPureNothing(const Call* call)
-{
-    return call->BoundType == &NothingType;
 }
 
 typedef bool (*TypeClassifier)(const BindingType, const Call*);
@@ -771,6 +752,7 @@ inline void InternalAssign(Call* lhs, const Call* rhs)
     {
         ReportFatalError(SystemMessageType::Exception, 7, 
             Msg("cannot reassign the global call %s", *lhs->Name));
+        return;
     }
 
     if(lhs->BoundType == &NothingType)
@@ -801,7 +783,7 @@ inline void InternalAssign(Call* lhs, const Call* rhs)
         else
         {
             ReportFatalError(SystemMessageType::Exception, 0,
-                Msg("cannot assign %s to %s", *lhs->BoundType, *rhs->BoundType));
+                Msg("cannot assign %s to %s", CallTypeToString(lhs), CallTypeToString(rhs)));
             return;
         }
     }
@@ -1306,6 +1288,7 @@ void BCI_Not(extArg_t arg)
     {
         ReportFatalError(SystemMessageType::Exception, 0, 
             Msg("cannot 'not' %s", CallTypeToString(call)));
+        return;
     }
 
     if(Strictly(&BooleanType, call))
@@ -1431,6 +1414,7 @@ void BCI_JumpFalse(extArg_t arg)
     {
         ReportFatalError(SystemMessageType::Exception, 0, 
             Msg("cannot conditionally jump on %s", CallTypeToString(call)));
+        return;
     }
 }
 

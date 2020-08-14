@@ -22,6 +22,7 @@ struct Type
 typedef const std::string* BindingType;
 
 
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Simple type names
 
@@ -80,6 +81,35 @@ void CallDestructor(Call* call);
 /// true if a [call] refers to a primitive type
 bool CallIsPrimitive(Call* call);
 
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Type system
+
+/// the scope of NothingCall which is also assigned to new Calls and calls 
+/// which have yet to be bound to a scope
+extern Scope NothingScope;
+
+/// the scope used for Primitives which have values
+extern Scope SomethingScope;
+
+inline bool Strictly(const BindingType type, const Call* call)
+{
+    return call->BoundType == type 
+        && call->BoundScope != &NothingScope;
+}
+
+/// true if [call] corresponds to the general definition of Nothing
+inline bool IsNothing(const Call* call)
+{
+    return call->BoundScope == &NothingScope;
+}
+
+/// true if [call] corresponds to the strict definition of Nothing
+inline bool IsPureNothing(const Call* call)
+{
+    return call->BoundType == &NothingType;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call binding actions

@@ -3,6 +3,10 @@
 #include "test.h"
 #include "unittests.h"
 
+#include "bytecode.h"
+#include "call.h"
+#include "vm.h"
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Global variables
 
@@ -11,10 +15,10 @@ std::map<MethodName, InjectedFunction> FunctionInjections;
 
 std::string testBuffer;
 
-std::string assertName = "*unspecified*";
-std::string failureDescription = "*unspecified*";
-std::string testName = "*unspecified*";
-std::string expected = "*unspecified";
+std::string assertName = "N/A";
+std::string failureDescription = "N/A";
+std::string testName = "N/A";
+std::string expected = "N/A";
 
 std::string programFile = "./program";
 std::string programName = "program";
@@ -53,7 +57,7 @@ bool ProgramResult::EncounteredNonFatalException()
     return ProgramOutput.find(NonFatalExceptionString) != std::string::npos;
 }
 
-bool ProgramResult::Expected()
+bool ProgramResult::AsExpected()
 {
     return ProgramOutput == expected;
 }
@@ -83,7 +87,7 @@ bool NotResult::EncounteredNonFatalException()
     return ProgramOutput.find(NonFatalExceptionString) == std::string::npos;
 }
 
-bool NotResult::Expected()
+bool NotResult::AsExpected()
 {
     return ProgramOutput != expected;
 }
@@ -104,6 +108,9 @@ void ResetRun()
     }
     
     FunctionInjections.clear();
+
+    ResetAssert();
+    testName = "N/A";
 }
 
 
@@ -118,20 +125,167 @@ void TestGenericMemoryLoss(String typeName)
     int destroyed = NumberOfCallsTo(typeName + "Destructor");
 
     OtherwiseReport(Msg("created (%i) != destroyed (%i)", created, destroyed));
-    Assert(created == destroyed);    
+    Assert(created == destroyed);
 }
 
-void TestNoProgramMessages()
+inline void ReportFailedAssert()
 {
-    Should("not throw system messages");
+    failedAsserts++;
+    SetConsoleColor(ConsoleColor::Red);
+    std::cout << ".";
+    SetConsoleColor(ConsoleColor::White);
+}
 
-    OtherwiseReport("reported messages:\n" + ProgramMsgs);
-    Assert(ProgramMsgs == "");
+inline void ReportSucceededAssert()
+{
+    succeededAsserts++;
+    SetConsoleColor(ConsoleColor::Green);
+    std::cout << ".";
+    SetConsoleColor(ConsoleColor::White);
+}
+
+int DigitsOfInt(int i)
+{
+    if(i < 0)
+    {
+        LogIt(LogSeverityType::Sev1_Notify, "DigitsOfInt", "not defined for negative integers");
+        return 2;
+    }
+
+    int digits = 1;
+    int base = 100;
+
+    while(i / base != 0)
+    {
+        base *= 10;
+        digits += 1;
+    }
+
+    return digits;
+}
+
+std::string SpacesOfLength(int n)
+{
+    std::string spaces;
+    spaces.reserve(n);
+    for(int i=0; i<n; i++)
+    {
+        spaces += " ";
+    }
+
+    return spaces;
+}
+
+std::string Repeat(char c, int n)
+{
+    std::string repeated;
+    repeated.reserve(n);
+    for(int i=0; i<n; i++)
+    {
+        repeated += c;
+    }
+
+    return repeated;
+}
+
+
+const String c_testrightEdge = "| ";
+
+std::string AddTestRightEdge(String str)
+{
+    String formattedStr = c_testrightEdge;
+    formattedStr.reserve(str.size());
+    for(size_t i=0; i<str.size(); i++)
+    {
+        formattedStr += str.at(i);
+        if(str.at(i) == '\n')
+            formattedStr += c_testrightEdge;
+    }
+    return formattedStr;
+}
+
+
+std::string Diff()
+{
+    std::string diff;
+    diff.reserve(64);
+    diff = "difference between result and expected";
+    diff += "\n\nexpected   " + IndentStringToLevel(AddTestRightEdge(expected), 5, 1);
+    diff += "\n\n     got   " + IndentStringToLevel(AddTestRightEdge(ProgramOutput), 5, 1);
+
+    return diff;
+}
+
+
+
+void Assert(bool b)
+{
+    if(!b)
+    {
+        if(failureDescription == "N/A")
+        {
+            failureDescription = "default to report " + Diff();
+        }
+
+        std::string padding = "    ";
+        padding += SpacesOfLength(DigitsOfInt(failedAsserts + 1));
+
+        testBuffer.append("  " + std::to_string(failedAsserts+1) + ") " + programName + "\n\n");
+        testBuffer.append(padding + "failed: it tests " + testName + "\n");
+        testBuffer.append(padding + "assert: should " + assertName + "\n");
+        testBuffer.append(padding + "report: " + IndentStringToLevel(failureDescription, 3) + "\n\n");
+
+        ReportFailedAssert();
+    }
+    else
+    {
+        ReportSucceededAssert();
+    }
+
+    ResetAssert();
+}
+
+
+void TestConstantsFidelity()
+{
+    Should("not modify IntegerCall");
+    OtherwiseReport("IntegerCall modified at some point during test");
+    Assert(IntegerCall.BoundScope == &SomethingScope
+        && Strictly(&AbstractIntegerType, &IntegerCall));
+    
+    Should("not modify DecimalCall");
+    OtherwiseReport("DecimalCall modified at some point during test");
+    Assert(DecimalCall.BoundScope == &SomethingScope
+        && Strictly(&AbstractDecimalType, &DecimalCall));
+
+    Should("not modify StringCall");
+    OtherwiseReport("StringCall modified at some point during test");
+    Assert(StringCall.BoundScope == &SomethingScope
+        && Strictly(&AbstractStringType, &StringCall));
+
+    Should("not modify BooleanCall");
+    OtherwiseReport("BooleanCall modified at some point during test");
+    Assert(BooleanCall.BoundScope == &SomethingScope
+        && Strictly(&AbstractBooleanType, &BooleanCall));
+
+    Should("not modify ObjectCall");
+    OtherwiseReport("ObjectCall modified at some point during test");
+    Assert(ObjectCall.BoundScope == &SomethingScope
+        && Strictly(&AbstractObjectType, &ObjectCall));
+
+    Should("not modify ArrayCall");
+    OtherwiseReport("ArrayCall modified at some point during test");
+    Assert(ArrayCall.BoundScope == &SomethingScope
+        && Strictly(&AbstractArrayType, &ArrayCall));
+
+    Should("not modify NothingCall");
+    OtherwiseReport("NothingCall modified at some point during test");
+    Assert(IsNothing(&NothingCall) && IsPureNothing(&NothingCall));
 }
 
 void Valgrind()
 {
-    std::vector<String> objectsToTest = 
+    static std::vector<String> objectsToTest = 
     {
         "Object",
         "Reference",
@@ -153,16 +307,6 @@ void Valgrind()
     }
 }
 
-/// tests standard things
-void IncludeStandardAssertSuite()
-{
-    Valgrind();
-    TestNoProgramMessages();
-}
-
-
-
-
 
 
 
@@ -174,7 +318,8 @@ void DoAllTests()
 {
     for(auto test: Tests)
     {
-        testName = "*unspecified*";
+        testName = "N/A";
+        ResetAssert();
         test();
     }
 }
@@ -182,16 +327,17 @@ void DoAllTests()
 bool Test()
 {
     std::cout.precision(2);
-
-    testBuffer.reserve(2048);
+    std::string sectionDivider = Repeat('#', 60) + "\n";
+    testBuffer.reserve(4096);
     SetConsoleColor(ConsoleColor::Yellow);
-    std::cout << "starting...\n";
+    std::cout << sectionDivider << sectionDivider;
+    std::cout << "STARTING...\n";
     SetConsoleColor(ConsoleColor::White);
 
     DoAllTests();
 
     SetConsoleColor(ConsoleColor::Yellow);
-    std::cout << "\nfinished " << (succeededAsserts + failedAsserts) << " tests at " 
+    std::cout << "\n\nfinished " << (succeededAsserts + failedAsserts) << " tests at " 
         << std::fixed << (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) 
         << " %" << std::endl;
 
@@ -204,7 +350,7 @@ bool Test()
     if(failedAsserts)
     {
         SetConsoleColor(ConsoleColor::Yellow);
-        std::cout << "failure report: \n";
+        std::cout << "failure report: \n\n";
         SetConsoleColor(ConsoleColor::Red);
         std::cout << testBuffer;
     }

@@ -35,6 +35,7 @@ void SetConsoleColor(ConsoleColor color)
     hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(hConsole, color);
 #else
+    
     LogIt(LogSeverityType::Sev1_Notify, "SetConsoleColor", "console color is not supported on linux");
 #endif
 }

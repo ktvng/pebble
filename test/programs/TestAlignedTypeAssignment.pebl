@@ -9,3 +9,8 @@ Z = false
 
 W is a Decimal
 W = 1.45
+
+Hello(a String):
+    print the String
+
+Hello("hello there")

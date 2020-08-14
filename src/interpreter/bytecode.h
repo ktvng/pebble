@@ -12,12 +12,12 @@ constexpr uint8_t BitFlag = 0x1;
 /// number of bytecode instructions 
 constexpr int BCI_NumberOfInstructions = 35;
 
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode instructions methods
 
 /// function type of a bytecode instruction
 typedef void (*BCI_Method)(extArg_t);
-
 
 void BCI_LoadCallName(extArg_t arg);
 void BCI_LoadPrimitive(extArg_t arg);
@@ -61,6 +61,7 @@ void BCI_EndLine(extArg_t arg);
 void BCI_DropTOS(extArg_t arg);
 void BCI_Is(extArg_t arg);
 
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Bytecode instructions
 
@@ -85,5 +86,6 @@ bool IsNothing(const Call* call);
 
 /// returns the String representation of a Call's type
 String CallTypeToString(const Call* call);
+
 
 #endif
