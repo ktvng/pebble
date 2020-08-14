@@ -24,6 +24,18 @@
 #include "call.h"
 #include "bytecode.h"
 
+#ifdef _WIN32
+#include <windows.h>
+
+const char* WIN32_CONSOLE_COLOR(int color)
+{
+    HANDLE hConsole;
+    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, color);
+
+    return "";
+}
+#endif
 
 // indent formatting
 const String c_indentString = "  ";
