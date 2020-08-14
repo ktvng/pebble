@@ -20,6 +20,8 @@
 
 #include "dfa.h"
 
+bool g_standalone = false;
+
 bool Usage(std::vector<SettingOption> options)
 {
     // If this was derived at build time, that would be fantastic
@@ -113,18 +115,21 @@ int main(int argc, char* argv[])
 
 
     // compile program
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile begins");
+    LogIt(LogSeverityType::Sev1_Notify, "main", "compile begins");
 
     auto prog = ParseProgram(Config.at(0).Flag);
     if(FatalCompileError || prog == nullptr)
+    {
+        LogIt(LogSeverityType::Sev2_Important, "main", "compile fails");
         return 1;
+    }
 
     PROGRAM = prog;
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program compile finished");
+    LogIt(LogSeverityType::Sev1_Notify, "main", "compile finished");
 
     if(ShouldPrintInitialCompileResult)
     {
-        LogDiagnostics(PROGRAM->Main, "initial program parse structure", "main");
+        LogDiagnostics(PROGRAM->Main, "initial parse structure", "main");
     }
 
     if(g_useBytecodeRuntime)
@@ -134,9 +139,7 @@ int main(int argc, char* argv[])
     }
 
     // run program
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution begins");
-    auto start = std::chrono::high_resolution_clock::now();
-    
+    LogIt(LogSeverityType::Sev1_Notify, "main", "execution begins");
     if(g_useBytecodeRuntime)
     {
         DoByteCodeProgram(prog);
@@ -146,32 +149,18 @@ int main(int argc, char* argv[])
         DoProgram(prog);
     }
     
-    auto end = std::chrono::high_resolution_clock::now();
-    LogIt(LogSeverityType::Sev1_Notify, "main", "program execution finished");
+    LogIt(LogSeverityType::Sev1_Notify, "main", "execution finished");
 
-    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
-    
-    if(LogAtLevel == LogSeverityType::Sev1_Notify)
+    LogIt(LogSeverityType::Sev1_Notify, "main", "cleanup");
+    ProgramDestructor(PROGRAM);
+
+    LogItDebug("method end reached", "main");
+    if(g_standalone)
     {
-        std::cout << time_span.count() << std::endl;
+        String endStr;
+        std::cout << "Press (ENTER) to quit\n";
+        std::getline(std::cin, endStr);
     }
 
-    /// clean up traditional
-    if(!g_useBytecodeRuntime)
-    {
-        ProgramDestructor(PROGRAM);
-    }
-    else
-    {
-        ProgramDestructor(PROGRAM);
-    }
-    
-
-    LogItDebug("end reached.", "main");
-
-    String endStr;
-    std::cout << "Press (ENTER) to quit\n";
-    std::getline(std::cin, endStr);
     return 0;
 }
-

@@ -17,9 +17,22 @@
 
 bool Usage(std::vector<SettingOption> options)
 {
-    std::cerr << "Usage pebble: [--help] [--custom] [--noisy] [--ast] [program.pebl]" << std::endl;
+    std::cerr << "Usage pebble: [--help] [--custom] [--only] [--noisy] [--ast] [program.pebl]" << std::endl;
 
     exit(2);
+}
+
+bool SettingOnlyRunOneProgram(std::vector<SettingOption> options)
+{
+    if(options.empty())
+    {
+        return true;
+    }
+
+    g_onlyRunOneProgram = true;
+    g_onlyProgramToRun = options[0];
+
+    return true;
 }
 
 bool SettingRunCustom(std::vector<SettingOption> options)
@@ -53,13 +66,13 @@ ProgramConfiguration Config
     },
     {
         "Use bytecode runtime", "--ast", SettingUseAstRuntime
+    },
+    {
+        "Run only one program", "--only", SettingOnlyRunOneProgram
     }
 };
 
-// Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 bool g_outputOn = false;
-bool g_useBytecodeRuntime = true;
 
 int main(int argc, char *argv[])
 {

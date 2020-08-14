@@ -1,4 +1,5 @@
 #include <sstream>
+#include <chrono>
 
 #include "test.h"
 #include "consolecolor.h"
@@ -21,23 +22,20 @@ std::map<MethodName, InjectedFunction> FunctionInjections;
 
 std::string testBuffer;
 
-std::string assertName = "N/A";
-std::string failureDescription = "N/A";
-std::string testName = "N/A";
-std::string expected = "N/A";
-
-std::string programFile = "./program";
-std::string programName = "program";
-
-Program* programToRun = nullptr;
+static double timespan;
 
 int failedAsserts = 0;
 int succeededAsserts = 0;
 
-int programReturnCode = 0;
-
 bool g_shouldRunCustomProgram = false;
 bool g_noisyReport = false;
+bool g_onlyRunOneProgram = false;
+bool g_useBytecodeRuntime = true;
+
+std::string g_onlyProgramToRun;
+
+LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
+
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Program output wrapper
@@ -47,62 +45,62 @@ const std::string NonFatalExceptionString = "Exception";
 
 bool ProgramResult::Equals(std::string msg)
 {
-    return ProgramOutput == msg;
+    return test.ProgramOutput == msg;
 }
 
 bool ProgramResult::Contains(std::string msg)
 {
-    expected = msg;
-    return ProgramOutput.find(msg) != std::string::npos;
+    test.ExpectedClause = msg;
+    return test.ProgramOutput.find(msg) != std::string::npos;
 }
 
 bool ProgramResult::EncounteredFatalException()
 {
-    return ProgramOutput.find(FatalExceptionString) != std::string::npos;
+    return test.ProgramOutput.find(FatalExceptionString) != std::string::npos;
 }
 
 bool ProgramResult::EncounteredNonFatalException()
 {
-    return ProgramOutput.find(NonFatalExceptionString) != std::string::npos
-        && ProgramOutput.find(FatalExceptionString) == std::string::npos;
+    return test.ProgramOutput.find(NonFatalExceptionString) != std::string::npos
+        && test.ProgramOutput.find(FatalExceptionString) == std::string::npos;
 }
 
 bool ProgramResult::AsExpected()
 {
-    return ProgramOutput == expected;
+    return test.ProgramOutput == test.ExpectedClause;
 }
 
 std::string ProgramResult::Output()
 {
-    return ProgramOutput;
+    return test.ProgramOutput;
 }
 
 bool NotResult::Equals(std::string msg)
 {
-    expected = msg;
-    return ProgramOutput != msg;
+    test.ExpectedClause = msg;
+    return test.ProgramOutput != msg;
 }
 
 bool NotResult::Contains(std::string msg)
 {
-    expected = msg;
-    return ProgramOutput.find(msg) == std::string::npos;
+    test.ExpectedClause = msg;
+    return test.ProgramOutput.find(msg) == std::string::npos;
 }
 
 bool NotResult::EncounteredFatalException()
 {
-    return ProgramOutput.find(FatalExceptionString) == std::string::npos;
+    return test.ProgramOutput.find(FatalExceptionString) == std::string::npos;
 }
 
 bool NotResult::EncounteredNonFatalException()
 {
-    return ProgramOutput.find(NonFatalExceptionString) == std::string::npos
-        && ProgramOutput.find(FatalExceptionString) != std::string::npos;
+    return test.ProgramOutput.find(NonFatalExceptionString) == std::string::npos
+        && test.ProgramOutput.find(FatalExceptionString) != std::string::npos;
 }
 
 bool NotResult::AsExpected()
 {
-    return ProgramOutput != expected;
+    return test.ProgramOutput != test.ExpectedClause;
 }
 
 
@@ -112,7 +110,12 @@ ProgramResult Result;
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers
 
-void ResetRun()
+bool ShouldRunProgram()
+{
+    return (g_onlyRunOneProgram && test.ProgramName == g_onlyProgramToRun);
+}
+
+void ClearRunMetrics()
 {
     std::map<std::string, int>::iterator it;
     for(it=methodHitMap.begin(); it!=methodHitMap.end(); it++)
@@ -121,9 +124,6 @@ void ResetRun()
     }
     
     FunctionInjections.clear();
-
-    ResetAssert();
-    testName = "N/A";
 }
 
 void ConfigureLogging(LogSeverityType level, bool clearBefore)
@@ -136,31 +136,56 @@ void ConfigureLogging(LogSeverityType level, bool clearBefore)
 
 void Compile()
 {
+    if(!ShouldRunProgram())
+    {
+        return;
+    }
+
+    ClearRunMetrics();
+
     ProgramOutput = "";
     ProgramMsgs = "";
-    FatalCompileError = false;
     CompileGrammar();
-    programToRun = ParseProgram(programFile);
+    test.ProgramToRun = ParseProgram(test.ProgramFile);
+    test.HasBeenCompiled = true;
+    test.EncounteredCompiletimeError = FatalCompileError;
 }
 
 void Execute()
 {
-    ResetAssert();
-    programReturnCode = 0;
+    ClearAssert();
+
+    if(!ShouldRunProgram())
+    {
+        return;
+    }
+
+    if(test.ProgramToRun == nullptr)
+    {
+        LogIt(LogSeverityType::Sev3_Critical, "Execute", 
+            "no program is able to be run. make sure to compile beforehand.");
+        return;
+    }
+
+    test.ProgramReturnCode = 0;
     
-    if(!FatalCompileError)
+    if(!test.EncounteredCompiletimeError)
     {
         if(g_useBytecodeRuntime)
         {
-            FlattenProgram(programToRun);
-            programReturnCode = DoByteCodeProgram(programToRun);
-            ProgramDestructor(programToRun);
+            FlattenProgram(test.ProgramToRun);
+            test.ProgramReturnCode = DoByteCodeProgram(test.ProgramToRun);
+            test.ProgramOutput = ProgramOutput;
+            ProgramDestructor(test.ProgramToRun);
         }
         else
         {
+            LogIt(LogSeverityType::Sev3_Critical, "Execute", "ast runtime not available");
             // DoProgram(programToRun);
-            ProgramDestructor(programToRun);
         }
+
+        test.HasBeenRun = true;
+        test.EncounteredRuntimeError = test.ProgramReturnCode;
 
         Valgrind();
         TestConstantsFidelity();
@@ -256,37 +281,88 @@ std::string AddTestRightEdge(String str)
     return formattedStr;
 }
 
-
 std::string Diff()
 {
     std::string diff;
-    diff.reserve(64);
+    diff.reserve(256);
     diff = "difference between result and expected";
-    diff += "\n\nexpected   " + IndentStringToLevel(AddTestRightEdge(expected), 5, 1);
-    diff += "\n\n     got   " + IndentStringToLevel(AddTestRightEdge(ProgramOutput), 5, 1);
+    diff += "\n\nexpected   " + IndentStringToLevel(AddTestRightEdge(test.ExpectedClause), 5, 1);
+    diff += "\n\n     got   " + IndentStringToLevel(AddTestRightEdge(test.ProgramOutput), 5, 1);
 
     return diff;
 }
 
+inline void AddHeader()
+{
+    testBuffer.append("  " + std::to_string(failedAsserts+1) + ") " + test.ProgramName + "\n\n");
+}
 
+inline void AddTestNameField(std::string& padding)
+{
+    std::string testName;
+    if(test.TestName.empty())
+    {
+        testName = "failed: N/A";
+    }
+    else
+    {
+        testName = "failed: it tests " + test.TestName;
+    }
+    testBuffer.append(padding + testName + "\n");
+}
+
+inline void AddShouldField(std::string& padding)
+{
+    std::string shouldClause;
+    if(test.ShouldClause.empty())
+    {
+        shouldClause = "assert: N/A";
+    }
+    else
+    {
+        shouldClause = "assert: should " + test.ShouldClause;
+    }
+
+    testBuffer.append(padding + shouldClause + "\n");
+}
+
+inline void AddExpectedField(std::string& padding)
+{
+    std::string otherwiseReport;
+    if(test.OtherwiseReport.empty())
+    {
+        otherwiseReport = "default is " + Diff();
+    }
+    else
+    {
+        otherwiseReport = test.OtherwiseReport;
+    }
+
+    testBuffer.append(padding + "report: " + IndentStringToLevel(otherwiseReport, 3) + "\n\n");
+}
+
+void AddFailedTestToBuffer()
+{
+    std::string padding = "    ";
+    padding += SpacesOfLength(DigitsOfInt(failedAsserts + 1));
+
+    AddHeader();
+    AddTestNameField(padding);
+    AddShouldField(padding);
+    AddExpectedField(padding);
+
+}
 
 void Assert(bool b)
 {
+    if(!ShouldRunProgram())
+    {
+        return;
+    }
+
     if(!b)
     {
-        if(failureDescription == "N/A")
-        {
-            failureDescription = "default is " + Diff();
-        }
-
-        std::string padding = "    ";
-        padding += SpacesOfLength(DigitsOfInt(failedAsserts + 1));
-
-        testBuffer.append("  " + std::to_string(failedAsserts+1) + ") " + programName + "\n\n");
-        testBuffer.append(padding + "failed: it tests " + testName + "\n");
-        testBuffer.append(padding + "assert: should " + assertName + "\n");
-        testBuffer.append(padding + "report: " + IndentStringToLevel(failureDescription, 3) + "\n\n");
-
+        AddFailedTestToBuffer();
         ReportFailedAssert();
     }
     else
@@ -294,7 +370,7 @@ void Assert(bool b)
         ReportSucceededAssert();
     }
 
-    ResetAssert();
+    ClearAssert();
 }
 
 
@@ -334,7 +410,7 @@ void TestConstantsFidelity()
     OtherwiseReport("NothingCall modified at some point during test");
     Assert(IsNothing(&NothingCall) && IsPureNothing(&NothingCall));
 
-    if(programReturnCode == 0)
+    if(test.ProgramReturnCode == 0)
     {
         Should("leave memory stack containing only global Caller/Self calls");
         OtherwiseReport(Msg("vm memory stack size is %i (expected 2)",
@@ -374,14 +450,47 @@ void Valgrind()
 // ---------------------------------------------------------------------------------------------------------------------
 // Test execution
 
+UnitTest test;
+
+void ClearAssert()
+{
+    test.AssertName.clear();
+    test.AssertType.clear();
+    test.OtherwiseReport.clear();
+    test.ExpectedClause.clear();
+    test.ShouldClause.clear();
+
+}
+
+void ClearRun()
+{
+    test.ProgramFile.clear();
+    test.ProgramName.clear();
+    test.ProgramOutput.clear();
+    test.ProgramReturnCode = 0;
+    test.ProgramToRun = nullptr;
+
+}
+
+void ClearTest()
+{
+    test.TestName.clear();
+    ClearRun();
+    ClearAssert();
+}
+
 void DoAllTests()
 {
+    auto start = std::chrono::high_resolution_clock::now();
     for(auto test: Tests)
     {
-        testName = "N/A";
-        ResetAssert();
+        ClearTest();
         test();
     }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> time_span = std::chrono::duration_cast<std::chrono::duration<double>>(end - start);
+    timespan = time_span.count();
 }
 
 char FirstNonSpaceChar(std::string& str)
@@ -423,16 +532,18 @@ void DisplayTestBuffer()
 
 bool Test()
 {
-    std::cout.precision(2);
-    std::string sectionDivider = Repeat('#', 60) + "\n";
     testBuffer.reserve(4096);
     std::cout << CONSOLE_YELLOW << "starting...\n" << CONSOLE_RESET;
 
     DoAllTests();
 
+    std::cout.precision(2);
     std::cout << CONSOLE_YELLOW << "\n\nfinished " << (succeededAsserts + failedAsserts) << " tests at " 
         << std::fixed << (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) 
-        << " %" << std::endl;
+        << " %";
+
+    std::cout.precision(4);
+    std::cout << CONSOLE_YELLOW << "  in " << timespan << " secs\n";
 
     std::cout << CONSOLE_GREEN << "  >> passed: " << succeededAsserts << std::endl;
     std::cout << CONSOLE_RED << "  >> failed: " << failedAsserts << std::endl << std::endl;
