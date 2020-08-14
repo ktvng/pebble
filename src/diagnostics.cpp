@@ -10,9 +10,10 @@
 #include <algorithm>
 
 
-#include "main.h"
 #include "diagnostics.h"
+#include "consolecolor.h"
 
+#include "main.h"
 #include "token.h"
 #include "object.h"
 #include "program.h"
@@ -26,16 +27,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
-
-const char* WIN32_CONSOLE_COLOR(int color)
-{
-    HANDLE hConsole;
-    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, color);
-
-    return "";
-}
 #endif
+
 
 // indent formatting
 const String c_indentString = "  ";

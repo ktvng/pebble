@@ -1,11 +1,17 @@
 #include <sstream>
 
 #include "test.h"
+#include "consolecolor.h"
 #include "unittests.h"
 
+#include "program.h"
+#include "diagnostics.h"
 #include "bytecode.h"
 #include "call.h"
 #include "vm.h"
+#include "grammar.h"
+#include "parse.h"
+#include "flattener.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Global variables
@@ -28,14 +34,16 @@ Program* programToRun = nullptr;
 int failedAsserts = 0;
 int succeededAsserts = 0;
 
-bool g_shouldRunCustomProgram = true;
+int programReturnCode = 0;
+
+bool g_shouldRunCustomProgram = false;
 bool g_noisyReport = false;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Program output wrapper
 
-const std::string FatalExceptionString = "(!) Fatal Exception";
-const std::string NonFatalExceptionString = "(!) Exception";
+const std::string FatalExceptionString = "Fatal Exception";
+const std::string NonFatalExceptionString = "Exception";
 
 bool ProgramResult::Equals(std::string msg)
 {
@@ -44,6 +52,7 @@ bool ProgramResult::Equals(std::string msg)
 
 bool ProgramResult::Contains(std::string msg)
 {
+    expected = msg;
     return ProgramOutput.find(msg) != std::string::npos;
 }
 
@@ -54,7 +63,8 @@ bool ProgramResult::EncounteredFatalException()
 
 bool ProgramResult::EncounteredNonFatalException()
 {
-    return ProgramOutput.find(NonFatalExceptionString) != std::string::npos;
+    return ProgramOutput.find(NonFatalExceptionString) != std::string::npos
+        && ProgramOutput.find(FatalExceptionString) == std::string::npos;
 }
 
 bool ProgramResult::AsExpected()
@@ -69,11 +79,13 @@ std::string ProgramResult::Output()
 
 bool NotResult::Equals(std::string msg)
 {
+    expected = msg;
     return ProgramOutput != msg;
 }
 
 bool NotResult::Contains(std::string msg)
 {
+    expected = msg;
     return ProgramOutput.find(msg) == std::string::npos;
 }
 
@@ -84,7 +96,8 @@ bool NotResult::EncounteredFatalException()
 
 bool NotResult::EncounteredNonFatalException()
 {
-    return ProgramOutput.find(NonFatalExceptionString) == std::string::npos;
+    return ProgramOutput.find(NonFatalExceptionString) == std::string::npos
+        && ProgramOutput.find(FatalExceptionString) != std::string::npos;
 }
 
 bool NotResult::AsExpected()
@@ -112,6 +125,49 @@ void ResetRun()
     ResetAssert();
     testName = "N/A";
 }
+
+void ConfigureLogging(LogSeverityType level, bool clearBefore)
+{
+    if(clearBefore)
+        PurgeLog();
+
+    LogAtLevel = level;
+}
+
+void Compile()
+{
+    ProgramOutput = "";
+    ProgramMsgs = "";
+    FatalCompileError = false;
+    CompileGrammar();
+    programToRun = ParseProgram(programFile);
+}
+
+void Execute()
+{
+    ResetAssert();
+    programReturnCode = 0;
+    
+    if(!FatalCompileError)
+    {
+        if(g_useBytecodeRuntime)
+        {
+            FlattenProgram(programToRun);
+            programReturnCode = DoByteCodeProgram(programToRun);
+            ProgramDestructor(programToRun);
+        }
+        else
+        {
+            // DoProgram(programToRun);
+            ProgramDestructor(programToRun);
+        }
+
+        Valgrind();
+        TestConstantsFidelity();
+    }
+}
+
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -277,6 +333,14 @@ void TestConstantsFidelity()
     Should("not modify NothingCall");
     OtherwiseReport("NothingCall modified at some point during test");
     Assert(IsNothing(&NothingCall) && IsPureNothing(&NothingCall));
+
+    if(programReturnCode == 0)
+    {
+        Should("leave memory stack containing only global Caller/Self calls");
+        OtherwiseReport(Msg("vm memory stack size is %i (expected 2)",
+            MemoryStack.size()));
+        Assert(MemoryStack.size() == 2);
+    }
 }
 
 void Valgrind()

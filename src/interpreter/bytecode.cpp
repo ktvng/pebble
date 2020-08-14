@@ -988,6 +988,11 @@ inline void InternalEval(Call* methodCall, Call* caller, Call** paramsList, extA
         return;
     }
 
+    if(methodCall->BoundScope == &NothingScope)
+    {
+        BindScope(methodCall, InternalScopeConstructor(nullptr));
+    }
+
     extArg_t jumpIns = methodCall->BoundSection;
 
     /// TODO: figure out caller id

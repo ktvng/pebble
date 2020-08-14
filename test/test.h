@@ -7,13 +7,7 @@
 #include <iostream>
 
 #include "abstract.h"
-#include "diagnostics.h"
-#include "program.h"
-#include "parse.h"
-#include "flattener.h"
-#include "vm.h"
-#include "dis.h"
-#include "grammar.h"
+#include "consolecolor.h"
 
 extern std::string testBuffer;
 
@@ -27,6 +21,8 @@ extern std::string programName;
 
 extern int failedAsserts;
 extern int succeededAsserts;
+
+extern int programReturnCode;
 
 
 typedef std::vector<const void*> Params;
@@ -71,7 +67,6 @@ class ProgramResult
     std::string Output();
     NotResult Not;
 };
-
 
 
 extern ProgramResult Result;
@@ -122,26 +117,13 @@ inline void ItTests(const std::string& name)
     testName = name;
 }
 
-
-
-
-
-
-
-
 inline void InjectBefore(MethodName name, InjectedFunction func)
 {
     FunctionInjections[name] = func;
 }
 
 /// configure the logging properties for speed and optimization
-inline void ConfigureLogging(LogSeverityType level, bool clearBefore)
-{
-    if(clearBefore)
-        PurgeLog();
-
-    LogAtLevel = level;
-}
+void ConfigureLogging(LogSeverityType level, bool clearBefore);
 
 inline void DisableLogging()
 {
@@ -149,38 +131,10 @@ inline void DisableLogging()
 }
 
 /// compiles the program
-inline void Compile()
-{
-    ProgramOutput = "";
-    ProgramMsgs = "";
-    FatalCompileError = false;
-    CompileGrammar();
-    programToRun = ParseProgram(programFile);
-}
+void Compile();
 
 /// execute the program
-inline void Execute()
-{
-    ResetAssert();
-
-    if(!FatalCompileError)
-    {
-        if(g_useBytecodeRuntime)
-        {
-            FlattenProgram(programToRun);
-            DoByteCodeProgram(programToRun);
-            ProgramDestructor(programToRun);
-        }
-        else
-        {
-            // DoProgram(programToRun);
-            ProgramDestructor(programToRun);
-        }
-
-        Valgrind();
-        TestConstantsFidelity();
-    }
-}
+void Execute();
 
 /// returns the number of calls to [methodName]
 inline int NumberOfCallsTo(const std::string& methodName)
@@ -194,7 +148,7 @@ inline void SetProgramToRun(const std::string& fileName)
     programFile = "./test/programs/" + fileName + ".pebl";
     if(g_noisyReport)
     {        
-        std::cout << CONSOLE_MAGENTA << "\n" << fileName << "\n  >> " << CONSOLE_RESET;
+        std::cout << CONSOLE_CYAN << "\n\n  - " << fileName << "\n      > " << CONSOLE_RESET;
     }
 }
 
@@ -203,7 +157,7 @@ inline void RunCustomProgram()
     programFile = "./program.pebl";
     if(g_noisyReport)
     {        
-        std::cout << CONSOLE_MAGENTA << "\nstarting: CustomProgram" << CONSOLE_RESET;
+        std::cout << CONSOLE_CYAN << " - CustomProgram\n      > " << CONSOLE_RESET;
     }
 }
 
@@ -216,6 +170,5 @@ inline void CompileAndExecuteProgram(const std::string& programName)
 }
 
 void TestGenericMemoryLoss(String className);
-
 
 #endif

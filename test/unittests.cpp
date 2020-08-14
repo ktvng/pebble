@@ -347,10 +347,44 @@ void TestMetaFailure()
     }
 
     ItTests("is will ever succeed");
-    CompileAndExecuteProgram("TestMetaFailure");
-    Should("run with custom program and always fail");
-    Expected("this test is expected to fail\nand serve as an example of\na failing test");
-    Assert(false);
+        CompileAndExecuteProgram("TestMetaFailure");
+        Should("run with custom program and always fail");
+        Expected("this test is expected to fail\nand serve as an example of\na failing test");
+        Assert(false);
+}
+
+void TestFeature_Nothing()
+{
+    ItTests("a sample program using Nothing chaining");
+
+    CompileAndExecuteProgram("TestFeature_Nothing");
+        Should("allow nothing to be passed without error");
+        Expected("Publisher: Cato\n<Nothing>\n");
+        Assert(Result.AsExpected());
+}
+
+void TestFeature_TypedContainer()
+{
+    ItTests("the type system allows for typed linked lists");
+
+    CompileAndExecuteProgram("TestFeature_TypedContainer");
+        Should("allow adding strings to the container");
+        Assert(Result.Contains("Alice\nBob\nCharles\nDaniel\n"));
+
+        Should("prevent addition of non-strings to the container");
+        Assert(Result.EncounteredFatalException());
+}
+
+void TestFeature_TypedMethodParams()
+{
+    ItTests("method parameters can be type specified");
+
+    CompileAndExecuteProgram("TestFeature_TypedMethodParams");
+        Should("allow methods to be given typed parameters");
+        Assert(Result.Contains("My Tale: Truest of Knights\n<Nothing>\n<Nothing>\n"));
+
+        Should("not allow incorrectly typed parameters to be passed in");
+        Assert(Result.EncounteredFatalException());
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -386,4 +420,9 @@ std::vector<TestFunction> Tests =
 
     // Meta tests
     TestMetaFailure,
+
+    // Feature tests
+    TestFeature_Nothing,
+    TestFeature_TypedContainer,
+    TestFeature_TypedMethodParams,
 };
