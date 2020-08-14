@@ -34,11 +34,10 @@ void IfNeededDisplayError(Program* p)
         int lineNumber = GetLineNumberFromInstructionNumber(InstructionReg, p);        
         String fatalStatus = (ErrorType == SystemMessageType::Exception ? "Fatal" : "");        
         auto stringMsg = Msg("(!) %s %s at line[%i]: %s\n     >>   %s\n", fatalStatus, SystemMessageTypeString(ErrorType), lineNumber, ErrorClasses[ErrorCode].ErrorMsg, ErrorMsg);
-        SetConsoleColorForMessage(ErrorType);
+
         ProgramOutput += stringMsg;
         if(g_outputOn)
-            std::cerr << stringMsg;
-        SetConsoleColor(ConsoleColor::White);
+            std::cerr << ConsoleColorForMessage(ErrorType) << stringMsg << CONSOLE_RESET;
         ProgramMsgs.append(stringMsg);
     }
 }

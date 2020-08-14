@@ -25,21 +25,6 @@
 #include "bytecode.h"
 
 
-#ifdef _WIN32 
-#include <windows.h>
-#endif
-void SetConsoleColor(ConsoleColor color)
-{
-#ifdef _WIN32
-    HANDLE hConsole;
-    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    SetConsoleTextAttribute(hConsole, color);
-#else
-    
-    LogIt(LogSeverityType::Sev1_Notify, "SetConsoleColor", "console color is not supported on linux");
-#endif
-}
-
 // indent formatting
 const String c_indentString = "  ";
 
@@ -163,21 +148,18 @@ String SystemMessageTypeString(SystemMessageType type)
     }
 }
 
-void SetConsoleColorForMessage(SystemMessageType type)
+const char* ConsoleColorForMessage(SystemMessageType type)
 {
     switch(type)
     {
         case SystemMessageType::Exception:
-        SetConsoleColor(ConsoleColor::Red);
-        return;
+        return CONSOLE_RED;
 
         case SystemMessageType::Warning:
-        SetConsoleColor(ConsoleColor::Yellow2);
-        return;
+        return CONSOLE_YELLOW;
 
         case SystemMessageType::Advice:
-        SetConsoleColor(ConsoleColor::Cyan);
-        return;
+        return CONSOLE_CYAN;
     }
 }
 
@@ -192,10 +174,8 @@ void ReportMsgInternal(std::vector<SystemMessage>& msgBuffer, int lineNumber)
     for(SystemMessage msg: msgBuffer)
     {
         auto stringMsg = Msg("(!) %s %s at line[%i]: ", fatalStatus, SystemMessageTypeString(msg.Type), lineNumber) + msg.Content + "\n";
-        SetConsoleColorForMessage(msg.Type);
         if(g_outputOn)
-            std::cerr << stringMsg;
-        SetConsoleColor(ConsoleColor::White);
+            std::cerr << ConsoleColorForMessage(msg.Type) << stringMsg << CONSOLE_RESET;
         ProgramMsgs.append(stringMsg);
         
     }

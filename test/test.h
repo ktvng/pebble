@@ -194,9 +194,7 @@ inline void SetProgramToRun(const std::string& fileName)
     programFile = "./test/programs/" + fileName + ".pebl";
     if(g_noisyReport)
     {        
-        SetConsoleColor(ConsoleColor::Purple2);
-        std::cout << "\n" << fileName << "\n  >> ";
-        SetConsoleColor(ConsoleColor::White);
+        std::cout << CONSOLE_MAGENTA << "\n" << fileName << "\n  >> " << CONSOLE_RESET;
     }
 }
 
@@ -205,9 +203,7 @@ inline void RunCustomProgram()
     programFile = "./program.pebl";
     if(g_noisyReport)
     {        
-        SetConsoleColor(ConsoleColor::Purple2);
-        std::cout << "\nstarting: CustomProgram";
-        SetConsoleColor(ConsoleColor::White);
+        std::cout << CONSOLE_MAGENTA << "\nstarting: CustomProgram" << CONSOLE_RESET;
     }
 }
 

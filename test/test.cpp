@@ -1,4 +1,4 @@
-#include <limits>
+#include <sstream>
 
 #include "test.h"
 #include "unittests.h"
@@ -131,17 +131,13 @@ void TestGenericMemoryLoss(String typeName)
 inline void ReportFailedAssert()
 {
     failedAsserts++;
-    SetConsoleColor(ConsoleColor::Red);
-    std::cout << ".";
-    SetConsoleColor(ConsoleColor::White);
+    std::cout << CONSOLE_RED << "." << CONSOLE_RESET;
 }
 
 inline void ReportSucceededAssert()
 {
     succeededAsserts++;
-    SetConsoleColor(ConsoleColor::Green);
-    std::cout << ".";
-    SetConsoleColor(ConsoleColor::White);
+    std::cout << CONSOLE_GREEN << "." << CONSOLE_RESET;
 }
 
 int DigitsOfInt(int i)
@@ -224,7 +220,7 @@ void Assert(bool b)
     {
         if(failureDescription == "N/A")
         {
-            failureDescription = "default to report " + Diff();
+            failureDescription = "default is " + Diff();
         }
 
         std::string padding = "    ";
@@ -324,37 +320,68 @@ void DoAllTests()
     }
 }
 
+char FirstNonSpaceChar(std::string& str)
+{
+    size_t i;
+    for(i=0; i < str.size() && str[i] == ' '; i++);
+    if(i < str.size())
+    {
+        return str[i];
+    }
+
+    return ' ';
+}
+
+void DisplayTestBuffer()
+{
+    std::istringstream iss(testBuffer);
+    std::string line;
+    while(std::getline(iss, line))
+    {
+        char c = FirstNonSpaceChar(line);
+
+        if(std::isdigit(c))
+        {
+            std::cout << CONSOLE_WHITE;
+        }
+        else if(c == 'f' || c == 'a' || c == 'r')
+        {
+            std::cout << CONSOLE_CYAN;
+        }
+        else
+        {
+            std::cout << CONSOLE_RED;
+        }
+        
+        std::cout << line << std::endl;
+    }
+}
+
 bool Test()
 {
     std::cout.precision(2);
     std::string sectionDivider = Repeat('#', 60) + "\n";
     testBuffer.reserve(4096);
-    SetConsoleColor(ConsoleColor::Yellow);
-    std::cout << sectionDivider << sectionDivider;
-    std::cout << "STARTING...\n";
-    SetConsoleColor(ConsoleColor::White);
+    std::cout << CONSOLE_YELLOW << "starting...\n" << CONSOLE_RESET;
 
     DoAllTests();
 
-    SetConsoleColor(ConsoleColor::Yellow);
-    std::cout << "\n\nfinished " << (succeededAsserts + failedAsserts) << " tests at " 
+    std::cout << CONSOLE_YELLOW << "\n\nfinished " << (succeededAsserts + failedAsserts) << " tests at " 
         << std::fixed << (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) 
         << " %" << std::endl;
 
-    SetConsoleColor(ConsoleColor::Green);
-    std::cout << "  >> passed: " << succeededAsserts << std::endl;
-    SetConsoleColor(ConsoleColor::Red);
-    std::cout << "  >> failed: " << failedAsserts << std::endl << std::endl;
+    std::cout << CONSOLE_GREEN << "  >> passed: " << succeededAsserts << std::endl;
+    std::cout << CONSOLE_RED << "  >> failed: " << failedAsserts << std::endl << std::endl;
 
 
     if(failedAsserts)
     {
-        SetConsoleColor(ConsoleColor::Yellow);
-        std::cout << "failure report: \n\n";
-        SetConsoleColor(ConsoleColor::Red);
-        std::cout << testBuffer;
+        std::cout << CONSOLE_YELLOW << "failure report: \n\n";
+        DisplayTestBuffer();
     }
-    SetConsoleColor(ConsoleColor::White);
+
+    std::cout << CONSOLE_RESET;
+
     if(failedAsserts) 
         return 1;
     
