@@ -57,12 +57,14 @@ typedef std::string MethodName;
 extern std::map<MethodName, InjectedFunction> FunctionInjections; 
 
 
+void TEST_Tracer(const char* str);
 extern std::map<MethodName, int> methodHitMap;
 
 extern bool g_shouldRunCustomProgram;
 extern bool g_noisyReport;
 extern bool g_onlyRunOneProgram;
 extern bool g_useBytecodeRuntime;
+extern bool g_tracerOn;
 
 extern std::string g_onlyProgramToRun;
 

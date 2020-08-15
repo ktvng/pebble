@@ -405,15 +405,6 @@ void HandleCompileMessage(int lineNumber)
     }
 }
 
-void HandleDefineMethod(
-    std::vector<CodeLine>::iterator* it,
-    std::vector<CodeLine>::iterator* end,
-    Scope* blockInheritedScope,
-    Operation* op)
-{
-
-}
-
 Block* ParseBlock(
     std::vector<CodeLine>::iterator it, 
     std::vector<CodeLine>::iterator end,
@@ -424,51 +415,38 @@ Block* ParseBlock(
     LogItDebug("entered new block", "ParseBlock");
     bool scopeIsLocal = false;
 
-    // if(scope == nullptr)
-    // {
-    //     scope = ScopeConstructor(CurrentScope());
-    //     scopeIsLocal = true;
-    // }
+    int previousLineLevel = it->Level;
 
-    // EnterScope(scope);
+    for(; it != end; it++)
     {
-        int previousLineLevel = it->Level;
-
-        for(; it != end; it++)
+        if(IsChildBlock(it, previousLineLevel))
         {
-            if(IsChildBlock(it, previousLineLevel))
-            {
-                LogItDebug(Msg("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
-                int blockSize = SizeOfBlock(it, end);
-                Block* b = ParseBlock(it, it+blockSize);
-                if(FatalCompileError)
-                    return nullptr;
-                LogItDebug(Msg("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
+            LogItDebug(Msg("starting compile new block at line [%i]", it->LineNumber), "ParseBlock");
+            int blockSize = SizeOfBlock(it, end);
+            Block* b = ParseBlock(it, it+blockSize);
+            if(FatalCompileError)
+                return nullptr;
+            LogItDebug(Msg("finishes compile new block at line [%i]", it->LineNumber), "ParseBlock");
 
-                // increment iterator to end of block
-                it += blockSize - 1;
+            // increment iterator to end of block
+            it += blockSize - 1;
 
-                thisBlock->Executables.push_back(b);
-            }
-            else
-            {
-                LogItDebug(Msg("starting compile line [%i]", it->LineNumber), "ParseBlock");
-                Operation* op = ParseLine(it->Tokens);
-                HandleCompileMessage(it->LineNumber);
-                if(FatalCompileError)
-                    return nullptr;
+            thisBlock->Executables.push_back(b);
+        }
+        else
+        {
+            LogItDebug(Msg("starting compile line [%i]", it->LineNumber), "ParseBlock");
+            Operation* op = ParseLine(it->Tokens);
+            HandleCompileMessage(it->LineNumber);
+            if(FatalCompileError)
+                return nullptr;
 
-                NumberOperation(op, it->LineNumber);
-                LogItDebug(Msg("finishes compile line [%i]", it->LineNumber), "ParseBlock");
+            NumberOperation(op, it->LineNumber);
+            LogItDebug(Msg("finishes compile line [%i]", it->LineNumber), "ParseBlock");
 
-                // HandleDefineMethod(&it, &end, CurrentScope(), op);
-                HandleDefineMethod(&it, &end, nullptr, op);
-
-                thisBlock->Executables.push_back(op);
-            }
+            thisBlock->Executables.push_back(op);
         }
     }
-    // ExitScope(scopeIsLocal);
 
     return thisBlock;
 }

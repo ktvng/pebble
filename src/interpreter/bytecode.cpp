@@ -1841,7 +1841,7 @@ void BCI_DropTOS(extArg_t arg)
 /// description: leaves a <Call> of <BooleanType> as TOS which signifies whether
 ///              TOS[1] 'is' TOS[0]. defines the notion of 'being of'
 /// stack state: <Call>
-void BCI_Is(extArg_t)
+void BCI_Is(extArg_t arg)
 {
     auto rhs = PopTOS<Call>();
     auto lhs = PopTOS<Call>();

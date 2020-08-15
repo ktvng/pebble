@@ -290,12 +290,19 @@ namespace TestBuild
         return "methodHitMap[\"" + methodName + "\"]++;\n";
     }
 
+    std::string GenerateTraceLineV2()
+    {
+        auto methodName = MethodName(currentMethodCall);
+        return "TEST_Tracer(\"" + methodName + "\");\n";
+    }
+
     /// generates the stubbed method interface
     std::string GenerateStubbedInterface()
     {
         std::string methodInterface = c_comment + currentMethodCall;
         methodInterface += "{\n";
 
+        methodInterface += c_tabString + GenerateTraceLineV2();
         methodInterface += GenerateTraceLine();
         methodInterface += c_tabString + GenerateHitCounter();
         methodInterface += GenerateFunctionInjectPoint();
@@ -371,9 +378,11 @@ namespace TestBuild
             {
                 if(MethodCallEnds(line, excess))                                // if the method call ends, add the modified
                 {                                                               // version to the buffer
-                    if(currentMethodCall.find("::") != std::string::npos)            // if the method involves resolving scope, skip it for now
+                                                                                // if the method involves resolving scope, skip it for now
+                                                                                // or if it involves generics
+                    if(currentMethodCall.find("::") != std::string::npos
+                    || currentMethodCall.find("template <") != std::string::npos)  
                     {
-
                         outputBuffer.append("\n");
                         outputBuffer.append(currentMethodCall);
                         outputBuffer.append(excess);
@@ -475,7 +484,7 @@ bool IsH(const std::string& str)
 bool IsSpecial(const std::string& str)
 {
     std::string name = TestBuild::FileNameFromPath(str);
-    return name == "utils.cpp" || name == "diagnostics.cpp" || name == "bytecode.cpp";
+    return name == "utils.cpp" || name == "diagnostics.cpp";
 }
 
 void HandleFlag(const std::string& str)

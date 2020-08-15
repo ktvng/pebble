@@ -1,5 +1,6 @@
 #include <sstream>
 #include <chrono>
+#include <algorithm>
 
 #include "test.h"
 #include "consolecolor.h"
@@ -31,6 +32,7 @@ bool g_shouldRunCustomProgram = false;
 bool g_noisyReport = false;
 bool g_onlyRunOneProgram = false;
 bool g_useBytecodeRuntime = true;
+bool g_tracerOn = false;
 
 std::string g_onlyProgramToRun;
 
@@ -107,11 +109,92 @@ bool NotResult::AsExpected()
 ProgramResult Result;
 
 
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Tracing
+
+std::vector<std::string> TracedMethods = 
+{
+    // grammar.cpp
+    "CompileGrammar",
+    
+    // parse.cpp
+    "ExpressionParser",
+    "Preprocess",
+    "TryReversingGrammarRules",
+
+    // program.cpp
+    "ParseBlock",
+    "ParseProgram",
+
+    // bytecode.cpp
+    "BCI_LoadCallName",
+    "BCI_LoadPrimitive",
+    "BCI_Assign",
+    "BCI_Add",
+    "BCI_Subtract",
+
+    "BCI_Multiply",
+    "BCI_Divide",
+    "BCI_SysCall",
+    "BCI_And",
+    "BCI_Or",
+
+    "BCI_Not",
+    "BCI_NotEquals",
+    "BCI_Equals",
+    "BCI_Cmp",
+    "BCI_LoadCmp",
+
+    "BCI_JumpFalse",
+    "BCI_Jump",
+    "BCI_Copy",
+    "BCI_BindType",
+    "BCI_ResolveDirect",
+
+    "BCI_ResolveScoped",
+    "BCI_BindScope",
+    "BCI_BindSection",
+    "BCI_EvalHere"
+    "BCI_Eval",
+
+    "BCI_Return",
+    "BCI_Array",
+    "BCI_EnterLocal",
+    "BCI_LeaveLocal",
+    "BCI_Extend",
+
+    "BCI_NOP",
+    "BCI_Dup",
+    "BCI_Endline",
+    "BCI_DropTOS",
+    "BCI_Is"
+};
+
+void TEST_Tracer(const char* str)
+{
+    if(!g_tracerOn)
+    {
+        return;
+    }
+
+    std::string niceStr(str);
+    if(std::find(TracedMethods.begin(), TracedMethods.end(), niceStr) != TracedMethods.end())
+    {
+        LogIt(LogSeverityType::Sev1_Notify, str, "");
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers
 
 bool ShouldRunProgram()
 {
+    if(!g_onlyRunOneProgram)
+    {
+        return true;
+    }
+
     return (g_onlyRunOneProgram && test.ProgramName == g_onlyProgramToRun);
 }
 
@@ -128,6 +211,12 @@ void ClearRunMetrics()
 
 void ConfigureLogging(LogSeverityType level, bool clearBefore)
 {
+    if(g_tracerOn)
+    {
+        LogAtLevel = LogSeverityType::Sev1_Notify;
+        return;
+    }
+
     if(clearBefore)
         PurgeLog();
 
@@ -538,12 +627,12 @@ bool Test()
     DoAllTests();
 
     std::cout.precision(2);
-    std::cout << CONSOLE_YELLOW << "\n\nfinished " << (succeededAsserts + failedAsserts) << " tests at " 
+    std::cout << CONSOLE_YELLOW << "\n\nfinished " << (succeededAsserts + failedAsserts) << " assertions at " 
         << std::fixed << (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) 
         << " %";
 
     std::cout.precision(4);
-    std::cout << CONSOLE_YELLOW << "  in " << timespan << " secs\n";
+    std::cout << CONSOLE_YELLOW << " in " << timespan << " secs\n";
 
     std::cout << CONSOLE_GREEN << "  >> passed: " << succeededAsserts << std::endl;
     std::cout << CONSOLE_RED << "  >> failed: " << failedAsserts << std::endl << std::endl;

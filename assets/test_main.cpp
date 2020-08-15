@@ -53,6 +53,21 @@ bool SettingUseAstRuntime(std::vector<SettingOption> options)
     return false;
 }
 
+bool SettingTraceProgram(std::vector<SettingOption> options)
+{
+    if(options.empty())
+    {
+        return true;
+    }
+
+    g_onlyRunOneProgram = true;
+    g_onlyProgramToRun = options[0];
+    g_tracerOn = true;
+    LogAtLevel = LogSeverityType::Sev1_Notify;
+
+    return true;
+}
+
 ProgramConfiguration Config
 {
     {
@@ -69,6 +84,9 @@ ProgramConfiguration Config
     },
     {
         "Run only one program", "--only", SettingOnlyRunOneProgram
+    },
+    {
+        "Run and trace one program", "--trace", SettingTraceProgram
     }
 };
 
