@@ -17,7 +17,7 @@
 
 bool Usage(std::vector<SettingOption> options)
 {
-    std::cerr << "Usage pebble: [--help] [--custom] [--only] [--noisy] [--ast] [program.pebl]" << std::endl;
+    std::cerr << "Usage pebble: [--help] [--custom] [--only] [--noisy] [--ast] [--trace] [program.pebl]" << std::endl;
 
     exit(2);
 }

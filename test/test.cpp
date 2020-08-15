@@ -16,6 +16,41 @@
 #include "flattener.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
+// Documentation
+/*
+
+Overview
+
+    The Pebble testbuild is a special build with method decorators that
+    incorporate additional features such as method-hit tracking, custom function
+    injection, and tracing log statements. By default these features are not
+    used, but can be enabled via different flags
+
+FLags
+
+    [--only NAME]       Only runs the test program with the specified 'NAME'. 
+                        This program will be located along path
+                        `./test/programs/`NAME`.pebl` and only assertions for
+                        this program will be evaluated.
+
+    [--custom]          Run the Pebble program along path `./program.pebl` which
+                        can contain custom user defined input. Will also run
+                        the MetaFailureTest which is an assertion that always
+                        fails.
+
+    [--noisy]           Will print out each program name as it is being run
+                        which is useful for identifying failures when a segfault
+                        occurs.
+
+    [--ast]             Use the abstract syntax tree recursive walker runtime
+                        which is currently disabled (don't use this option)
+
+    [--trace NAME]      Only runs the program with the specified 'NAME' (see
+                        the [--only] flag). In addition, enables log trace 
+                        statements which are written to `./logs/log`
+*/
+
+// ---------------------------------------------------------------------------------------------------------------------
 // Global variables
 
 std::map<std::string, int> methodHitMap;
