@@ -10,9 +10,10 @@
 #include <algorithm>
 
 
-#include "main.h"
 #include "diagnostics.h"
+#include "consolecolor.h"
 
+#include "main.h"
 #include "token.h"
 #include "object.h"
 #include "program.h"
@@ -23,6 +24,10 @@
 #include "executable.h"
 #include "call.h"
 #include "bytecode.h"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 
 // indent formatting

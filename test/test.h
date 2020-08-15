@@ -7,23 +7,43 @@
 #include <iostream>
 
 #include "abstract.h"
-#include "diagnostics.h"
-#include "program.h"
-#include "parse.h"
-#include "flattener.h"
-#include "vm.h"
-#include "dis.h"
-#include "grammar.h"
+#include "consolecolor.h"
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Unit test architecture
+
+inline const char* const VoidName = "N/A";
+
+struct UnitTest
+{
+    std::string TestName;
+    std::string AssertName;
+    std::string ExpectedClause;
+    std::string AssertType;
+    std::string OtherwiseReport;
+
+    std::string ProgramFile;
+    std::string ProgramName;
+    std::string ProgramOutput;
+    int ProgramReturnCode;
+
+    bool HasBeenCompiled;
+    bool HasBeenRun;
+    
+    bool EncounteredCompiletimeError;
+    bool EncounteredRuntimeError;
+
+    Program* ProgramToRun;
+};
+
+extern UnitTest test;
+
+void ClearTest();
+void ClearRun();
+void ClearAssert();
+void ClearRunMetrics();
 
 extern std::string testBuffer;
-
-extern std::string assertName;
-extern std::string failureDescription;
-extern std::string testName;
-extern std::string expected;
-
-extern std::string programFile;
-extern std::string programName;
 
 extern int failedAsserts;
 extern int succeededAsserts;
@@ -36,16 +56,18 @@ typedef std::string MethodName;
 extern std::map<MethodName, InjectedFunction> FunctionInjections; 
 
 
+void TEST_Tracer(const char* str);
 extern std::map<MethodName, int> methodHitMap;
 
 extern bool g_shouldRunCustomProgram;
 extern bool g_noisyReport;
-
-extern Program* programToRun;
+extern bool g_onlyRunOneProgram;
 extern bool g_useBytecodeRuntime;
+extern bool g_tracerOn;
+
+extern std::string g_onlyProgramToRun;
 
 bool Test();
-void ResetRun();
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Program output wrapper
@@ -73,17 +95,10 @@ class ProgramResult
 };
 
 
-
 extern ProgramResult Result;
 void Valgrind();
 void TestConstantsFidelity();
 
-inline void ResetAssert()
-{
-    assertName = "N/A";
-    failureDescription = "N/A";
-    expected = "N/A";
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Test fundementals
@@ -91,24 +106,24 @@ inline void ResetAssert()
 /// describes the current assertion. MUST BE CALLED BEFORE EACH UNIQUE ASSERTION
 inline void Should(const std::string& descriptionOfTest)
 {
-    assertName = descriptionOfTest;
+    test.AssertName = descriptionOfTest;
 }
 
 inline void OtherwiseReport(const std::string& descriptionOfFailureCase)
 {
-    failureDescription = descriptionOfFailureCase;
+    test.OtherwiseReport = descriptionOfFailureCase;
 }
 
 std::string Diff();
 
 inline void Expected(std::string& msg)
 {
-    expected = msg;
+    test.ExpectedClause = msg;
 }
 
 inline void Expected(const char* msg)
 {
-    expected = std::string(msg);
+    test.ExpectedClause = std::string(msg);
 }
 
 /// assert that [b] is true. logs error if this is not the case
@@ -118,16 +133,8 @@ void Assert(bool b);
 /// name of test
 inline void ItTests(const std::string& name)
 {
-    ResetRun();
-    testName = name;
+    test.TestName = name;
 }
-
-
-
-
-
-
-
 
 inline void InjectBefore(MethodName name, InjectedFunction func)
 {
@@ -135,13 +142,7 @@ inline void InjectBefore(MethodName name, InjectedFunction func)
 }
 
 /// configure the logging properties for speed and optimization
-inline void ConfigureLogging(LogSeverityType level, bool clearBefore)
-{
-    if(clearBefore)
-        PurgeLog();
-
-    LogAtLevel = level;
-}
+void ConfigureLogging(LogSeverityType level, bool clearBefore);
 
 inline void DisableLogging()
 {
@@ -149,38 +150,10 @@ inline void DisableLogging()
 }
 
 /// compiles the program
-inline void Compile()
-{
-    ProgramOutput = "";
-    ProgramMsgs = "";
-    FatalCompileError = false;
-    CompileGrammar();
-    programToRun = ParseProgram(programFile);
-}
+void Compile();
 
 /// execute the program
-inline void Execute()
-{
-    ResetAssert();
-
-    if(!FatalCompileError)
-    {
-        if(g_useBytecodeRuntime)
-        {
-            FlattenProgram(programToRun);
-            DoByteCodeProgram(programToRun);
-            ProgramDestructor(programToRun);
-        }
-        else
-        {
-            // DoProgram(programToRun);
-            ProgramDestructor(programToRun);
-        }
-
-        Valgrind();
-        TestConstantsFidelity();
-    }
-}
+void Execute();
 
 /// returns the number of calls to [methodName]
 inline int NumberOfCallsTo(const std::string& methodName)
@@ -190,20 +163,21 @@ inline int NumberOfCallsTo(const std::string& methodName)
 
 inline void SetProgramToRun(const std::string& fileName)
 {
-    programName = fileName;
-    programFile = "./test/programs/" + fileName + ".pebl";
+    test.ProgramName = fileName;
+    test.ProgramFile = "./test/programs/" + fileName + ".pebl";
     if(g_noisyReport)
     {        
-        std::cout << CONSOLE_MAGENTA << "\n" << fileName << "\n  >> " << CONSOLE_RESET;
+        std::cout << CONSOLE_CYAN << "\n\n  - " << fileName << "\n      > " << CONSOLE_RESET;
     }
 }
 
 inline void RunCustomProgram()
 {
-    programFile = "./program.pebl";
+    test.ProgramName = "CustomProgram";
+    test.ProgramFile = "./program.pebl";
     if(g_noisyReport)
     {        
-        std::cout << CONSOLE_MAGENTA << "\nstarting: CustomProgram" << CONSOLE_RESET;
+        std::cout << CONSOLE_CYAN << " - CustomProgram\n      > " << CONSOLE_RESET;
     }
 }
 
@@ -216,6 +190,5 @@ inline void CompileAndExecuteProgram(const std::string& programName)
 }
 
 void TestGenericMemoryLoss(String className);
-
 
 #endif

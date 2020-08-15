@@ -1,0 +1,32 @@
+ListNode:
+    Next = a ListNode
+    Value
+    Type
+
+    Of(Type):
+        caller.Type is Type
+        caller.Value is Type
+
+    For(Val):
+        caller.Value = Val
+
+    Add(Val):
+        Itr = caller
+        while Itr's Next.Value is not Nothing
+            Itr = Itr.Next
+        
+        Itr's Next = a ListNode() Of(Type) For(Val)
+
+    Print():
+        Itr = caller
+        while Itr.Value is not Nothing
+            print Itr.Value
+            Itr = Itr.Next
+
+Head is a ListNode() Of(a String) For("Alice")
+Head.Add("Bob")
+Head.Add("Charles")
+Head.Add("Daniel")
+Head.Print()
+
+Head.Add(5)

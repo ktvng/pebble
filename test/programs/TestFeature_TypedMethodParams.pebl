@@ -1,0 +1,18 @@
+Book:
+    Title is a String
+    Author is a String
+    Rating is an Integer
+
+    With(Title, Author, Rating):
+        caller.Title = Title
+        caller.Author = Author
+        caller.Rating = Rating
+
+Read(MyBook is a Book):
+    print MyBook.Title
+
+Story1 is a Book() With("My Tale: Truest of Knights", "Sir Arthur", 10)
+Read(Story1)
+Read(Nothing)
+Read(a Book)
+Read("To kill a mockingbird")

@@ -33,10 +33,11 @@ Steps to install:
 Follow the following steps after you have installed Pebble to create the test build of the Pebble interpreter and run the unit tests
 ```
 $ make testbuilder
-$ make pebble_testbuild
-$ ./pebble_testbuild.exe --ignore-custom --bytecode
+$ make testbuild
+$ ./pebble_tb.exe
 ```
 
+For documentation on advanced testing, consult the `./test/test.cpp` file.
 
 # Language Specification
 Currently it uses an experimental syntax (codenamed Boulder). The syntax is still in early beta and is subject to rapid change. These changes may not be reflected in this documentation. We will update this section as often as possible.

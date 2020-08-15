@@ -1,0 +1,28 @@
+X is an Array(4)
+
+Book:
+    Author is a String
+    Id is an Integer
+
+    By(Author):
+        caller.Author = Author
+
+    WithId(X):
+        caller.Id = X
+
+X[0] is a Book() By("Foucault") WithId(2)
+X[1] is a Book() By("Spinoza")
+X[2] is a Book() By("Cato") WithId(33)
+X[3] is a Book() By("Schelling") WithId(8)
+
+FindById(Arrs, Id):
+    I = 0
+    while I < 4
+        if Arrs[I].Id == Id
+            return Arrs[I]
+        I = I + 1
+
+    return Nothing
+
+print "Publisher: " + FindById(X, 33).Author
+print "Publisher: " + FindById(X, 3).Author

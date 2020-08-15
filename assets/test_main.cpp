@@ -17,14 +17,27 @@
 
 bool Usage(std::vector<SettingOption> options)
 {
-    std::cerr << "Usage pebble: [--help] [--ignore-custom] [--noisy] [--bytecode] [program.pebl]" << std::endl;
+    std::cerr << "Usage pebble: [--help] [--custom] [--only] [--noisy] [--ast] [--trace] [program.pebl]" << std::endl;
 
     exit(2);
 }
 
-bool SettingIgnoreCustom(std::vector<SettingOption> options)
+bool SettingOnlyRunOneProgram(std::vector<SettingOption> options)
 {
-    g_shouldRunCustomProgram = false;
+    if(options.empty())
+    {
+        return true;
+    }
+
+    g_onlyRunOneProgram = true;
+    g_onlyProgramToRun = options[0];
+
+    return true;
+}
+
+bool SettingRunCustom(std::vector<SettingOption> options)
+{
+    g_shouldRunCustomProgram = true;
     return false;
 }
 
@@ -34,10 +47,25 @@ bool SettingNoisy(std::vector<SettingOption> options)
     return false;
 }
 
-bool SettingUseBytecodeRuntime(std::vector<SettingOption> options)
+bool SettingUseAstRuntime(std::vector<SettingOption> options)
 {
-    g_useBytecodeRuntime = true;
+    g_useBytecodeRuntime = false;
     return false;
+}
+
+bool SettingTraceProgram(std::vector<SettingOption> options)
+{
+    if(options.empty())
+    {
+        return true;
+    }
+
+    g_onlyRunOneProgram = true;
+    g_onlyProgramToRun = options[0];
+    g_tracerOn = true;
+    LogAtLevel = LogSeverityType::Sev1_Notify;
+
+    return true;
 }
 
 ProgramConfiguration Config
@@ -46,20 +74,23 @@ ProgramConfiguration Config
         "Pebl File", "program.pebl", nullptr
     },
     { 
-        "Ignore ./program.pebl", "--ignore-custom", SettingIgnoreCustom
+        "Ignore ./program.pebl", "--custom", SettingRunCustom
     },
     {
         "Report noisy", "--noisy", SettingNoisy
     },
     {
-        "Use bytecode runtime", "--bytecode", SettingUseBytecodeRuntime
+        "Use bytecode runtime", "--ast", SettingUseAstRuntime
+    },
+    {
+        "Run only one program", "--only", SettingOnlyRunOneProgram
+    },
+    {
+        "Run and trace one program", "--trace", SettingTraceProgram
     }
 };
 
-// Logging
-LogSeverityType LogAtLevel = LogSeverityType::Sev3_Critical;
 bool g_outputOn = false;
-bool g_useBytecodeRuntime = false;
 
 int main(int argc, char *argv[])
 {
