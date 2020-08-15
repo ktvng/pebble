@@ -220,6 +220,8 @@ void TEST_Tracer(const char* str)
     }
 }
 
+
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Test helpers
 
@@ -277,8 +279,6 @@ void Compile()
 
 void Execute()
 {
-    ClearAssert();
-
     if(!ShouldRunProgram())
     {
         return;
@@ -437,17 +437,17 @@ inline void AddTestNameField(std::string& padding)
 
 inline void AddShouldField(std::string& padding)
 {
-    std::string shouldClause;
-    if(test.ShouldClause.empty())
+    std::string assert;
+    if(test.AssertName.empty())
     {
-        shouldClause = "assert: N/A";
+        assert = "assert: N/A";
     }
     else
     {
-        shouldClause = "assert: should " + test.ShouldClause;
+        assert = "assert: should " + test.AssertName;
     }
 
-    testBuffer.append(padding + shouldClause + "\n");
+    testBuffer.append(padding + assert + "\n");
 }
 
 inline void AddExpectedField(std::string& padding)
@@ -582,7 +582,6 @@ void ClearAssert()
     test.AssertType.clear();
     test.OtherwiseReport.clear();
     test.ExpectedClause.clear();
-    test.ShouldClause.clear();
 
 }
 
@@ -661,6 +660,13 @@ bool Test()
 
     DoAllTests();
 
+
+    if(failedAsserts)
+    {
+        std::cout << CONSOLE_YELLOW << "failure report: \n\n";
+        DisplayTestBuffer();
+    }
+
     std::cout.precision(2);
     std::cout << CONSOLE_YELLOW << "\n\nfinished " << (succeededAsserts + failedAsserts) << " assertions at " 
         << std::fixed << (100.0 * succeededAsserts / (succeededAsserts + failedAsserts)) 
@@ -673,11 +679,6 @@ bool Test()
     std::cout << CONSOLE_RED << "  >> failed: " << failedAsserts << std::endl << std::endl;
 
 
-    if(failedAsserts)
-    {
-        std::cout << CONSOLE_YELLOW << "failure report: \n\n";
-        DisplayTestBuffer();
-    }
 
     std::cout << CONSOLE_RESET;
 

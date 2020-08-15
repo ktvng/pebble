@@ -18,7 +18,6 @@ struct UnitTest
 {
     std::string TestName;
     std::string AssertName;
-    std::string ShouldClause;
     std::string ExpectedClause;
     std::string AssertType;
     std::string OtherwiseReport;
