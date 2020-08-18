@@ -397,6 +397,16 @@ void TestFeature_TypedMethodParams()
         Assert(Result.EncounteredFatalException());
 }
 
+void TestFeature_Piecewise2Function()
+{
+    ItTests("a function that consumes 2 arguments piecewise");
+
+    CompileAndExecuteProgram("TestFeature_Piecewise2Function");
+        Should("successfully run, consuming arguments piecwise");
+        Expected("60\n");
+        Assert(Result.AsExpected());
+}
+
 // ---------------------------------------------------------------------------------------------------------------------
 // Test index
 
@@ -436,4 +446,5 @@ std::vector<TestFunction> Tests =
     TestFeature_TypedContainer,
     TestFeature_UntypedContainer,
     TestFeature_TypedMethodParams,
+    TestFeature_Piecewise2Function,
 };

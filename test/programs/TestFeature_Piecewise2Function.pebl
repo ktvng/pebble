@@ -1,0 +1,26 @@
+Piecewise2Func:
+    For(F):
+        caller.F = F
+        caller.IxArg = 0
+    
+    Eat(Something):
+        if IxArg is 0
+            caller.One = Something
+        else if IxArg is 1
+            caller.Two = Something
+        
+        IxArg = IxArg + 1
+
+    Do():
+        return F(One, Two)
+
+
+Add(X, Y):
+    print X + Y
+
+Z is a Piecewise2Func() For(Add) 
+
+Z Eat(10)
+Z Eat(50)
+
+Z Do()

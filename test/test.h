@@ -64,6 +64,7 @@ extern bool g_noisyReport;
 extern bool g_onlyRunOneProgram;
 extern bool g_useBytecodeRuntime;
 extern bool g_tracerOn;
+extern bool g_keepLog;
 
 extern std::string g_onlyProgramToRun;
 

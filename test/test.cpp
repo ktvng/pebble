@@ -14,6 +14,7 @@
 #include "grammar.h"
 #include "parse.h"
 #include "flattener.h"
+#include "dis.h"
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Documentation
@@ -68,6 +69,7 @@ bool g_noisyReport = false;
 bool g_onlyRunOneProgram = false;
 bool g_useBytecodeRuntime = true;
 bool g_tracerOn = false;
+bool g_keepLog = false;
 
 std::string g_onlyProgramToRun;
 
@@ -201,7 +203,7 @@ std::vector<std::string> TracedMethods =
 
     "BCI_NOP",
     "BCI_Dup",
-    "BCI_Endline",
+    "BCI_EndLine",
     "BCI_DropTOS",
     "BCI_Is"
 };
@@ -254,8 +256,16 @@ void ConfigureLogging(LogSeverityType level, bool clearBefore)
         return;
     }
 
+    if(g_keepLog)
+    {
+        LogAtLevel = LogSeverityType::Sev0_Debug;
+        return;
+    }
+
     if(clearBefore)
+    {
         PurgeLog();
+    }
 
     LogAtLevel = level;
 }
@@ -298,6 +308,12 @@ void Execute()
         if(g_useBytecodeRuntime)
         {
             FlattenProgram(test.ProgramToRun);
+
+            if(g_tracerOn)
+            {
+                LogProgramInstructions();
+            }
+
             test.ProgramReturnCode = DoByteCodeProgram(test.ProgramToRun);
             test.ProgramOutput = ProgramOutput;
             ProgramDestructor(test.ProgramToRun);

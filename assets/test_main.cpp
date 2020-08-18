@@ -17,7 +17,7 @@
 
 bool Usage(std::vector<SettingOption> options)
 {
-    std::cerr << "Usage pebble: [--help] [--custom] [--only] [--noisy] [--ast] [--trace] [program.pebl]" << std::endl;
+    std::cerr << "Usage pebble: [--help] [--custom] [--only] [--noisy] [--ast] [--trace] [--keep] [program.pebl]" << std::endl;
 
     exit(2);
 }
@@ -68,6 +68,12 @@ bool SettingTraceProgram(std::vector<SettingOption> options)
     return true;
 }
 
+bool SettingKeepLog(std::vector<SettingOption> options)
+{
+    g_keepLog = true;
+    return true;
+}
+
 ProgramConfiguration Config
 {
     {
@@ -87,6 +93,9 @@ ProgramConfiguration Config
     },
     {
         "Run and trace one program", "--trace", SettingTraceProgram
+    },
+    {
+        "Keep log", "--keep", SettingKeepLog
     }
 };
 
