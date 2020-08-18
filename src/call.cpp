@@ -17,6 +17,10 @@ Call* CallConstructor(const String* name)
     call->BoundScope = nullptr;
     call->BoundSection = 0;
     call->BoundType = nullptr;
+    call->CallType = nullptr;
+
+    call->BoundValue.s = 0;
+    call->NumberOfParameters = 0;
 
     return call;
 }
@@ -39,6 +43,7 @@ std::string NothingType = "Nothing";
 std::string ArrayType = "Array";
 std::string TupleType = "Tuple";
 std::string MethodType = "Method";
+std::string AnythingType = "Anything";
 
 std::string AbstractObjectType = "AbstractObject";
 std::string AbstractIntegerType = "AbstractInteger";
@@ -76,6 +81,16 @@ void BindValue(Call* call, Value value)
 {
     call->BoundValue = value;
 }
+
+/// bind [type] to [call] as the CallType
+void EnforceCallType(Call* call, BindingType type)
+{
+    if(call->CallType == nullptr)
+    {
+        call->CallType = type;
+    }
+}
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------

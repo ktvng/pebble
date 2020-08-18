@@ -23,10 +23,9 @@ ListNode:
             print Itr.Value
             Itr = Itr.Next
 
-Head is a ListNode() Of(a String) For("Alice")
+Head is a ListNode() For("Alice")
 Head.Add("Bob")
 Head.Add("Charles")
 Head.Add("Daniel")
-Head.Print()
-
 Head.Add(5)
+Head.Print()

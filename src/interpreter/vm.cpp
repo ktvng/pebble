@@ -85,6 +85,7 @@ String* SimpleCallNames[] = {
     &DecimalType,
     &StringType,
     &BooleanType,
+    &AnythingType,
 };
 
 /// list of all reference names appearing in a program
@@ -140,14 +141,23 @@ Call NothingCall
     &NothingScope,
 };
 
+Call AnythingCall
+{
+    &AnythingType,
+    &AnythingType,
+    0,
+    &NothingScope
+};
+
 Call ArrayCall
 {
-    &ArrayType,
-    &AbstractArrayType,
-    0,
-    &SomethingScope,
-    0,
-    1
+    /*Name*/                &ArrayType,
+    /*BoundType*/           &AbstractArrayType,
+    /*BoundSection*/        0,
+    /*BoundScope*/          &SomethingScope,
+    /*CallType*/            &AbstractArrayType,
+    /*BoundValue*/          0,
+    /*NumberOfParamters*/   1,
 };
 
 Call IntegerCall
@@ -216,6 +226,7 @@ void AddSimpleCallsToProgramScope()
     AddCallToScope(&DecimalCall, ProgramReg);
     AddCallToScope(&StringCall, ProgramReg);
     AddCallToScope(&BooleanCall, ProgramReg);
+    AddCallToScope(&AnythingCall, ProgramReg);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -231,7 +242,7 @@ void InitRuntime()
     RuntimeCalls.reserve(256);
 
     RuntimeCalls = { &ObjectCall, &NothingCall, &ArrayCall, &IntegerCall,
-        &DecimalCall, &StringCall, &BooleanCall };
+        &DecimalCall, &StringCall, &BooleanCall, &AnythingCall };
 
     RuntimeScopes.clear();
     RuntimeScopes.reserve(256);

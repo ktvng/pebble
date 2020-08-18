@@ -47,6 +47,8 @@ Scope* CopyScope(Scope* scp)
         BindScope(callCopy, call->BoundScope);
         BindSection(callCopy, call->BoundSection);
         BindType(callCopy, call->BoundType);
+        EnforceCallType(callCopy, call->CallType);
+        callCopy->NumberOfParameters = call->NumberOfParameters;
 
         AddCallToScope(callCopy, scpCopy);
     }

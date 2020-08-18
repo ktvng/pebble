@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "dis.h"
 
 #include "bytecode.h"
@@ -207,6 +209,7 @@ void LogProgramInstructions()
     {
         refNames +=  Msg("%i:\t %s\n", i, SimpleCallNames[i]);
     }
+
 
     for(size_t i=0; i<CallNames.size(); i++)
     {
