@@ -663,7 +663,7 @@ bool Test()
 
     if(failedAsserts)
     {
-        std::cout << CONSOLE_YELLOW << "failure report: \n\n";
+        std::cout << CONSOLE_YELLOW << "\n\nfailure report: \n\n";
         DisplayTestBuffer();
     }
 
