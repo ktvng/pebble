@@ -35,6 +35,7 @@ extern std::string NothingType;
 extern std::string ArrayType;
 extern std::string TupleType;
 extern std::string MethodType;
+extern std::string AnythingType;
 
 
 extern std::string AbstractObjectType;
@@ -64,6 +65,7 @@ struct Call
     BindingType BoundType;
     extArg_t BoundSection;
     Scope* BoundScope;
+    BindingType CallType;
 
     // used for primitives
     Value BoundValue;
@@ -125,6 +127,10 @@ void BindScope(Call* call, Scope* scope);
 
 /// bind [value] to [call]
 void BindValue(Call* call, Value value);
+
+/// bind [type] to [call] as the CallType
+void EnforceCallType(Call* call, BindingType type);
+
 
 
 // ---------------------------------------------------------------------------------------------------------------------

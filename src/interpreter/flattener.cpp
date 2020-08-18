@@ -359,7 +359,8 @@ inline bool IsSimpleCall(Operation* op)
             || ref->Name == "Integer"
             || ref->Name == "Decimal"
             || ref->Name == "String"
-            || ref->Name == "Boolean";
+            || ref->Name == "Boolean"
+            || ref->Name == "Anything";
     }
 
     return false;
@@ -1236,6 +1237,10 @@ void AssignEntityIndexForSimpleCall(Operation* op)
     else if(name == "Boolean")
     {
         op->EntityIndex = BOOLEAN_CALL_ID;
+    }
+    else if(name == "Anything")
+    {
+        op->EntityIndex = ANYTHING_CALL_ID;
     }
     else
     {

@@ -413,7 +413,6 @@ Block* ParseBlock(
     Block* thisBlock = BlockConstructor();
     
     LogItDebug("entered new block", "ParseBlock");
-    bool scopeIsLocal = false;
 
     int previousLineLevel = it->Level;
 

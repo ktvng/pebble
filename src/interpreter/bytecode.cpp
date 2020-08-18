@@ -165,6 +165,7 @@ Call* InternalCopyCall(const Call* call)
     BindScope(callCopy, scp);
     BindType(callCopy, call->BoundType);
     BindSection(callCopy, call->BoundSection);
+    EnforceCallType(callCopy, call->CallType);
     callCopy->NumberOfParameters = call->NumberOfParameters;
 
     return callCopy;
@@ -743,7 +744,19 @@ inline bool IsUnassignable(const Call* call)
         || call == &DecimalCall
         || call == &StringCall
         || call == &BooleanCall
-        || call == &ArrayCall;
+        || call == &ArrayCall
+        || call == &AnythingCall;
+}
+
+inline void DoInternalAssign(Call* lhs, const Call* rhs)
+{
+    BindType(lhs, rhs->BoundType);
+    BindSection(lhs, rhs->BoundSection);
+    BindScope(lhs, rhs->BoundScope);
+    BindValue(lhs, rhs->BoundValue);
+    lhs->NumberOfParameters = rhs->NumberOfParameters;
+
+    EnforceCallType(lhs, rhs->BoundType);
 }
 
 inline void InternalAssign(Call* lhs, const Call* rhs)
@@ -755,26 +768,16 @@ inline void InternalAssign(Call* lhs, const Call* rhs)
         return;
     }
 
-    if(lhs->BoundType == &NothingType)
+    if(IsPureNothing(lhs) || lhs->CallType == &AnythingType)
     {
-        if(lhs->BoundScope == &NothingScope)
-        {
-            BindType(lhs, rhs->BoundType);
-            BindSection(lhs, rhs->BoundSection);
-            BindScope(lhs, rhs->BoundScope);
-            BindValue(lhs, rhs->BoundValue);
-            lhs->NumberOfParameters = rhs->NumberOfParameters;
-        }
+        DoInternalAssign(lhs, rhs);
     }
     else
     {
-        if(lhs->BoundType == rhs->BoundType)
+        
+        if(lhs->CallType == rhs->BoundType)
         {
-            BindType(lhs, rhs->BoundType);
-            BindSection(lhs, rhs->BoundSection);
-            BindScope(lhs, rhs->BoundScope);
-            BindValue(lhs, rhs->BoundValue);
-            lhs->NumberOfParameters = rhs->NumberOfParameters;
+            DoInternalAssign(lhs, rhs);
         }
         else if(IsNothing(lhs) && IsPureNothing(rhs))
         {
@@ -1212,6 +1215,7 @@ void BCI_SysCall(extArg_t arg)
             {
                 std::cout << msg;
             }
+            LogDiagnostics(PeekTOS<Call>());
 
             break;
         }
@@ -1465,13 +1469,16 @@ void BCI_BindType(extArg_t arg)
             BindType(call, originalCall->Name);
             BindSection(call, originalCall->BoundSection);
             BindValue(call, originalCall->BoundValue);
-            
+
+            EnforceCallType(call, originalCall->BoundType);
             PushTOS(call);
         }
         else
         {
             BindType(originalCall, originalCall->Name);
+            EnforceCallType(originalCall, originalCall->Name);
         }
+
     }
     
 }
@@ -1768,7 +1775,7 @@ void BCI_EnterLocal(extArg_t arg)
 /// no assumptions
 /// leaves the scope as TOS. will update LocalScopeReg and LastResultReg
 void BCI_LeaveLocal(extArg_t arg)
-{
+{   
     PushTOS<Scope>(LocalScopeStack().back().Value);
     LocalScopeStack().pop_back();
     AdjustLocalScopeReg();
@@ -1866,6 +1873,10 @@ void BCI_Is(extArg_t arg)
         {
             is = lhs->BoundType == rhs->BoundType
                  && lhs->BoundSection == rhs->BoundSection;
+        }
+        else if(IsNothing(lhs) && IsNothing(rhs))
+        {
+            is = true;
         }
         else
         {

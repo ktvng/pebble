@@ -165,6 +165,9 @@ const char* ConsoleColorForMessage(SystemMessageType type)
 
         case SystemMessageType::Advice:
         return CONSOLE_CYAN;
+
+        default:
+        return CONSOLE_RESET;
     }
 }
 
@@ -335,6 +338,10 @@ String ToString(const Call* call)
     
     callString += IndentLevel(1) +
         StringForAttrbute("BoundSection", std::to_string(call->BoundSection));
+
+    if(call->CallType != nullptr)
+        callString += IndentLevel(1) +
+            StringForAttrbute("CallType", *call->CallType);
 
     if(!IsNothing(call))
         callString += IndentLevel(1) +

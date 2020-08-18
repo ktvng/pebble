@@ -365,14 +365,24 @@ void TestFeature_Nothing()
 
 void TestFeature_TypedContainer()
 {
-    ItTests("the type system allows for typed linked lists");
+    ItTests("the type system");
 
     CompileAndExecuteProgram("TestFeature_TypedContainer");
-        Should("allow adding strings to the container");
+        Should("allow adding strings to the typed linked list");
         Assert(Result.Contains("Alice\nBob\nCharles\nDaniel\n"));
 
         Should("prevent addition of non-strings to the container");
         Assert(Result.EncounteredFatalException());
+}
+
+void TestFeature_UntypedContainer()
+{
+    ItTests("the type system");
+
+    CompileAndExecuteProgram("TestFeature_UntypedContainer");
+        Should("allow adding any type to a untyped linked list");
+        Expected("Alice\nBob\nCharles\nDaniel\n5\n");
+        Assert(Result.AsExpected());
 }
 
 void TestFeature_TypedMethodParams()
@@ -424,5 +434,6 @@ std::vector<TestFunction> Tests =
     // Feature tests
     TestFeature_Nothing,
     TestFeature_TypedContainer,
+    TestFeature_UntypedContainer,
     TestFeature_TypedMethodParams,
 };
