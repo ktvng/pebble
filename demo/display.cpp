@@ -142,6 +142,9 @@ std::string IfNeededAddSpace(const Token* token, const Token* lastToken)
 
     if(token->Content == "'s")
         return noSpace;
+    
+    if(token->Content == "[" || lastToken->Content == "[" || token->Content == "]")
+        return noSpace;
 
     return space;
 }
