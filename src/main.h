@@ -21,4 +21,8 @@ extern bool g_outputOn;
 /// if true will use the BytecodeRuntime engine
 extern bool g_useBytecodeRuntime;
 
+#ifdef DEMO
+extern bool g_runDemo;
+#endif
+
 #endif

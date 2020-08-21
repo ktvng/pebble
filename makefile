@@ -1,7 +1,7 @@
 SOURCE_DIR=./src
 BUILD_DIR=./build
 CCFLAGS=-g -pedantic -ansi -Wall -std=c++17 -static
-INCLUDE_PATHS=-I./src/ -I./src/parser/ -I./src/interpreter -I./src/walker -I./src/utils
+INCLUDE_PATHS=-I./src/ -I./src/parser/ -I./src/interpreter -I./src/walker -I./src/utils -I./demo
 TEST_INCLUDE_PATH=-I./test/
 CC=g++
 
@@ -74,6 +74,22 @@ build/%.o.t: src/walker/%.cpp src/walker/%.h test/src/%.cpp
 ################################################################################
 # UTILS
 ################################################################################
+DEMO_SRCS=$(wildcard ./demo/*.cpp)
+DEMO_OBJS=$(DEMO_SRCS:./demo/%.cpp=./build/%.o)
+
+# STANDARD BUILD .O
+build/%.o: demo/%.cpp demo/%.h
+	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) -o $@ -c $<
+
+# TEST BUILD .O 
+build/%.o.t: demo/%.cpp demo/%.h demo/%.cpp
+	./testbuilder.exe $<
+	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) $(TEST_INCLUDE_PATH) -o $@ -c $(word 3, $^)
+
+
+################################################################################
+# DEMO
+################################################################################
 UTILS_SRCS=$(wildcard ./src/utils/*.cpp)
 UTILS_OBJS=$(UTILS_SRCS:./src/utils/%.cpp=./build/%.o)
 
@@ -91,7 +107,8 @@ build/%.o.t: src/utils/%.cpp src/utils/%.h test/src/%.cpp
 ################################################################################
 # PEBBLE MAIN BUILD 
 ################################################################################
-pebble: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS) $(UTILS_OBJS)
+pebble: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS) $(UTILS_OBJS) $(DEMO_OBJS)
+	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) -DDEMO -o build/main.o -c src/main.cpp
 	$(CC) $(CCFLAGS) -o pebble.exe $^
 
 
