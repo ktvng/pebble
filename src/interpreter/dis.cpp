@@ -173,6 +173,10 @@ String ToString(ByteCodeInstruction& ins)
     {
         str += "#BCI_Is";
     }
+    else if(ins.Op == IndexOfInstruction(BCI_CallAlloc))
+    {
+        str += "#BCI_CallAlloc";
+    }
     else
     {
         str += "#?????????" + std::to_string(ins.Op);

@@ -516,7 +516,7 @@ inline void FlattenOperationComparison(Operation* op)
 /// while/if/elseif/else
 /// isequal/is
 /// array
-/// dotypebinding new
+/// dotypebinding new assign
 inline void FlattenOperationGeneric(Operation* op)
 {
     for(auto operand: op->Operands)
@@ -585,6 +585,10 @@ inline void FlattenOperationGeneric(Operation* op)
         arg = 0;
         break;
 
+        case OperationType::Assign:
+        opId = IndexOfInstruction(BCI_Assign);
+        break;
+
         case OperationType::If:
         case OperationType::ElseIf:
         case OperationType::Else:
@@ -598,33 +602,15 @@ inline void FlattenOperationGeneric(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
-/// adds bytecode instructions for [op] with OperationType::Assign
-inline void FlattenOperationAssign(Operation* op)
-{
-    if(op->Operands[0]->Type == OperationType::ScopeResolution)
-    {
-        FlattenOperationScopeResolution(op->Operands[0]);
-    }
-    else if(op->Operands[0]->Type == OperationType::Ref)
-    {
-        FlattenOperationRefDirect(op->Operands[0]);
-    }
-    else
-    {
-        FlattenOperation(op->Operands[0]);
-    }
-
-    FlattenOperation(op->Operands[1]);
-    uint8_t opId = IndexOfInstruction(BCI_Assign);
-    AddByteCodeInstruction(opId, noArg);
-}
-
 /// adds bytecode instructions for [op] with OperationType::DefineMethod
 inline void FlattenOperationDefineMethod(Operation* op)
 {
     uint8_t opId;
     extArg_t arg;
-    
+
+    opId = IndexOfInstruction(BCI_CallAlloc);
+    AddByteCodeInstruction(opId, noArg);
+
     arg = noArg;
 
     if(op->Operands.size() > 0)
@@ -840,53 +826,95 @@ inline void FlattenOperationAsk(Operation* op)
     AddByteCodeInstruction(opId, arg);
 }
 
+/// adds bytecode instructions for [op] with OperationType::Tuple
+inline void FlattenOperationTuple(Operation* op)
+{
+    uint8_t opId = 0;
+    extArg_t arg = 0;
+
+    opId = IndexOfInstruction(BCI_LoadCallName);
+    arg = TUPLE_CALL_ID;
+    AddByteCodeInstruction(opId, arg);
+
+    opId = IndexOfInstruction(BCI_ResolveDirect);
+    AddByteCodeInstruction(opId, noArg);
+
+    opId = IndexOfInstruction(BCI_BindType);
+    AddByteCodeInstruction(opId, noArg);
+
+    opId = IndexOfInstruction(BCI_EnterLocal);
+    arg = 1;
+    AddByteCodeInstruction(opId, arg);
+
+    for(auto operand: op->Operands)
+    {
+        FlattenOperation(operand);
+
+        opId = IndexOfInstruction(BCI_EndLine);
+        AddByteCodeInstruction(opId, noArg);
+    }
+
+    opId = IndexOfInstruction(BCI_LeaveLocal);
+    AddByteCodeInstruction(opId, noArg);
+
+    opId = IndexOfInstruction(BCI_BindScope);
+    AddByteCodeInstruction(opId, noArg);
+}
+
 /// adds bytecode instructions for an [op] based on its OperationType
 void FlattenOperation(Operation* op)
 {
-    if(op->Type == OperationType::ScopeResolution)
-    {
-        FlattenOperationScopeResolution(op);
-    }
-    else if(op->Type == OperationType::Ref)
-    {
-        FlattenOperationRefDirect(op);
-    }
-    else if(op->Type == OperationType::Assign)
-    {
-        FlattenOperationAssign(op);
-    }
-    else if(op->Type == OperationType::DefineMethod)
-    {
-        FlattenOperationDefineMethod(op);
-        GlobalBlockOwner = op;
-    }
-    else if(op->Type == OperationType::Evaluate)
-    {
-        FlattenOperationEvaluate(op);
-    }
-    else if(op->Type == OperationType::Return)
-    {
-        FlattenOperationReturn(op);
-    }
-    else if(IsOperationComparision(op))
+    if(IsOperationComparision(op))
     {
         FlattenOperationComparison(op);
+        return;
     }
-    else if(op->Type == OperationType::EvaluateHere)
+
+    switch(op->Type)
     {
+        case OperationType::ScopeResolution:
+        FlattenOperationScopeResolution(op);
+        break;
+
+        case OperationType::Ref:
+        FlattenOperationRefDirect(op);
+        break;
+
+        case OperationType::DefineMethod:
+        {
+            FlattenOperationDefineMethod(op);
+            GlobalBlockOwner = op;
+            break;
+        }
+
+        case OperationType::Evaluate:
+        FlattenOperationEvaluate(op);
+        break;
+
+        case OperationType::EvaluateHere:
         FlattenOperationEvaluateHere(op);
-    }
-    else if(op->Type == OperationType::Ask)
-    {
+        break;
+
+        case OperationType::Return:
+        FlattenOperationReturn(op);
+        break;
+
+        case OperationType::Ask:
         FlattenOperationAsk(op);
-    }
-    else if(op->Type == OperationType::New)
-    {
+        break;
+
+        case OperationType::New:
         FlattenOperationNew(op);
-    }
-    else
-    {
+        break;
+
+        case OperationType::Tuple:
+        FlattenOperationTuple(op);
+        break;
+
+        default:
         FlattenOperationGeneric(op);
+        break;
+
     }
 }
 

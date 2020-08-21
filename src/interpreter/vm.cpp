@@ -86,6 +86,7 @@ String* SimpleCallNames[] = {
     &StringType,
     &BooleanType,
     &AnythingType,
+    &TupleType,
 };
 
 /// list of all reference names appearing in a program
@@ -192,6 +193,13 @@ Call BooleanCall
     &SomethingScope,
 };
 
+Call TupleCall
+{
+    &TupleType,
+    &AbstractTupleType,
+    0,
+    &SomethingScope,
+};
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Array methods
@@ -227,6 +235,7 @@ void AddSimpleCallsToProgramScope()
     AddCallToScope(&StringCall, ProgramReg);
     AddCallToScope(&BooleanCall, ProgramReg);
     AddCallToScope(&AnythingCall, ProgramReg);
+    AddCallToScope(&TupleCall, ProgramReg);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -242,7 +251,7 @@ void InitRuntime()
     RuntimeCalls.reserve(256);
 
     RuntimeCalls = { &ObjectCall, &NothingCall, &ArrayCall, &IntegerCall,
-        &DecimalCall, &StringCall, &BooleanCall, &AnythingCall };
+        &DecimalCall, &StringCall, &BooleanCall, &AnythingCall, &TupleCall };
 
     RuntimeScopes.clear();
     RuntimeScopes.reserve(256);

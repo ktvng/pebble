@@ -247,6 +247,8 @@ BCI_Method BCI_Instructions[] = {
     BCI_EndLine,
     BCI_DropTOS,
     BCI_Is,
+
+    BCI_CallAlloc,
 };
 
 
@@ -956,7 +958,19 @@ inline Call** GetParameters(extArg_t numParams)
     Call** params = new Call*[numParams];
     for(extArg_t i=0; i<numParams; i++)
     {
-        params[i] = PopTOS<Call>();
+        auto param = PopTOS<Call>();
+        if(param->BoundType == &TupleType)
+        {
+            auto tupleParams = param->BoundScope->CallsIndex;
+            for(extArg_t j=0; i<numParams && j<tupleParams.size(); i++, j++)
+            {
+                params[i] = tupleParams[j];
+            }
+        }
+        else
+        {
+            params[i] = param;
+        }
     }
     
     return params;
@@ -1569,14 +1583,17 @@ void BCI_ResolveScoped(extArg_t arg)
 /// stack state: <Call>
 void BCI_BindScope(extArg_t arg)
 {
-    auto call = InternalCallConstructor();
     auto scope = PopTOS<Scope>();
+    auto call = PopTOS<Call>();
 
     call->NumberOfParameters = arg;
     BindScope(call, scope);
 
     /// TODO: make method types more robust
-    BindType(call, &MethodType);
+    if(call->BoundType == &NothingType)
+    {
+        BindType(call, &MethodType);
+    }
 
     PushTOS(call);
 }
@@ -1886,5 +1903,16 @@ void BCI_Is(extArg_t arg)
         call = InternalPrimitiveCallConstructor(is);
     }
 
+    PushTOS(call);
+}
+
+/// bytecode instruction
+/// consumption: 0
+/// assumptions: none
+/// description: leaves a new call as TOS
+/// stack state: <Call>
+void BCI_CallAlloc(extArg_t arg)
+{
+    auto call =InternalCallConstructor();
     PushTOS(call);
 }

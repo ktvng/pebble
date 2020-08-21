@@ -152,7 +152,8 @@ constexpr extArg_t DECIMAL_CALL_ID = 4;
 constexpr extArg_t STRING_CALL_ID = 5;
 constexpr extArg_t BOOLEAN_CALL_ID = 6;
 constexpr extArg_t ANYTHING_CALL_ID = 7;
-constexpr extArg_t SIMPLE_CALLS = 8;
+constexpr extArg_t TUPLE_CALL_ID = 8;
+constexpr extArg_t SIMPLE_CALLS = 9;
 
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -166,6 +167,7 @@ extern Call DecimalCall;
 extern Call StringCall;
 extern Call BooleanCall;
 extern Call AnythingCall;
+extern Call TupleCall;
 
 /// the scope of NothingCall which is also assigned to new Calls and calls 
 /// which have yet to be bound to a scope

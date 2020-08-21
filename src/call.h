@@ -46,7 +46,7 @@ extern std::string AbstractBooleanType;
 extern std::string AbstractArrayType;
 extern std::string AbstractTupleType;
 extern std::string AbstractMethodType;
-
+extern std::string AbstractTupleType;
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Call structure
