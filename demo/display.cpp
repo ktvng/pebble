@@ -7,7 +7,7 @@
 #include "token.h"
 
 const std::string IndentStr = "    ";
-const char* OPERATOR_COLOR = CONSOLE_MAGENTA;
+const char* OPERATOR_COLOR = CONSOLE_BLUE;
 const char* METHOD_COLOR = CONSOLE_CYAN;
 const char* CALL_COLOR = CONSOLE_WHITE;
 const char* CONTROL_COLOR = CONSOLE_BLUE;
@@ -16,6 +16,7 @@ const char* STRING_COLOR = CONSOLE_MAGENTA;
 const char* NUMBER_COLOR = CONSOLE_GREEN;
 const char* LITERAL_COLOR = CONSOLE_BLUE;
 const char* SPECIAL_CALL_COLOR = CONSOLE_YELLOW;
+const char* BIND_TYPE_COLOR = CONSOLE_GREEN;
 
 
 const char* GetSimpleTokenColor(const Token* token)
@@ -81,6 +82,10 @@ const char* GetTokenColor(const Token* token, const Token* prevToken, const Toke
 
         case TokenType::Reference:
         {
+            if(prevToken != nullptr && (prevToken->Content == "a" || prevToken->Content == "an"))
+            {
+                return BIND_TYPE_COLOR;
+            }
             if(nextToken != nullptr && (nextToken->Content == "(" || nextToken->Content == ":"))
             {
                 return METHOD_COLOR;
