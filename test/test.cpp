@@ -345,26 +345,6 @@ inline void ReportSucceededAssert()
     std::cout << CONSOLE_GREEN << "." << CONSOLE_RESET;
 }
 
-int DigitsOfInt(int i)
-{
-    if(i < 0)
-    {
-        LogIt(LogSeverityType::Sev1_Notify, "DigitsOfInt", "not defined for negative integers");
-        return 2;
-    }
-
-    int digits = 1;
-    int base = 100;
-
-    while(i / base != 0)
-    {
-        base *= 10;
-        digits += 1;
-    }
-
-    return digits;
-}
-
 std::string SpacesOfLength(int n)
 {
     std::string spaces;
@@ -392,26 +372,22 @@ std::string Repeat(char c, int n)
 
 const String c_testrightEdge = "| ";
 
-std::string AddTestRightEdge(String str)
-{
-    String formattedStr = c_testrightEdge;
-    formattedStr.reserve(str.size());
-    for(size_t i=0; i<str.size(); i++)
-    {
-        formattedStr += str.at(i);
-        if(str.at(i) == '\n')
-            formattedStr += c_testrightEdge;
-    }
-    return formattedStr;
-}
-
 std::string Diff()
 {
     std::string diff;
     diff.reserve(256);
     diff = "difference between result and expected";
-    diff += "\n\nexpected   " + IndentStringToLevel(AddTestRightEdge(test.ExpectedClause), 5, 1);
-    diff += "\n\n     got   " + IndentStringToLevel(AddTestRightEdge(test.ProgramOutput), 5, 1);
+    diff += "\n\nexpected   " 
+            + IndentStringToLevel(
+                AddRightEdge(test.ExpectedClause, c_testrightEdge), 
+                5, 
+                1);
+
+    diff += "\n\n     got   " 
+            + IndentStringToLevel(
+                AddRightEdge(test.ProgramOutput, c_testrightEdge), 
+                5, 
+                1);
 
     return diff;
 }

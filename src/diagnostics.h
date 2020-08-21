@@ -31,6 +31,9 @@ String Msg(String message, ...);
 
 String IndentStringToLevel(String str, int level, int margin=0);
 
+String AddRightEdge(String str, String rightEdge);
+
+int DigitsOfInt(int i);
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Pebble system messages
