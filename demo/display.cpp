@@ -8,14 +8,14 @@
 
 const std::string IndentStr = "    ";
 const char* OPERATOR_COLOR = CONSOLE_MAGENTA;
-const char* METHOD_COLOR = CONSOLE_BLUE;
+const char* METHOD_COLOR = CONSOLE_CYAN;
 const char* CALL_COLOR = CONSOLE_WHITE;
-const char* CONTROL_COLOR = CONSOLE_MAGENTA;
+const char* CONTROL_COLOR = CONSOLE_BLUE;
 const char* SYS_COLOR = CONSOLE_RED;
-const char* STRING_COLOR = CONSOLE_YELLOW;
+const char* STRING_COLOR = CONSOLE_MAGENTA;
 const char* NUMBER_COLOR = CONSOLE_GREEN;
 const char* LITERAL_COLOR = CONSOLE_BLUE;
-const char* SPECIAL_CALL_COLOR = CONSOLE_CYAN;
+const char* SPECIAL_CALL_COLOR = CONSOLE_YELLOW;
 
 
 const char* GetSimpleTokenColor(const Token* token)

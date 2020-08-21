@@ -28,4 +28,6 @@ int RunDemo()
 //     FlattenProgram(p);
 //     DoByteCodeProgram(p);
 //     ProgramDestructor(p);
+
+    return 0;
 }
