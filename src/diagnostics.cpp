@@ -67,19 +67,38 @@ String IndentStringToLevel(String str, int level, int margin)
 
 const String c_rightEdge = "    || ";
 
-String AddRightEdge(String str)
+String AddRightEdge(String str, String rightEdge)
 {
-    String formattedStr = c_rightEdge;
+    String formattedStr = rightEdge;
     formattedStr.reserve(str.size());
     for(size_t i=0; i<str.size(); i++)
     {
         formattedStr += str.at(i);
         if(str.at(i) == '\n')
-            formattedStr += c_rightEdge;
+            formattedStr += rightEdge;
     }
     return formattedStr;
 }
 
+int DigitsOfInt(int i)
+{
+    if(i < 0)
+    {
+        LogIt(LogSeverityType::Sev1_Notify, "DigitsOfInt", "not defined for negative integers");
+        return 2;
+    }
+
+    int digits = 1;
+    int base = 10;
+
+    while(i / base != 0)
+    {
+        base *= 10;
+        digits += 1;
+    }
+
+    return digits;
+}
 
 // Error printing
 String itos2(int i)
@@ -130,7 +149,7 @@ void LogItDebug(String message, String method)
 
 void DebugDumpObjectToLog(String object, String message, String method="unspecified")
 {
-    String formattedMessage = message + "\n" + AddRightEdge(object);
+    String formattedMessage = message + "\n" + AddRightEdge(object, c_rightEdge);
     LogIt(LogSeverityType::Sev0_Debug, method, formattedMessage);
 }
 

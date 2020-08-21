@@ -786,7 +786,7 @@ inline void InternalAssign(Call* lhs, const Call* rhs)
         else
         {
             ReportFatalError(SystemMessageType::Exception, 0,
-                Msg("cannot assign %s to %s", CallTypeToString(lhs), CallTypeToString(rhs)));
+                Msg("cannot assign a %s to be a %s", CallTypeToString(lhs), CallTypeToString(rhs)));
             return;
         }
     }

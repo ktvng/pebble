@@ -6,6 +6,8 @@
 #include "executable.h"
 #include "token.h"
 
+#include "diagnostics.h"
+
 const std::string IndentStr = "    ";
 const char* OPERATOR_COLOR = CONSOLE_BLUE;
 const char* METHOD_COLOR = CONSOLE_CYAN;
@@ -18,6 +20,28 @@ const char* LITERAL_COLOR = CONSOLE_BLUE;
 const char* SPECIAL_CALL_COLOR = CONSOLE_MAGENTA;
 const char* BIND_TYPE_COLOR = CONSOLE_YELLOW;
 
+int g_line = 0;
+
+std::string RightEdge()
+{
+    int rightTabSize = 6;
+    int digitsOfLine = DigitsOfInt(g_line);
+
+    std::string rightEdge;
+    rightEdge.reserve(10);
+
+    for(int i=0; i< rightTabSize - digitsOfLine; i++)
+    {
+        rightEdge += " ";
+    }
+
+    rightEdge += std::to_string(g_line);
+    g_line++;
+
+    rightEdge += " | ";
+
+    return rightEdge;
+}
 
 const char* GetSimpleTokenColor(const Token* token)
 {
@@ -156,13 +180,17 @@ std::string IfNeededAddSpace(const Token* token, const Token* lastToken)
 
 void PrintProgramToConsole(const Program* p)
 {
+    std::cout << CONSOLE_RESET << "  The Code:\n\n";
+    g_line = 1;
     int lastIndentLevel = 0;
     for(auto& codeLine: p->Lines)
     {
         if(codeLine.Level < lastIndentLevel)
         {
-            std::cout << std::endl;
+            std::cout << CONSOLE_RESET << RightEdge() << std::endl;
         }
+        
+        std::cout << CONSOLE_RESET << RightEdge();
 
         for(int i=0; i<codeLine.Level; i++)
         {
