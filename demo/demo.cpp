@@ -36,7 +36,7 @@ bool PromptYN(std::string prompt)
         {
             return 1;
         }
-        else(s == "n")
+        else
         {
             return 0;
         }
