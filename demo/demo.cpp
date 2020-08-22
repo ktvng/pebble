@@ -29,16 +29,16 @@ bool PromptYN(std::string prompt)
     while(true)
     {
         std::string s;
-        std::cout << CONSOLE_RESET << prompt << " (y/N)\n";
+        std::cout << CONSOLE_RESET << prompt << " (Y/n)\n";
         std::getline(std::cin, s);
 
-        if(s == "y")
+        if(s == "n")
         {
-            return 1;
+            return 0;
         }
         else
         {
-            return 0;
+            return 1;
         }
     }
 
