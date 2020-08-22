@@ -47,20 +47,24 @@ bool PromptYN(std::string prompt)
 
 void RunProgramSuppressingOutput(Program* p)
 {
-    ProgramOutput.clear();
     g_outputOn = false;
     FlattenProgram(p);
     DoByteCodeProgram(p);
     ProgramDestructor(p);
 }
 
-void DisplayProgramOutput()
+
+void InternalDisplayProgramOutput(std::string output)
 {
     std::cout << "  The Output:\n\n";
-    ProgramOutput[ProgramOutput.size()-1] = ' ';
+
+    if(output[output.size()-1] == '\n')
+    {
+        output[output.size()-1] = ' ';
+    }
 
     String rightEdge = "    > ";
-    std::istringstream is(ProgramOutput);
+    std::istringstream is(output);
 
     std::string line;
 
@@ -88,6 +92,16 @@ void DisplayProgramOutput()
     std::cout << std::endl;
 }
 
+void DisplayProgramOutput()
+{
+    InternalDisplayProgramOutput(ProgramOutput);
+}
+
+void DisplayCompileOutput()
+{
+    InternalDisplayProgramOutput(ProgramMsgs);
+}
+
 void DisplayDemoHeader()
 {
     if(g_sandboxMode)
@@ -105,6 +119,10 @@ void DisplayDemoHeader()
 void RunFileAsDemo(std::string filepath)
 {
     std::system("clear");
+    ProgramOutput.clear();
+    ProgramMsgs.clear();
+    FatalCompileError = false;
+
     DisplayDemoHeader();
     
     CompileGrammar();
@@ -112,8 +130,10 @@ void RunFileAsDemo(std::string filepath)
     Program* p = nullptr;
     p = ParseProgram(filepath);
 
-    if(p == nullptr)
+    if(FatalCompileError || p == nullptr)
     {
+        std::cout << CONSOLE_RESET << "It looks like you have a syntax error\n";
+        DisplayCompileOutput();
         return;
     }
 
