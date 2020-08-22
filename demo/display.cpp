@@ -182,13 +182,15 @@ void PrintProgramToConsole(const Program* p)
 {
     std::cout << CONSOLE_RESET << "  The Code:\n\n";
     g_line = 1;
-    int lastIndentLevel = 0;
+    int lastLineNumber = 1;
     for(auto& codeLine: p->Lines)
     {
-        if(codeLine.Level < lastIndentLevel)
+        while(lastLineNumber + 1 <= codeLine.LineNumber)
         {
             std::cout << CONSOLE_RESET << RightEdge() << std::endl;
+            lastLineNumber += 1;
         }
+        lastLineNumber++;
         
         std::cout << CONSOLE_RESET << RightEdge();
 
@@ -211,7 +213,5 @@ void PrintProgramToConsole(const Program* p)
         }
 
         std::cout << std::endl;
-
-        lastIndentLevel = codeLine.Level;
     }
 }
