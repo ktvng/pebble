@@ -9,10 +9,7 @@
 #include "diagnostics.h"
 
 const std::string IndentStr = "    ";
-/// yello = 2
-/// cyan = 3
-/// green = 1
-const char* OPERATOR_COLOR = CONSOLE_C2;
+const char* OPERATOR_COLOR = CONSOLE_C4;
 const char* METHOD_COLOR = CONSOLE_C5;
 const char* CALL_COLOR = CONSOLE_WHITE;
 const char* CONTROL_COLOR = CONSOLE_C4;
