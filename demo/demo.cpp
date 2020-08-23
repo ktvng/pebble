@@ -18,12 +18,11 @@
 #include "diagnostics.h"
 
 int g_demoNumber = 1;
-bool g_sandboxMode = false;
 
 void Wait()
 {
     std::string s;
-    std::cout << CONSOLE_CYAN << "Press (ENTER) to continue\n" << CONSOLE_RESET;
+    std::cout << CONSOLE_MAGENTA << "Press (ENTER) to continue\n" << CONSOLE_RESET;
     std::getline(std::cin, s);
 }
 
@@ -32,7 +31,7 @@ bool PromptYN(std::string prompt)
     while(true)
     {
         std::string s;
-        std::cout << CONSOLE_CYAN << prompt << " (Y/n)\n" << CONSOLE_RESET;
+        std::cout << CONSOLE_MAGENTA << prompt << " (Y/n)\n" << CONSOLE_RESET;
         std::getline(std::cin, s); 
 
         if(s == "n")
@@ -121,13 +120,7 @@ void DisplayCompileOutput()
 
 void DisplayDemoHeader()
 {
-    if(g_sandboxMode)
-    {
-        std::cout << "\nYour program:\n\n";
-        return;
-    }
-
-    std::cout << "\nDEMO #" << g_demoNumber << "\n";
+    std::cout << "DEMO #" << g_demoNumber << "\n";
     g_demoNumber += 1;
     std::cout << std::endl;
 
@@ -144,18 +137,18 @@ void RunDemoFile(std::string filepath)
     Program* p = nullptr;
     p = ParseProgram(filepath);
 
+    std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "The Code:\n\n";
+    PrintProgramToConsole(p);
+
     if(FatalCompileError || p == nullptr)
     {
+        std::cout << CONSOLE_RESET << std::endl;
         DisplayCompileOutput();
         return;
     }
 
-    std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "The Code:\n\n";
-    PrintProgramToConsole(p);
     RunProgramSuppressingOutput(p);
-
-    std::cout << CONSOLE_RESET << std::endl << std::endl;
-
+    std::cout << CONSOLE_RESET << std::endl;
     DisplayProgramOutput();
 }
 
@@ -175,13 +168,23 @@ void InternalRunDemo(Demo& demo)
     Wait();
 }
 
+void DipslayConclusion()
+{
+    std::system("clear");
+
+    Documentation doc;
+    ParseDoc("./demo/demos/docs/conclusion", doc);
+    DisplaySection(doc, "Thank You!", 0);
+    Wait();
+    
+    std::system("clear");
+}
+
 void DeploySandbox()
 {
     do
     {
         std::system("clear");
-        std::cout << std::endl;
-        
         Documentation doc;
         ParseDoc("./demo/demos/docs/sandbox", doc);
         DisplaySection(doc, "Sandbox", 0);
@@ -192,7 +195,8 @@ void DeploySandbox()
 
         if(FatalCompileError)
         {
-            std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "Oh no! It looks like you have a syntax error...\n\n";
+            std::cout << CONSOLE_RESET << DemoIndentLevel(1) 
+                << "It looks like you made a syntax error...\n\n";
         }
 
     } while(PromptYN("Keep editing your program?"));
@@ -213,7 +217,6 @@ static std::vector<Demo> Demos =
 int RunDemo()
 {
     g_demoNumber = 1;
-    g_sandboxMode = false;
 
     for(auto& demo: Demos)
     {
@@ -221,6 +224,7 @@ int RunDemo()
     }
 
     DeploySandbox();
+    DipslayConclusion();
 
     return 0;
 }

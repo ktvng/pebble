@@ -24,13 +24,13 @@ int g_line = 0;
 
 std::string RightEdge()
 {
-    int rightTabSize = 8;
+    int rightTabSize = 12;
     int digitsOfLine = DigitsOfInt(g_line);
 
     std::string rightEdge;
     rightEdge.reserve(10);
 
-    for(int i=0; i< rightTabSize - digitsOfLine; i++)
+    for(int i=0; i< rightTabSize - digitsOfLine - 2; i++)
     {
         rightEdge += " ";
     }

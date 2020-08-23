@@ -120,7 +120,7 @@ pebble: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS) $(UTILS_OBJS) 
 TEST_SRCS=$(wildcard ./test/src/*.cpp)
 TEST_OBJS=$(TEST_SRCS:./test/src/%.cpp=./build/%.o.t)
 
-builder: ./test/builder.cpp
+builder: ./test/testbuilder.cpp
 	$(CC) $(CCFLAGS) -o builder.exe $<
 	./builder.exe $(PARSER_SRCS) $(SRCS) $(INTERPRETER_SRCS) $(WALKER_SRCS) $(UTILS_SRCS)
 
