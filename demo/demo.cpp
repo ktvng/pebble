@@ -23,7 +23,7 @@ bool g_sandboxMode = false;
 void Wait()
 {
     std::string s;
-    std::cout << CONSOLE_RESET << "Press (ENTER) to continue\n";
+    std::cout << CONSOLE_CYAN << "Press (ENTER) to continue\n" << CONSOLE_RESET;
     std::getline(std::cin, s);
 }
 
@@ -32,8 +32,8 @@ bool PromptYN(std::string prompt)
     while(true)
     {
         std::string s;
-        std::cout << CONSOLE_RESET << prompt << " (Y/n)\n";
-        std::getline(std::cin, s);
+        std::cout << CONSOLE_CYAN << prompt << " (Y/n)\n" << CONSOLE_RESET;
+        std::getline(std::cin, s); 
 
         if(s == "n")
         {
@@ -56,17 +56,31 @@ void RunProgramSuppressingOutput(Program* p)
     ProgramDestructor(p);
 }
 
+const int IndentSize = 4;
+
+std::string DemoIndentLevel(int level)
+{
+    std::string indent;
+    indent.reserve(level*IndentSize);
+
+    for(int i=0; i<level*IndentSize; i++)
+    {
+        indent.push_back(' ');
+    }
+
+    return indent;
+}
 
 void InternalDisplayProgramOutput(std::string output)
 {
-    std::cout << "  The Output:\n\n";
+    std::cout << DemoIndentLevel(1) << "The Output:\n\n";
 
     if(output[output.size()-1] == '\n')
     {
         output[output.size()-1] = ' ';
     }
 
-    String rightEdge = "    > ";
+    String rightEdge = DemoIndentLevel(2) + "> ";
     std::istringstream is(output);
 
     std::string line;
@@ -136,6 +150,7 @@ void RunDemoFile(std::string filepath)
         return;
     }
 
+    std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "The Code:\n\n";
     PrintProgramToConsole(p);
     RunProgramSuppressingOutput(p);
 
@@ -155,7 +170,6 @@ void InternalRunDemo(Demo& demo)
     Documentation doc;
     ParseDoc(demo.DocumentationPath, doc);
     DisplaySection(doc, "Overview");
-
     RunDemoFile(demo.FilePath);
 
     Wait();
@@ -166,14 +180,11 @@ void DeploySandbox()
     do
     {
         std::system("clear");
-        std::cout << "\nSandbox!\n\n";
-        g_sandboxMode = true;
-
-        std::cout 
-            << "    Now is the time to play around! Open up the './program.pebl "
-            << "file\n    and hack away to your heart's content!\n\n"
-            << "    When you're done editing, press (ENTER) on here on terminal "
-            << "to run\n    your custom Pebble program!\n\n";
+        std::cout << std::endl;
+        
+        Documentation doc;
+        ParseDoc("./demo/demos/docs/sandbox", doc);
+        DisplaySection(doc, "Sandbox", 0);
 
         Wait();
 
@@ -181,7 +192,7 @@ void DeploySandbox()
 
         if(FatalCompileError)
         {
-            std::cout << CONSOLE_RESET << "Oh no! It looks like you have a syntax error...\n\n";
+            std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "Oh no! It looks like you have a syntax error...\n\n";
         }
 
     } while(PromptYN("Keep editing your program?"));

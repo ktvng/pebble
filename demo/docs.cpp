@@ -1,5 +1,6 @@
 #include "docs.h"
 #include "consolecolor.h"
+#include "demo.h"
 
 #include <fstream>
 #include <iostream>
@@ -79,14 +80,19 @@ void ParseDoc(std::string filepath, Documentation& doc)
             sect.Content.push_back('\n');
         }
     }
+
+    if(!sect.Title.empty())
+    {
+        doc.Sections.push_back(sect);
+    }
 }
 
-const int GuardLineSize = 80;
+const int GuardLineSize = 60;
 const int IndentSize = 4;
 
-inline void StartLine(int& currentLineSize)
+inline void StartLine(int& currentLineSize, int indent)
 {
-    for(int i=0; i<IndentSize; i++)
+    for(int i=0; i<IndentSize*indent; i++)
     {
         std::cout << ' ';
     }
@@ -94,24 +100,24 @@ inline void StartLine(int& currentLineSize)
     currentLineSize += IndentSize;
 }
 
-void IfNeededEndLine(int& currentLineSize)
+void IfNeededEndLine(int& currentLineSize, int indent)
 {
     if(currentLineSize > GuardLineSize)
     {
         std::cout << '\n';
         currentLineSize = 0;
 
-        StartLine(currentLineSize);
+        StartLine(currentLineSize, indent);
     }
 }
 
-void FormattedPrint(std::string str, int& currentLineSize)
+void FormattedPrint(std::string str, int& currentLineSize, int indent)
 {
     std::cout << CONSOLE_RESET;
 
     if(currentLineSize == 0)
     {
-        StartLine(currentLineSize);
+        StartLine(currentLineSize, indent);
     }
 
     size_t pos = 0;
@@ -121,6 +127,12 @@ void FormattedPrint(std::string str, int& currentLineSize)
         {
             std::cout << str[pos];
             currentLineSize++;
+
+            if(str[pos] == '\n')
+            {
+                currentLineSize = GuardLineSize + 1;
+                IfNeededEndLine(currentLineSize, indent);
+            }
         }
 
         for(; pos < str.size() && str[pos] == ' '; pos++)
@@ -129,25 +141,25 @@ void FormattedPrint(std::string str, int& currentLineSize)
             currentLineSize++;
         }
 
-        IfNeededEndLine(currentLineSize);
+        IfNeededEndLine(currentLineSize, indent);
     }
 }
 
-void DisplaySection(Section& sect)
+void DisplaySection(Section& sect, int indent=0)
 {
-    std::cout << CONSOLE_RESET << "  " << sect.Title << "\n\n";
+    std::cout << CONSOLE_RESET << DemoIndentLevel(indent) << sect.Title << "\n\n";
     int size = 0;
-    FormattedPrint(sect.Content, size);
+    FormattedPrint(sect.Content, size, indent+1);
     std::cout << "\n\n";
 }
 
-void DisplaySection(Documentation& doc, std::string sectionName)
+void DisplaySection(Documentation& doc, std::string sectionName, int indent)
 {
     for(auto& sect: doc.Sections)
     {
         if(sect.Title == sectionName)
         {
-            DisplaySection(sect);
+            DisplaySection(sect, indent);
         }
     }
 }
