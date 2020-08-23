@@ -72,7 +72,7 @@ std::string DemoIndentLevel(int level)
 
 void InternalDisplayProgramOutput(std::string output)
 {
-    std::cout << DemoIndentLevel(1) << "The Output:\n\n";
+    std::cout << DemoIndentLevel(1) << "[The Output]\n\n";
 
     if(output[output.size()-1] == '\n')
     {
@@ -137,7 +137,7 @@ void RunDemoFile(std::string filepath)
     Program* p = nullptr;
     p = ParseProgram(filepath);
 
-    std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "The Code:\n\n";
+    std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "[The Code]\n\n";
     PrintProgramToConsole(p);
 
     if(FatalCompileError || p == nullptr)
@@ -180,6 +180,18 @@ void DipslayConclusion()
     std::system("clear");
 }
 
+void DisplayIntro()
+{
+    std::system("clear");
+
+    Documentation doc;
+    ParseDoc("./demo/demos/docs/intro", doc);
+    DisplaySection(doc, "Intro", 0);
+    DisplaySection(doc, "Details", 0);
+
+    Wait();
+}
+
 void DeploySandbox()
 {
     do
@@ -216,8 +228,9 @@ static std::vector<Demo> Demos =
 
 int RunDemo()
 {
-    g_demoNumber = 1;
+    DisplayIntro();
 
+    g_demoNumber = 1;
     for(auto& demo: Demos)
     {
         InternalRunDemo(demo);

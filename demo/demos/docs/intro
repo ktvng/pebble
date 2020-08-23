@@ -1,0 +1,33 @@
+# Intro
+
+Welcome to the Pebble PL interactive demo (becuase documentation is always 
+more fun when interactive?). 
+
+
+Pebble is an open source interpreted scripting language designed to explore how 
+syntax and programming primitives can be reimagined in a more familiar, 
+human friendly way. Our mission is to create a language that is easy to pick up, 
+straightforward to learn, and expressive enough to be impactful. 
+Achieving these goals involves finding innovative solutions to reduce syntax 
+constraints and designing novel ways to think about coding primitives.
+
+
+
+
+# Details
+
+For the best experience, please resize your terminal so that the following text 
+doesn't wrap/overflow
+
+
+(-------------------------------This-should-be-one-line------------------------------)
+
+
+The interactive demo is built up of different 'pages'. Each page consists of a 
+true Pebble program which has been parsed, interpreted, and colorized for your 
+viewing pleasure. The program's real output is included under it, along with 
+an explanation of what's going on under the hood (if necessary).
+
+
+Certain sections will also include brief descriptions of the motivation behind 
+a certain design choice. Enjoy!

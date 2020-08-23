@@ -87,7 +87,7 @@ void ParseDoc(std::string filepath, Documentation& doc)
     }
 }
 
-const int GuardLineSize = 70;
+const int GuardLineSize = 75;
 const int IndentSize = 4;
 
 inline void StartLine(int& currentLineSize, int indent)
@@ -145,9 +145,28 @@ void FormattedPrint(std::string str, int& currentLineSize, int indent)
     }
 }
 
+std::string Trim(std::string& str)
+{
+    std::string trimmedStr;
+    trimmedStr.reserve(str.size());
+
+    size_t start;
+    size_t end;
+
+    for(start = 0; start < str.size() && str[start] == ' '; start++);
+    for(end = str.size()-1; end != 0 && str[end] == ' '; end--);
+
+    for(size_t i=start; i<=end; i++)
+    {
+        trimmedStr += str[i];
+    }
+
+    return trimmedStr;
+}
+
 void DisplaySection(Section& sect, int indent=0)
 {
-    std::cout << CONSOLE_RESET << DemoIndentLevel(indent) << sect.Title << "\n\n";
+    std::cout << CONSOLE_RESET << DemoIndentLevel(indent) << "[" << Trim(sect.Title) << "]\n\n";
     int size = 0;
     FormattedPrint(sect.Content, size, indent+1);
     std::cout << "\n\n";
