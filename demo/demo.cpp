@@ -241,6 +241,26 @@ static std::vector<Demo> Demos =
         "./demo/demos/docs/demo1"
     },
     {
+        "./demo/demos/programs/p2.pebl",
+        "./demo/demos/docs/demo2"
+    },
+    {
+        "./demo/demos/programs/p3.pebl",
+        "./demo/demos/docs/demo3"
+    },
+    {
+        "./demo/demos/programs/p4.pebl",
+        "./demo/demos/docs/demo4"
+    },
+    {
+        "./demo/demos/programs/p5.pebl",
+        "./demo/demos/docs/demo5"
+    },
+    {
+        "./demo/demos/programs/p6.pebl",
+        "./demo/demos/docs/demo6"
+    },
+    {
         "./test/programs/TestFeature_Nothing.pebl",
         "./demo/demos/docs/demo1"
     },

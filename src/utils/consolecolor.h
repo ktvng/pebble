@@ -22,6 +22,14 @@ const char* WIN32_CONSOLE_COLOR(int i);
 #define CONSOLE_UNDERLINE   WIN32_CONSOLE_COLOR(-1)
 #define CONSOLE_BOLD        WIN32_CONSOLE_BOLD(-1)
 
+#define CONSOLE_C1          WIN32_CONSOLE_COLOR(-1)
+#define CONSOLE_C2          WIN32_CONSOLE_COLOR(-1)
+#define CONSOLE_C3          WIN32_CONSOLE_COLOR(-1)
+#define CONSOLE_C4          WIN32_CONSOLE_COLOR(-1)
+#define CONSOLE_C5          WIN32_CONSOLE_COLOR(-1)
+#define CONSOLE_C6          WIN32_CONSOLE_COLOR(-1)
+#define CONSOLE_C7          WIN32_CONSOLE_COLOR(-1)
+
 #else
 
 #define CONSOLE_RESET       "\033[0m"
@@ -43,6 +51,7 @@ const char* WIN32_CONSOLE_COLOR(int i);
 #define CONSOLE_C4      "\033[38;2;211;134;155m"
 #define CONSOLE_C5      "\033[38;2;142;192;124m"
 #define CONSOLE_C6      "\033[38;2;204;26;29m"
+#define CONSOLE_C7      "\033[38;2;124;111;100m"
 
 #endif
 

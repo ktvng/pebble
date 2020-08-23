@@ -1,0 +1,19 @@
+# Overview
+
+The procedural construction can also be applied to if-statements. One current design 
+choice for Pebble is the presence of operator aliases. For instance, the '<=' operator 
+is aliased to 'is leq to', 'leq', and 'is less than or equal to'. These are defined 
+in the 'grammar.txt' file as preprocessor rules.
+
+
+An aside on the grammar: The grammar is a freely editable text file which encodes 
+CFG (context free grammar) production rules.
+
+
+# Details
+
+The 'that' keyword in each if-clause refers to the same line, specifically the 
+last of code before the execution of the if-statement.
+
+
+Here we have also made use of the aliases for the '>' operator.

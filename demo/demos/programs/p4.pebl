@@ -1,0 +1,10 @@
+NumberOfApples = 11
+
+take the NumberOfApples
+if that > 100
+    say "No way!"
+else if that is greater than 10
+    say "So many!"
+else
+    say "Not bad!"
+

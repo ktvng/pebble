@@ -17,8 +17,9 @@ const char* SYS_COLOR = CONSOLE_C5;
 const char* STRING_COLOR = CONSOLE_C1;
 const char* NUMBER_COLOR = CONSOLE_C1;
 const char* LITERAL_COLOR = CONSOLE_C1;
-const char* SPECIAL_CALL_COLOR = CONSOLE_C1; 
+const char* SPECIAL_CALL_COLOR = CONSOLE_C2; 
 const char* BIND_TYPE_COLOR = CONSOLE_C2;
+const char* COMMENT_COLOR = CONSOLE_C7;
 
 
 int g_line = 0;
@@ -48,9 +49,13 @@ const char* GetSimpleTokenColor(const Token* token)
 {
     auto content = token->Content;
     
-    std::regex typeBinding("\\ba");
+    std::regex typeBinding("\\b(a|an)\\b");
     if(std::regex_search(content, typeBinding))
-        return SYS_COLOR;
+        return OPERATOR_COLOR;
+
+    std::regex referenceLanguage("\\b(it|that|caller|self)\\b");
+    if(std::regex_search(content, referenceLanguage))
+        return SPECIAL_CALL_COLOR;
 
     std::regex supportFunctionRx("\\b(let|ask|print|say|consider|take|here|inherits)\\b");
     if(std::regex_search(content, supportFunctionRx))
@@ -76,13 +81,13 @@ const char* GetSimpleTokenColor(const Token* token)
     if(std::regex_search(content, constLanguage))
         return LITERAL_COLOR;
 
-    std::regex referenceLanguage("\\b(it|that|caller|self)\\b");
-    if(std::regex_search(content, referenceLanguage))
-        return SPECIAL_CALL_COLOR;
-
     std::regex operatorLogical("\\b(and|&&|or|is|not)\\b");
     if(std::regex_search(content, operatorLogical))
         return OPERATOR_COLOR;
+
+    std::regex comment("the");
+    if(std::regex_search(content, comment))
+        return COMMENT_COLOR;
 
     std::regex controlOperator("\\b(if|else|while|for each|return)\\b");
     if(std::regex_search(content, controlOperator))
