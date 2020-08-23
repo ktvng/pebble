@@ -9,15 +9,15 @@
 #include "diagnostics.h"
 
 const std::string IndentStr = "    ";
-const char* OPERATOR_COLOR = CONSOLE_C4;
-const char* METHOD_COLOR = CONSOLE_C3;
+const char* OPERATOR_COLOR = CONSOLE_C3;
+const char* METHOD_COLOR = CONSOLE_C5;
 const char* CALL_COLOR = CONSOLE_WHITE;
-const char* CONTROL_COLOR = CONSOLE_C1;
-const char* SYS_COLOR = CONSOLE_C5;
-const char* STRING_COLOR = CONSOLE_C4;
+const char* CONTROL_COLOR = CONSOLE_C6;
+const char* SYS_COLOR = CONSOLE_C3;
+const char* STRING_COLOR = CONSOLE_C1;
 const char* NUMBER_COLOR = CONSOLE_C4;
-const char* LITERAL_COLOR = CONSOLE_C3;
-const char* SPECIAL_CALL_COLOR = CONSOLE_C2; 
+const char* LITERAL_COLOR = CONSOLE_C4;
+const char* SPECIAL_CALL_COLOR = CONSOLE_C5; 
 const char* BIND_TYPE_COLOR = CONSOLE_C2;
 
 int g_line = 0;
