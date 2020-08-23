@@ -166,7 +166,14 @@ std::string Trim(std::string& str)
 
 void DisplaySection(Section& sect, int indent=0)
 {
-    std::cout << CONSOLE_RESET << DemoIndentLevel(indent) << "" << Trim(sect.Title) << ":\n\n";
+    std::cout 
+        << CONSOLE_RESET
+        << DemoIndentLevel(indent) 
+        << CONSOLE_UNDERLINE
+        << CONSOLE_BOLD 
+        << "" << Trim(sect.Title) << ":\n\n"
+        << CONSOLE_RESET;
+
     int size = 0;
     FormattedPrint(sect.Content, size, indent+1);
     std::cout << "\n\n";
