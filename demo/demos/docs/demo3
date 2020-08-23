@@ -1,0 +1,26 @@
+# Overview
+
+Every operation returns a Call in Pebble. Similarly, every line also returns a 
+Call. This feature combined with the 'it/that' keywords allow for a flexible, 
+procedural way of thinking about complex instructions
+
+# Details
+
+The 'it' and 'that' keywords have the same functionality. Both refer to the Call 
+returned by the previous line. 
+
+
+The 'take' keyword is effectively a comment. Because every line returns a Call, 
+'take' merely emphasizes this fact and can be included for readability. Line 
+[14] demonstrates the same construction procedural construction with the 
+'take' keyword omitted.
+
+
+In Pebble, 'the' is a one-word comment keyword. It can be injected to improve 
+readability and is entirely optional and up to the taste of the programmer.
+
+
+One lines [10-11] the 'is' keyword is used. The is keyword is similar to the 
+`||=` operator in Ruby. It assigns a value only if the Call refers to Nothing (i.e. 
+it is "Null"). It is really intended to be used to signify the initial 
+(first) definition of a Call.

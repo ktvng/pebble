@@ -1,0 +1,9 @@
+Factorial(X):
+    if X is 0
+        return 1
+    return X * Factorial(X-1)
+
+Apply = (F, Arg):
+    say F(Arg)
+
+Apply(Factorial, 5)
