@@ -24,7 +24,7 @@ int g_line = 0;
 
 std::string RightEdge()
 {
-    int rightTabSize = 6;
+    int rightTabSize = 8;
     int digitsOfLine = DigitsOfInt(g_line);
 
     std::string rightEdge;
@@ -180,7 +180,6 @@ std::string IfNeededAddSpace(const Token* token, const Token* lastToken)
 
 void PrintProgramToConsole(const Program* p)
 {
-    std::cout << CONSOLE_RESET << "  The Code:\n\n";
     g_line = 1;
     int lastLineNumber = 1;
     for(auto& codeLine: p->Lines)

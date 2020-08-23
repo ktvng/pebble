@@ -16,6 +16,6 @@ struct Documentation
 };
 
 void ParseDoc(std::string filepath, Documentation& doc);
-void DisplaySection(Documentation& doc, std::string sectionName);
+void DisplaySection(Documentation& doc, std::string sectionName, int indent=1);
 
 #endif

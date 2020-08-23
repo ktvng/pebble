@@ -12,5 +12,6 @@ struct Demo
     std::string DocumentationPath;
 };
 
+std::string DemoIndentLevel(int level);
 
 #endif
