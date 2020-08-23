@@ -87,7 +87,7 @@ void ParseDoc(std::string filepath, Documentation& doc)
     }
 }
 
-const int GuardLineSize = 60;
+const int GuardLineSize = 70;
 const int IndentSize = 4;
 
 inline void StartLine(int& currentLineSize, int indent)
