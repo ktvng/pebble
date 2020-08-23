@@ -9,10 +9,8 @@ int RunDemo();
 struct Demo
 {
     std::string FilePath;
-    std::string MetaFilePath;
+    std::string DocumentationPath;
 };
-
-static std::vector<Demo> Demos;
 
 
 #endif

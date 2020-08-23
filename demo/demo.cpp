@@ -2,9 +2,12 @@
 #include <fstream>
 #include <sstream>
 
+#include "demo.h"
+
 #include "abstract.h"
 #include "display.h"
 #include "consolecolor.h"
+#include "docs.h"
 
 #include "main.h"
 #include "grammar.h"
@@ -110,21 +113,18 @@ void DisplayDemoHeader()
         return;
     }
 
-    std::cout << "\nDemo #" << g_demoNumber << "\n";
+    std::cout << "\nDEMO #" << g_demoNumber << "\n";
     g_demoNumber += 1;
     std::cout << std::endl;
 
 }
 
-void RunFileAsDemo(std::string filepath)
+void RunDemoFile(std::string filepath)
 {
-    std::system("clear");
     ProgramOutput.clear();
     ProgramMsgs.clear();
     FatalCompileError = false;
 
-    DisplayDemoHeader();
-    
     CompileGrammar();
 
     Program* p = nullptr;
@@ -132,7 +132,6 @@ void RunFileAsDemo(std::string filepath)
 
     if(FatalCompileError || p == nullptr)
     {
-        std::cout << CONSOLE_RESET << "It looks like you have a syntax error\n";
         DisplayCompileOutput();
         return;
     }
@@ -143,6 +142,21 @@ void RunFileAsDemo(std::string filepath)
     std::cout << CONSOLE_RESET << std::endl << std::endl;
 
     DisplayProgramOutput();
+}
+
+
+void InternalRunDemo(Demo& demo)
+{
+    std::system("clear");
+
+
+    DisplayDemoHeader();
+    
+    Documentation doc;
+    ParseDoc(demo.DocumentationPath, doc);
+    DisplaySection(doc, "Overview");
+
+    RunDemoFile(demo.FilePath);
 
     Wait();
 }
@@ -163,19 +177,37 @@ void DeploySandbox()
 
         Wait();
 
-        RunFileAsDemo("./program.pebl");
+        RunDemoFile("./program.pebl");
+
+        if(FatalCompileError)
+        {
+            std::cout << CONSOLE_RESET << "Oh no! It looks like you have a syntax error...\n\n";
+        }
 
     } while(PromptYN("Keep editing your program?"));
-
 }
+
+static std::vector<Demo> Demos = 
+{
+    {
+        "./test/programs/TestFeature_Nothing.pebl",
+        "./demo/demos/docs/demo1"
+    },
+    {
+        "./test/programs/TestFeature_TypedContainer.pebl",
+        "./demo/demos/docs/demo1"
+    }
+};
 
 int RunDemo()
 {
     g_demoNumber = 1;
     g_sandboxMode = false;
 
-    RunFileAsDemo("./test/programs/TestFeature_Nothing.pebl");
-    RunFileAsDemo("./test/programs/TestFeature_TypedContainer.pebl");
+    for(auto& demo: Demos)
+    {
+        InternalRunDemo(demo);
+    }
 
     DeploySandbox();
 
