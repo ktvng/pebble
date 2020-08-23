@@ -37,11 +37,12 @@ const char* WIN32_CONSOLE_COLOR(int i);
 #define CONSOLE_UNDERLINE   "\033[4m"
 #define CONSOLE_BOLD        "\033[1m"
 
-#define CONSOLE_C1      "\033[38;2;239;71;111m"
-#define CONSOLE_C2      "\033[38;2;255;209;102m"
-#define CONSOLE_C3      "\033[38;2;6;214;160m"
-#define CONSOLE_C4      "\033[38;2;17;138;178m"
-#define CONSOLE_C5      "\033[38;2;98;98;147m"
+#define CONSOLE_C1      "\033[38;2;184;187;38m"
+#define CONSOLE_C2      "\033[38;2;215;153;33m"
+#define CONSOLE_C3      "\033[38;2;141;165;165m"
+#define CONSOLE_C4      "\033[38;2;211;134;155m"
+#define CONSOLE_C5      "\033[38;2;142;192;124m"
+#define CONSOLE_C6      "\033[38;2;204;26;29m"
 
 #endif
 
