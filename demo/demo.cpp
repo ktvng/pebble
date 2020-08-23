@@ -22,7 +22,7 @@ int g_demoNumber = 1;
 void Wait()
 {
     std::string s;
-    std::cout << CONSOLE_MAGENTA << "Press (ENTER) to continue\n" << CONSOLE_RESET;
+    std::cout << CONSOLE_MAGENTA << "\nPress (ENTER) to continue\n" << CONSOLE_RESET;
     std::getline(std::cin, s);
 }
 
@@ -72,7 +72,13 @@ std::string DemoIndentLevel(int level)
 
 void InternalDisplayProgramOutput(std::string output)
 {
-    std::cout << DemoIndentLevel(1) << "The Output:\n\n";
+    std::cout 
+        << CONSOLE_RESET 
+        << DemoIndentLevel(1) 
+        << CONSOLE_UNDERLINE 
+        << CONSOLE_BOLD 
+        << "The Output:\n\n"
+        << CONSOLE_RESET;
 
     if(output[output.size()-1] == '\n')
     {
@@ -120,7 +126,13 @@ void DisplayCompileOutput()
 
 void DisplayDemoHeader()
 {
-    std::cout << "DEMO #" << g_demoNumber << "\n";
+    std::cout 
+        << CONSOLE_RESET
+        << CONSOLE_BOLD
+        << CONSOLE_UNDERLINE
+        << "DEMO #" << g_demoNumber << "\n"
+        << CONSOLE_RESET;
+
     g_demoNumber += 1;
     std::cout << std::endl;
 
@@ -137,7 +149,14 @@ void RunDemoFile(std::string filepath)
     Program* p = nullptr;
     p = ParseProgram(filepath);
 
-    std::cout << CONSOLE_RESET << DemoIndentLevel(1) << "The Code:\n\n";
+    std::cout 
+        << CONSOLE_RESET 
+        << DemoIndentLevel(1) 
+        << CONSOLE_UNDERLINE 
+        << CONSOLE_BOLD 
+        << "The Code:\n\n"
+        << CONSOLE_RESET;
+
     PrintProgramToConsole(p);
 
     if(FatalCompileError || p == nullptr)
@@ -164,6 +183,7 @@ void InternalRunDemo(Demo& demo)
     ParseDoc(demo.DocumentationPath, doc);
     DisplaySection(doc, "Overview");
     RunDemoFile(demo.FilePath);
+    DisplaySection(doc, "Details");
 
     Wait();
 }
@@ -174,7 +194,7 @@ void DipslayConclusion()
 
     Documentation doc;
     ParseDoc("./demo/demos/docs/conclusion", doc);
-    DisplaySection(doc, "Thank You!", 0);
+    DisplaySection(doc, "Thanks", 0);
     Wait();
     
     std::system("clear");
@@ -216,6 +236,10 @@ void DeploySandbox()
 
 static std::vector<Demo> Demos = 
 {
+    {
+        "./demo/demos/programs/p1.pebl",
+        "./demo/demos/docs/demo1"
+    },
     {
         "./test/programs/TestFeature_Nothing.pebl",
         "./demo/demos/docs/demo1"
