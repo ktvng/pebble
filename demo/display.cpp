@@ -17,7 +17,7 @@ const char* SYS_COLOR = CONSOLE_C5;
 const char* STRING_COLOR = CONSOLE_C4;
 const char* NUMBER_COLOR = CONSOLE_C4;
 const char* LITERAL_COLOR = CONSOLE_C3;
-const char* SPECIAL_CALL_COLOR = CONSOLE_C2;
+const char* SPECIAL_CALL_COLOR = CONSOLE_C2; 
 const char* BIND_TYPE_COLOR = CONSOLE_C2;
 
 int g_line = 0;
