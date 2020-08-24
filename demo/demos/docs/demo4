@@ -9,7 +9,6 @@ in the 'grammar.txt' file as preprocessor rules.
 An aside on the grammar: The grammar is a freely editable text file which encodes 
 CFG (context free grammar) production rules.
 
-
 # Details
 
 The 'that' keyword in each if-clause refers to the same line, specifically the 

@@ -1,0 +1,12 @@
+Class:
+    Attribute1
+    Attribute2 = 0
+
+    Method1():
+        return 0
+
+    Method2 = ():
+        return 0
+
+X = Class()
+say X's Attribute2

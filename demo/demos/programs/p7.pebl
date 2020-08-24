@@ -1,0 +1,23 @@
+Car:
+    Fuel
+    Efficiency
+
+    Drive(Distance):
+        Fuel = Fuel - Distance / Efficiency
+
+    Has():
+        self.Car = caller
+
+        self.Efficiency = (E):
+            Car.Efficiency = E
+
+        self.Fuel = (F):
+            Car.Fuel = F
+
+        return self
+
+MyCar is a Car()
+MyCar Has() Efficiency(30.0) Fuel(10.0)
+
+MyCar.Drive(60.0)
+print MyCar's Fuel

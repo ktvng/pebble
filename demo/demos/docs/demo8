@@ -1,0 +1,95 @@
+# Overview
+
+Whats really happening?
+
+
+This page outlines in detail what's really happening behind the scenes of Pebble. 
+It's something that isn't required to appreciate the syntax behind Pebble, but it 
+is useful when moving into advanced topics and when pushing the boundaries of the 
+language.
+
+
+Pebble is first and foremost intended to be a language for beginners. Most of the 
+syntax we have seen can be explained nicely by an object-oriented paradigm, and the 
+equivalence of objects with methods never needs to be introduced until a basic mastery 
+is achieved. The following theory behind Pebble is meant for the advanced user, and 
+is not required to use, or even achieve proficiency, at Pebble.
+
+
+This section, then, can be considered optional in that it is not strictly necessary 
+in understanding much of the Pebble syntax. We find it interesting in and of itself 
+and have therefore included it in the demo.
+
+# Details
+
+When we first introduced the Call, it was described as a variable, but with some 
+additional, hidden complexity. Formally, a call can be understood as a container which 
+can hold any/all of three abstract entities: a scope, a section, and a type.
+
+
+  - Here scope is used in the standard sense. It is a collection of Calls which are 
+accessible.
+
+
+  - A section is sometimes referred to as a Block in certain languages--it is a 'section' 
+of executable Pebble code. In general, it is distinguished by indent level
+
+
+  - A type is an representation of the identity of the Call (literally, it's type).
+
+
+A Call, then, can hold one, two, or all three of these entities. When it is given 
+one of them, we say that it is 'bound' to it. When a Call is evaluated, (i.e. Call()), 
+it's bound section is evaluted over a new scope. 
+
+
+With this terminology, we can now redefine the ideas of a method, object, and class. 
+
+
+A method is a Call bound to a section. When executed, that section returns some value 
+which is then the return value of the method.
+
+
+A object is a Call bound to a scope. Using the dot operator, we can resolve different 
+call names inside this scope. This scope, then, can be said to contain the attributes 
+of the object--methods and all.
+
+
+A class is a special case of a method. It is bound to a section, and in particular, 
+that section returns 'self'. Thus when a class is evaluated (i.e. an instance created), 
+the section bound to that class is evaluted over a new scope. The code of this section 
+populates this new scope with Calls, and in the end, 'return self' returns a new Call 
+bound to this scope. Thus a class is truly a blueprint for an object that gets evaluated 
+every time an instance is needed. 
+
+
+In the example above, `Class` is simply a method (recall that methods which take no 
+arguments may omit the parentheses). Lines [2] and [3] try to resolve Calls. Because 
+no such Calls exist, a new Call is created inside the local scope of 'Class'. These new 
+Calls are bound to Nothing and named 'Attribute1' and 'Attribute2' respectively. 
+Where line [3] diverges, however, is that after its creation, 'Attribute2' is reassigned 
+from Nothing to 0, all inside the local scope of 'Class'
+
+
+The same thing happens on lines [5] and [8]. Recall that the syntax of line [5] is 
+really just a shorthand for that of line [8]. Instead of being assigned to an Integer, 
+however, these two Calls ('Method1' and 'Method2') are assigned to the section below 
+them by the ':' operator. They are, therefore, considered methods by our new definition.
+
+
+Finally, recall that in the absence of a user-defined return statement, a section 
+will return either 'self' or 'caller'. As there is no 'caller' on line [11], 'self' 
+is returned. Here 'self' is a Call bound to the local scope of 'Class'. It has all 
+the Calls which were just created. It is, for all intents and purposes, an object.
+
+
+Whenever evaluation occurs, it always populates a new scope, thus avoiding overriding 
+the existing scope and allowing multiple instances of an 'object' to be created.
+
+
+In summary, objects/methods/classes are all variants of Calls in which the emphasis 
+of scope/section is varied. An object can also be bound to a section just as a method 
+can also be bound to a scope. 
+
+
+Finally, types will be covered in detail with the type system. 
