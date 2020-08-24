@@ -26,10 +26,10 @@ Further, any conditional which evalutes to 'Nothing' is treated as false.
 In the example above, finding a 'Book' with 'Id=33' works nicely in the first example 
 as expected, even though the 2nd book, by Spinoza, has no Id. Similarly, the 
 second query for a 'Book' with 'Id=3' does not throw an error, but returns 'Nothing' 
-even though there is no 'Book' matching this description.
+even though there is no 'Book' matching this description. 
 
 
-Operations can be considered "monadic" by default. Our philosophy is that top level
+Operations can be considered "monadic" by default. Our philosophy is that top level 
 checks can be employed to deal with 'Nothing' behavior. Instead of checking for 'Nothing' 
 at every step, which can still be done, checking can now be done at the highest level, 
-to declutter and simplify code.
+to declutter and simplify code. 

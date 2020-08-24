@@ -1,0 +1,18 @@
+# Overview
+
+Two facts about Pebble's type system allow for interesting method typing. (1) Methods 
+are evaluted on a copy, and (2) types are bound at first assignments. This enables a 
+generic-by-default pattern. Creating non-generic methods is also possible and 
+can be done in an intuitive way.
+
+# Details
+
+On line [20], 'Introduce' is a method which (by default), takes a generic Call 
+named 'Someone'. When this method is invoked, a copy is created, and the Call 
+'Someone' of this copy is bound to the type of the parameter. This allows the original 
+method to retain its generic, unbound 'Someone' Call.
+
+
+Notice that 'Introduce' works for all three object types. Further, when line [27] 
+attempts to reassign 'Someone' (which is a Noble) to a 'Doctor', a fatal exception 
+is thrown by the runtime.

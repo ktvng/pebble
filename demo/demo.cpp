@@ -253,6 +253,11 @@ static std::vector<Demo> Demos =
     PEBL_DEMO_N(7),
     PEBL_DEMO_N(8),
     PEBL_DEMO_N(9),
+    PEBL_DEMO_N(10),
+    PEBL_DEMO_N(11),
+    PEBL_DEMO_N(12),
+    PEBL_DEMO_N(13),
+    PEBL_DEMO_N(14),
 };
 
 int RunDemo()
