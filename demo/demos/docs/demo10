@@ -1,0 +1,30 @@
+# Overview
+
+This page covers the details of the type system. Pebble is intended to be statically 
+typed with type inference, although the compile-time checking has not yet been fully 
+implemented. 
+
+# Details
+
+Calls take on a type when they are defined, and this type is enforced henceforth. 
+Types are specified using the 'a'/'an' keywords. As on line [4], these operators 
+bind the name of the following Call as a type to a new Call. 
+
+
+Thus to understand line [4], 'a String' bind the type 'String' to a new Call. The is 
+operator then defines 'X' by transferring this bound type to 'X'.
+
+
+The primitive types are Strings, Integers, Decimals, and Booleans. Chars are represented 
+as a special case of Strings. 
+
+When non-primitive objects are printed, their type is printed in brackets.
+
+
+The reason that line [5] prints '<String?>' is that 'X' is bound to a 'String' type, but 
+not to a specific instance of a String (more formally, not to a specific scope/section 
+representing a String). The '?' indicates this indeterminancy. Note also, that while 
+it is technically a String, it is also still 'Nothing' as it has not been fully defined.
+
+
+Line [7] produces an error as expected.

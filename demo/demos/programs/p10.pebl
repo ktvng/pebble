@@ -1,0 +1,7 @@
+X
+print X
+
+X is a String
+print X
+
+X = 12
