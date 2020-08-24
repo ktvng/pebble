@@ -5,7 +5,7 @@ Pebble takes on Pythonic attributes. Currently we are working to include support
 curly-braces as well which will also improve the use of lambda expressions.
 
 
-Parentheses are optional, and are only needed when there are > 0 arguments
+Parentheses are optional, and are only needed when the method takes > 0 arguments
 
 # Details
 

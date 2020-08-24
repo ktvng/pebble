@@ -17,6 +17,7 @@
 
 #include "diagnostics.h"
 
+
 int g_demoNumber = 1;
 
 void Wait()
@@ -234,40 +235,24 @@ void DeploySandbox()
     } while(PromptYN("Keep editing your program?"));
 }
 
+
+#define PEBL_DEMO_N(X)                                      \
+{                                                           \
+    "./demo/demos/programs/p"+std::to_string(X)+".pebl",    \
+    "./demo/demos/docs/demo"+std::to_string(X)              \
+}
+
 static std::vector<Demo> Demos = 
 {
-    {
-        "./demo/demos/programs/p1.pebl",
-        "./demo/demos/docs/demo1"
-    },
-    {
-        "./demo/demos/programs/p2.pebl",
-        "./demo/demos/docs/demo2"
-    },
-    {
-        "./demo/demos/programs/p3.pebl",
-        "./demo/demos/docs/demo3"
-    },
-    {
-        "./demo/demos/programs/p4.pebl",
-        "./demo/demos/docs/demo4"
-    },
-    {
-        "./demo/demos/programs/p5.pebl",
-        "./demo/demos/docs/demo5"
-    },
-    {
-        "./demo/demos/programs/p6.pebl",
-        "./demo/demos/docs/demo6"
-    },
-    {
-        "./test/programs/TestFeature_Nothing.pebl",
-        "./demo/demos/docs/demo1"
-    },
-    {
-        "./test/programs/TestFeature_TypedContainer.pebl",
-        "./demo/demos/docs/demo1"
-    }
+    PEBL_DEMO_N(1),
+    PEBL_DEMO_N(2),
+    PEBL_DEMO_N(3),
+    PEBL_DEMO_N(4),
+    PEBL_DEMO_N(5),
+    PEBL_DEMO_N(6),
+    PEBL_DEMO_N(7),
+    PEBL_DEMO_N(8),
+    PEBL_DEMO_N(9),
 };
 
 int RunDemo()
