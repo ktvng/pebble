@@ -1,0 +1,15 @@
+# Overview
+
+In fact, object, classes, and methods are all really the same thing.
+
+# Details
+
+The example above demonstrates a method acting a lot like an object by returning 
+itself. Lines [2] creates a new Call named 'Greater' in the method's local scope. 
+Line [3] does the same, with the 'self' keyword emphasizing that 'Lesser' is 
+to exist in this local scope.
+
+
+Line [12] returns 'self' which allows both these two calls to be accessed in the 
+scope of the returned entity. Line [17] explicity captures this returned entity 
+as a Call.

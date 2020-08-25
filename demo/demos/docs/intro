@@ -1,15 +1,24 @@
 # Intro
 
-Welcome to the Pebble PL interactive demo (because documentation is always 
-more fun when interactive?). 
+Welcome to the Pebble PL interactive demo. Here we highlight a few interesting 
+peculiarities of Pebble's syntax, underlying paradigms, and conventions. At the 
+end, we'll also give you an opportunity to play around with some of these features 
+for yourself.
 
 
-Pebble is an open source interpreted scripting language designed to explore how 
+Pebble is high-level, interpreted language designed to explore how 
 syntax and programming primitives can be reimagined in a more familiar, 
-human-friendly way. Our mission is to create a language that is easy to pick up, 
-straightforward to learn, and expressive enough to be impactful. 
+human-friendly way. 
+
+
+Our mission is to create a language that is easy to pick up, 
+straightforward to learn, and expressive enough to be useful. 
 Achieving these goals involves finding innovative solutions to reduce syntax 
 constraints and designing novel ways to think about coding primitives.
+
+
+We also introduce a new, abstract programming paradigm which can emulate both 
+object-oriented and functional-programming paradigms.
 
 # Details
 
@@ -17,14 +26,17 @@ For the best experience, please resize your terminal so that the next line of te
 doesn't wrap/overflow
 
 
-(---------------------------------This-should-be-one-line--------------------------------)
+(--------------------------------This-should-be-one-line--------------------------------)
 
 
-The interactive demo is built up of different 'pages'. Each page consists of a 
-true Pebble program which has been parsed, interpreted, and colorized for your 
-viewing pleasure. The program's real output is included under it, along with 
-an explanation of what's going on under the hood (if necessary).
+The interactive demo is built up of different 'pages'. Each page is intended to 
+serve as an overview of a specific Pebble features. It contains an 
+actual Pebble program with syntax highlighting, as well as program's actual 
+output.
 
 
-Certain sections will also include brief descriptions of the motivation behind 
-a certain design choice. Enjoy!
+A 'Details' section explains what the syntax does and some of the design motivations 
+behind the feature. We encourage you to read all explanations.
+
+
+Enjoy!

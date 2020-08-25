@@ -1,12 +1,15 @@
-Class:
-    Attribute1
-    Attribute2 = 0
+Car:
+    Car's Count = Car's Count + 1
 
-    Method1():
-        return 0
+    Fuel
+    Efficiency
 
-    Method2 = ():
-        return 0
+    Drive(Distance):
+        Fuel = Fuel - Distance / Efficiency
 
-X = Class()
-say X's Attribute2
+Car's Count = 0
+
+Car1 is a Car()
+Car2 is a Car()
+
+say Car's Count

@@ -1,0 +1,25 @@
+# Overview
+
+In Pebble, classes are methods.
+
+# Details
+
+Line [1] demonstrates a simple method. A method, of course, is just a section of Pebble code 
+which is executed inside its own local scope.
+
+
+Line [4] defines another method... but instead of returning a simple value, it returns 
+'self'! Specifically, returning itself means returning an entity ("object") whose 
+own scope is the local scope of 'Class'.
+
+'Attribute1', 'Attribute2', and 'ClsMethod' have all been defined inside this 
+local scope, so that returned entity, assigned on line [13] to 'MyObject', has 
+all of these Calls in its local scope.
+
+
+Further, when a method is called, it's run on a new local scope. This prevents a class from 
+overwriting the instance data of previous objects. 
+
+
+A class can be conceptualized truly as a blueprint for an object--it literally contains 
+the instructions required to produce a new object!

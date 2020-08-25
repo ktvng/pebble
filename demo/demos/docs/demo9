@@ -1,6 +1,10 @@
 # Overview
 
-Here we introduce more formally the notion of Nothing. The example relies on the 
+Here we introduce more formally the notion of Nothing. For anyone who knows Haskell, 
+it's kinda like a monad.
+
+
+The example relies on the 
 type system, which we will fully explain on a later page. For now, we believe that 
 the syntax regarding typing is intuitive enought that developing a working understanding 
 does not requies additional explanation.
@@ -31,5 +35,5 @@ even though there is no 'Book' matching this description.
 
 Operations can be considered "monadic" by default. Our philosophy is that top level 
 checks can be employed to deal with 'Nothing' behavior. Instead of checking for 'Nothing' 
-at every step, which can still be done, checking can now be done at the highest level, 
+at every step (which is still possible), checking can now be done at the highest level, 
 to declutter and simplify code. 

@@ -1,19 +1,18 @@
 # Overview
 
 Pebble refers to variables as 'Calls'. If a Call is used before it is defined, it 
-will refer to 'Nothing', which is the Pebble equivalent of 'Null'/'None'
+will by default refer to 'Nothing', which is the Pebble equivalent of 'null'/'None'
 
 
-While Calls can be thought of as similar to variables, they are in reality 
-slightly more complex to enable certain higher-level functions of Pebble. This 
-complexity, however, is not necessary to in order to pick up the basics of Pebble.
-
-
-Calls must begin with capital letters. The motivation behind this is to relate 
-Calls to proper nouns, which in English are capitalized. We are testing this 
-feature and very well might decide to change it if it becomes too bothersome.
+Calls are actually more complex than variables, and are the main primitive of 
+the call-binding paradigm which Pebble uses (more on this later).
 
 # Details
+
+Motivied by the rule in English where proper nouns are capitalized, Calls must also 
+be capitalized. Our hope is that this draws a parallel between a Call and a proper 
+noun. This feature, however, is still being tested and subject to change.
+
 
 Here 'MyName' is a Call. It's initially undefined (line [1]) and so refers to Nothing. 
 We'll cover the 'Nothing' construct in detail later on.

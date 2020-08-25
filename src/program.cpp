@@ -453,6 +453,7 @@ Block* ParseBlock(
 Program* ParseProgram(const std::string filepath)
 {
     InitParser();
+    g_tabString.clear();
     
     Program* p = ProgramConstructor();
 
@@ -478,6 +479,11 @@ Program* ParseProgram(const std::string filepath)
         CodeLine ls = { noComments , lineStart, lineLevel };
         p->Lines.push_back(ls);
 
+    }
+
+    if(p->Lines.empty())
+    {
+        return nullptr;
     }
 
     // TODO: Allow different blocks
