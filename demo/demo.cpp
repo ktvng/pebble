@@ -18,12 +18,26 @@
 #include "diagnostics.h"
 
 
-int g_demoNumber = 1;
+size_t g_demoNumber = 1;
+
+bool Transition()
+{
+    std::string s;
+    std::cout << CONSOLE_C5 << "\nPress (ENTER) to continue, or ('b' + ENTER) to go back\n";
+    std::getline(std::cin, s);
+
+    if(s.size() == 1 && s[0] == 'b')
+    {
+        return false;
+    }
+
+    return true;
+}
 
 void Wait()
 {
     std::string s;
-    std::cout << CONSOLE_MAGENTA << "\nPress (ENTER) to continue\n" << CONSOLE_RESET;
+    std::cout << CONSOLE_C5 << "\nPress (ENTER) to continue\n" << CONSOLE_RESET;
     std::getline(std::cin, s);
 }
 
@@ -32,7 +46,7 @@ bool PromptYN(std::string prompt)
     while(true)
     {
         std::string s;
-        std::cout << CONSOLE_MAGENTA << prompt << " (Y/n)\n" << CONSOLE_RESET;
+        std::cout << CONSOLE_C5 << prompt << " (Y/n)\n" << CONSOLE_RESET;
         std::getline(std::cin, s); 
 
         if(s == "n")
@@ -134,7 +148,6 @@ void DisplayDemoHeader()
         << "DEMO #" << g_demoNumber << "\n"
         << CONSOLE_RESET;
 
-    g_demoNumber += 1;
     std::cout << std::endl;
 
 }
@@ -198,8 +211,6 @@ void InternalRunDemo(Demo& demo)
     DisplaySection(doc, "Overview");
     RunDemoFile(demo.FilePath);
     DisplaySection(doc, "Details");
-
-    Wait();
 }
 
 void DipslayConclusion()
@@ -220,9 +231,19 @@ void DisplayIntro()
 
     Documentation doc;
     ParseDoc("./demo/demos/docs/intro", doc);
-    DisplaySection(doc, "Setup", 0);
     DisplaySection(doc, "Intro", 0);
     DisplaySection(doc, "Details", 0);
+
+    Wait();
+}
+
+void DisplaySetup()
+{
+    std::system("clear");
+
+    Documentation doc;
+    ParseDoc("./demo/demos/docs/setup", doc);
+    DisplaySection(doc, "Setup", 0);
 
     Wait();
 }
@@ -279,12 +300,28 @@ static std::vector<Demo> Demos =
 
 int RunDemo()
 {
-    DisplayIntro();
+    DisplaySetup();
 
-    g_demoNumber = 1;
-    for(auto& demo: Demos)
+    g_demoNumber = 0;
+    while(g_demoNumber < Demos.size())
     {
-        InternalRunDemo(demo);
+        if(g_demoNumber == 0)
+        {
+            DisplayIntro();
+            g_demoNumber = 1;
+        }
+        else
+        {
+            InternalRunDemo(Demos[g_demoNumber]);
+            if(Transition())
+            {
+                g_demoNumber++;
+            }
+            else
+            {
+                g_demoNumber--;
+            }
+        }
     }
 
     DeploySandbox();
