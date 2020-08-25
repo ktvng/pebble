@@ -1,0 +1,17 @@
+Person:
+    Name is a String
+    Brother is a String
+
+    Called(Name):
+        caller.Name = Name
+
+SpeakTo(a Person):
+    say "I'm " + the Person's Name
+    say "Let me introduce my Brother..."
+    return a Person() Called(Name= the Person's Brother)
+
+Bob is a Person() Called(Name="Bob")
+Bob's Brother = "Joe"
+
+Joe = SpeakTo(Bob)
+say Joe's Name
