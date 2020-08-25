@@ -1,3 +1,11 @@
+# Setup
+
+For the best experience, please resize your terminal so that the next line of text 
+doesn't wrap/overflow
+
+
+(--------------------------------This-should-be-one-line--------------------------------)
+
 # Intro
 
 Welcome to the Pebble PL interactive demo. Here we highlight a few interesting 
@@ -21,13 +29,6 @@ We also introduce a new, abstract programming paradigm which can emulate both
 object-oriented and functional-programming paradigms.
 
 # Details
-
-For the best experience, please resize your terminal so that the next line of text 
-doesn't wrap/overflow
-
-
-(--------------------------------This-should-be-one-line--------------------------------)
-
 
 The interactive demo is built up of different 'pages'. Each page is intended to 
 serve as an overview of a specific Pebble features. It contains an 

@@ -220,6 +220,7 @@ void DisplayIntro()
 
     Documentation doc;
     ParseDoc("./demo/demos/docs/intro", doc);
+    DisplaySection(doc, "Setup", 0);
     DisplaySection(doc, "Intro", 0);
     DisplaySection(doc, "Details", 0);
 
