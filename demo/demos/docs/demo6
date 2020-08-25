@@ -1,38 +1,26 @@
 # Overview
 
-Classes and methods are actually the same. To understand how this works, it is 
-important to understand how Calls are created. Whenever a Call is used, it is 
-resolved via lookup in some scope-chain. If it is not found, then a new Call is 
-"created" in the local scope. 
+Pebble uses the ideas of 'self' and 'caller' to refer to different elements of a 
+scope chain.
 
 
-When a method is run, its local scope is populated. This can be with Calls that 
-refer to 'objects' OR Calls that refer to 'methods'. This is the case in most 
-other languages as well; where Pebble diverges, however, is that because methods 
-are technically 'objects', they can return themselves.
-
-
-To understand a class then, it is simply a method which returns itself after 
-populating an attribute. A class is literally a "blueprint" to construct an object. 
+In most languages, the distinction between 'caller' and 'self' does not exist because 
+methods are considered part of the object to which they belong, and their scope purely 
+local. Pebble, however, 
+in treating methods like objects, must precisely distinguish between Calls in the methods own 
+local scope and those in the scope of its parent object.
 
 # Details
 
-Whenever lines `Car()` is called, lines [2-15] create attributes in a new local 
-scope which is returned by line [15]. The `Init` method is simply a method which 
-populates the Car's internal state.
-
-
-Because methods are objects, Pebble needs to introduce a distinction between the 
-ideas of 'caller' and 'self'. In most langauges, this distinction does not exist 
-because objects contain methods which are "part of them". Instead, in Pebble, 
-`Refuel`, `Drive`, and `Init` are 'objects' with their own scope, the 'self' keyword 
-will actually refer to their own (local) scope. To refer to the scope of the object 
-which calls them, 'caller is used'.
+In the example, `Refuel`, `Drive`, and `Init` can be thought of as their own 'objects',
+with their own scope. Thus, the 'self' keyword will actually refer to their own 
+(local) scope. To refer to the scope of the object which calls them, 'caller is used'.
 
 
 More concretely, when an object calls a method, as in line [18], the caller is the 
 object on the left of the '.'
 
 
-Additionally, line [21] demonstrates the another alias: the '.' operator is also 
-aliased to the ''s' operator for readability.
+Line [21] demonstrates the another alias: the '.' operator is also 
+aliased to the ''s' operator for readability. The caller then, is the Call on the 
+left of the ''s'. 

@@ -1,9 +1,8 @@
 # Overview
 
-Pebble PL syntax is intended to read naturally, be expressive without requiring a prior 
-knowledge of conventions/concepts, and above all else, make sense.
+Pebble PL syntax tries to represent programming as a dialogue between coder and 
+computer. The code reads naturally, and even without prior experience, makes sense.
 
 # Details
 
-Here's the obligatory 'helloworld' program. I/O is still in the process of being 
-formalized but the goal is to keep it about this simple
+The obligatory 'helloworld' program.

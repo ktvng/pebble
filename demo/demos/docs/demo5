@@ -1,19 +1,21 @@
 # Overview
 
-Methods are defined with the ':' operator followed by an indent block. In that regard 
-Pebble takes on Pythonic attributes. Currently we are working to include support for 
-curly-braces as well which will also improve the use of lambda expressions.
+Methods are defined with the ':' operator followed by an indent block. We are currently 
+working to support curly-braces for use with lambda expressions!
 
 
-Parentheses are optional, and are only needed when the method takes > 0 arguments
+Parentheses are optional, and are only required when the method takes a non-zero 
+number of arguments
 
 # Details
 
 There is no special keyword required to define method except for the ':' operator. 
-This operator is only used in this context to avoid any ambiguity.
+To avoid ambiguity, this is the only use of the colon.
 
 
-Methods are really just 'objects' in a manner of speaking. The standard syntax 
-for defining a method (line [1]) is can be understood as the implicit creation 
-and subsequent assignment of a lambda to a Call (line [6]). In this regard, 
-methods are first class citizens can can be passed as arguments.
+Method Calls (such as 'Factorial') are really just Calls which refer to a lambda 
+expression. Line [6] demonstrates the syntax for creation and assigning a lambda 
+expression. Line [1] does exactly the same, albeit implicity.
+
+
+In this way, methods can be regarded as first-class citizens.

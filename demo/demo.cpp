@@ -150,6 +150,19 @@ void RunDemoFile(std::string filepath)
     Program* p = nullptr;
     p = ParseProgram(filepath);
 
+    if(p == nullptr)
+    {
+        std::cout 
+            << CONSOLE_RESET 
+            << DemoIndentLevel(1) 
+            << CONSOLE_UNDERLINE 
+            << CONSOLE_BOLD 
+            << "No code to show:\n\n"
+            << CONSOLE_RESET;
+
+        return;
+    }
+
     std::cout 
         << CONSOLE_RESET 
         << DemoIndentLevel(1) 
@@ -160,7 +173,7 @@ void RunDemoFile(std::string filepath)
 
     PrintProgramToConsole(p);
 
-    if(FatalCompileError || p == nullptr)
+    if(FatalCompileError)
     {
         std::cout << CONSOLE_RESET << std::endl;
         DisplayCompileOutput();
@@ -249,6 +262,9 @@ static std::vector<Demo> Demos =
     PEBL_DEMO_N(3),
     PEBL_DEMO_N(4),
     PEBL_DEMO_N(5),
+    PEBL_DEMO_N(501),
+    PEBL_DEMO_N(502),
+    PEBL_DEMO_N(503),
     PEBL_DEMO_N(6),
     PEBL_DEMO_N(7),
     PEBL_DEMO_N(8),
@@ -256,8 +272,8 @@ static std::vector<Demo> Demos =
     PEBL_DEMO_N(10),
     PEBL_DEMO_N(11),
     PEBL_DEMO_N(12),
-    PEBL_DEMO_N(13),
-    PEBL_DEMO_N(14),
+    // PEBL_DEMO_N(13),
+    // PEBL_DEMO_N(14),
 };
 
 int RunDemo()

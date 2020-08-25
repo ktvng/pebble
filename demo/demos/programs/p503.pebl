@@ -1,0 +1,19 @@
+Order(X, Y):
+    Greater
+    self.Lesser
+    
+    if X is greater than Y
+        Greater = X
+        Lesser = Y
+    else
+        Greater = Y
+        Lesser = X
+
+    return self
+
+if Order(4, 54).Greater > 11
+    say "the greater of 4 and 54 is greater than 10"
+
+Ordering = Order(23, 10)
+if Ordering.Lesser < 11
+    say "the lesser of 23 and 10 is less than 11"

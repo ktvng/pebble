@@ -2,9 +2,6 @@ Car():
     Fuel
     Efficiency
 
-    Refuel(Amount):
-        Fuel = Fuel + Amount
-
     Drive(Distance):
         Fuel = Fuel - Distance / Efficiency
 
