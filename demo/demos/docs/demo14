@@ -1,0 +1,17 @@
+# Overview
+
+Pebble allows for type-unsafe regions. Using the 'Anything' keyword, a Call can 
+be marked as purely generic. The compiler assumes that "objects" stored in an 
+'Anything' Call are type consistant, and type errors are caught at runtime.
+
+# Details
+
+By assigning 'X' to the 'Anything' type, we allow 'X' to hold members of any 
+type. The type of the entity held by 'X', however, is retained, and runtime 
+type checking ensures type consistency upon retrival of an object stored in an 
+Anything call. 
+
+
+Note: this feature is partly a bug. We've yet to implement type-casting, and when we 
+do, we will reconsider whether or not to enforce explicit type-casting when 
+extracting an entity from an 'Anything' call.

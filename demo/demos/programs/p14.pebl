@@ -1,0 +1,10 @@
+X is Anything
+
+X = "get out the vote!"
+say X
+
+X = 2020
+say X
+
+Y is a String
+Y = X

@@ -208,7 +208,7 @@ void DipslayConclusion()
 
     Documentation doc;
     ParseDoc("./demo/demos/docs/conclusion", doc);
-    DisplaySection(doc, "Thanks", 0);
+    DisplaySection(doc, "The End", 0);
     Wait();
     
     std::system("clear");
@@ -272,8 +272,8 @@ static std::vector<Demo> Demos =
     PEBL_DEMO_N(10),
     PEBL_DEMO_N(11),
     PEBL_DEMO_N(12),
-    // PEBL_DEMO_N(13),
-    // PEBL_DEMO_N(14),
+    PEBL_DEMO_N(13),
+    PEBL_DEMO_N(14),
 };
 
 int RunDemo()

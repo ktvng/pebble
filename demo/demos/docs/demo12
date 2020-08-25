@@ -1,17 +1,19 @@
 # Overview
 
-This page builds on the last example and introduces the mixins construction supported by 
-Pebble.
+Building on the last example, this page introduces Pebble's mixin construction.
+
+
+We also demonstrate the construction of a statically-typed, non-generic method. 
 
 # Details
 
-Whereas by default, methods are generics, line [14] demonstrates a method which 
+Line [14] demonstrates a method which 
 takes a non-generic parameter. As expected, this method works for the 'Noble' type, 
 but not for the 'Doctor' type. 
 
 
-Additionally, lines [6-11] demonstrate the mixin property. 'Nameable', defined on 
-line [1], is a object/method which defines the Calls 'Name' and 'Named' in it's local 
+Lines [6-11] demonstrate the mixin property. 'Nameable', defined on 
+line [1], is a object/method which defines the Calls 'Name' and 'Named' in its local 
 scope. The 'inherits' keyword simply calls a method without changing scopes. Thus 
 on line [7], 'Nameable()' is called using the Doctor's scope. 
 

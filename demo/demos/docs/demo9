@@ -1,30 +1,30 @@
 # Overview
 
-Here we introduce more formally the notion of Nothing. For anyone who knows Haskell, 
-it's kinda like a monad.
+Here we introduce more formally the notion of Nothing.
 
 
 The example relies on the 
 type system, which we will fully explain on a later page. For now, we believe that 
-the syntax regarding typing is intuitive enought that developing a working understanding 
+the syntax for typing is intuitive enought that developing a working understanding 
 does not requies additional explanation.
 
 # Details
 
-Nothing is the 'null' equivalent in Pebble.
+Nothing is the equivalent of 'null' in Pebble.
 
 
-Nothing can be thought of as a construct with every possible attribute, with the 
-caveat that each attribute returns Nothing. Thus, statements such as 'Nothing.Spinich' and 
-'Nothing.ReadLine()' are defined and do not throw errors. They will always, however, 
-return 'Nothing'. 
+Nothing can be thought of as an 'object' with every possible attribute, with the 
+caveat that each attribute maps to Nothing. Thus, statements such as 
+'Nothing.Spinich' and 
+'Nothing.ReadLine()' are well-defined and do not raise exceptions. 
+They will always, however, return 'Nothing'. 
 
 
-Any operator applied to 'Nothing' also returns 'Nothing'. For instance, 'Nothing + 5' 
+Any operator applied on 'Nothing' also returns 'Nothing'. For instance, 'Nothing + 5' 
 would return 'Nothing'. So would 'Nothing == "hello there"'
 
 
-Further, any conditional which evalutes to 'Nothing' is treated as false.
+Any conditional which evalutes to 'Nothing' is treated as false.
 
 
 In the example above, finding a 'Book' with 'Id=33' works nicely in the first example 
@@ -33,7 +33,7 @@ second query for a 'Book' with 'Id=3' does not throw an error, but returns 'Noth
 even though there is no 'Book' matching this description. 
 
 
-Operations can be considered "monadic" by default. Our philosophy is that top level 
-checks can be employed to deal with 'Nothing' behavior. Instead of checking for 'Nothing' 
+Our philosophy is that top level checks can be employed 
+to deal with null behaviors. Instead of checking for 'Nothing' 
 at every step (which is still possible), checking can now be done at the highest level, 
 to declutter and simplify code. 
