@@ -37,8 +37,15 @@ bool Transition()
 void Wait()
 {
     std::string s;
-    std::cout << CONSOLE_C5 << "\nPress (ENTER) to continue\n" << CONSOLE_RESET;
+    std::cout << CONSOLE_C5 << "\nPress (ENTER) to continue\r" << CONSOLE_RESET;
     std::getline(std::cin, s);
+    std::cout 
+        << "\033[A" 
+        << "                                                                    \r";
+    
+    std::cout 
+        << "\033[A" 
+        << "                                                                    \r";
 }
 
 bool PromptYN(std::string prompt)
