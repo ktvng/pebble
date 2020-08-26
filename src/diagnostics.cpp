@@ -25,10 +25,6 @@
 #include "call.h"
 #include "bytecode.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 
 // indent formatting
 const String c_indentString = "  ";
