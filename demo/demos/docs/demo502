@@ -4,20 +4,21 @@ In Pebble, objects are methods.
 
 # Details
 
-We use the same 'Class' as the previous example. Again, 'MyObject' is an instance 
+We use ‘Class’ from the previous example. Again, 'MyObject' is an instance 
 of 'Class'. Line [14] is where something interesting happens. To understand this, 
-we first jump back to line [8] where 'self' gets returned.
+we first jump back to line [8] where 'self' is returned.
 
 
-We said that 'self' is an some entity whose scope is the local scope of 'Class' 
-after lines [2-7] are run. This is only part of the picture. 'self' is really 
-a method whose local scope has already been populated. It's still callable! It 
-can still be invoked.
+We said that 'self' is an entity whose scope is the local scope of 'Class' 
+after lines [2-7] are run. This is only part of the picture. In fact, 'self' is really 
+a method whose local scope has already been populated. The method is return 
+like an “object” in that the dot operator (‘.’) accesses its local scope. More importantly,
+it's still callable! It can still be invoked. 
 
 
-Recall that when a method is invoked, it's section of code is evaluted in a new 
-local scope. Line [14] thus calls the same section of code that 'Class' does, on 
-a new local scope, and the new entity returned by 'return self' and assigned to 
+Recall that when a method is invoked, it's section of code is evaluated over a fresh
+scope. Line [14] thus calls the same section of code that 'Class' does, on 
+a fresh scope, and the new entity returned by 'return self' and assigned to 
 'YetAnotherObject' is exactly a method bound to this new, now populated, local scope. 
 
 

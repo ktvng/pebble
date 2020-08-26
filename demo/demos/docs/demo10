@@ -8,16 +8,17 @@ Compile-time checking has not yet been fully
 implemented. 
 
 # Details
+If you’re confused about the terminology on scope/section, checkout out Demo #11 (what’s really happening) for a detailed explanation.
 
 Calls take on a type at their time of definition, and this type is enforced henceforth. 
-The keywords 'a'/'an' refer to the type of subsequent Call, and allow types to 
-be passed as first-class citizens (with restriction).
+The keywords 'a'/'an' refer to the type of the subsequent Call, and allow types to 
+be passed as first-class citizens (with restriction). 
 
 
-Thus to understand line [4], the code 'a String' binds the type 'String' 
-to a temporary Call. The 'is' 
-operator then defines 'X' by transferring this bound type to 'X'. 'X' then retains 
-this type, for the duration of its lifetime.
+Thus, to understand line [4], the code 'a String' binds the type 'String' 
+to a temporary Call (no scope/section). The 'is' 
+operator then defines 'X' by transferring this bound type. 'X' then retains 
+this type for the duration of its lifetime.
 
 
 The primitive types are Strings, Integers, Decimals, and Booleans. Chars are represented 
@@ -27,7 +28,7 @@ When non-primitive objects are printed, their type is printed in brackets.
 
 The reason that line [5] prints '<String?>' is that 'X' is bound to a 'String' type, but 
 not to a specific instance of a String (more formally, not to a specific scope/section 
-representing a String). The '?' indicates this indeterminancy.
+representing a String). The '?' indicates this indeterminacy.
 
 
 Line [7] produces an error as expected.

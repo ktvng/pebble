@@ -2,42 +2,41 @@
 
 The relationship between 'self' and 'caller' provides an expressive richness to 
 Pebble. This example serves to demonstrate a more advanced programming pattern 
-possilbe in Pebble.
+possible in Pebble.
 
 
-This uses an idea specific to Pebble, which is that when a method does not have 
+This uses an feature specific to Pebble: when a method does not have 
 a user-defined return statement, it will either return itself (self) or whatever 
-object called it (caller). By default, if there exists a 'caller' is returned. 
-If no 'caller' exists, then 'self' is returned.
-
+object called it (caller). By default, if a 'caller' exists, it is returned. 
+If not, then 'self' is returned.
 
 # Details
 
-Recall that method which take no arguments can be defined with the ':' and ommiting 
-the parentheses.
+Recall that method which take no arguments can be defined with only the ':' and omitting 
+parentheses.
 
 
-First note that the '.' operator is also aliased by the a space (' ') when 
+First note that the '.' operator is also aliased by a space (' ') when 
 dealing with scoped method calls. This occurs on line [20], which is equivalent 
 to 'MyCar.Has().Efficiency(30.0).Fuel(10.0)`. 
 
 
-Lines [11] and [14] utilize one argument lambda expressions ('(E): ...' and 
-'(F): ...') respectively which are assigned to the local Calls       
+Lines [11] and [14] utilize one argument lambda expressions which are assigned to the local Calls
 'self.Efficiency' and 'self.Fuel' respectively. These Calls are local to the scope of the 
 'Has' method.
 
 
 The magic happens with the 'Has()' method call. This is a method which returns 
-itself (line [17]) as an object. It has its own 'Efficiency' and 'Fuel' calls 
-which are actually methods that populate the attributes of a Car.
+itself (line [17]) as an “object”. It has its own 'Efficiency' and 'Fuel' calls in its local scope, which 
+are different from those of ‘Car’ and which
+are actually methods that populate the attributes of a Car.
 
 
-The specific Car in question is defined on line [9]. It's actually the caller of 
+That specific Car is defined on line [9]. It's actually the caller of 
 the 'Has' method, which, if we look on line [20], is precisely 'MyCar'. 
 
 
 Overall, this serves as an interesting approach to redesigning the constructor. This 
-pattern provides contexual information on the attributes of the object being constructed 
+pattern provides contextual information about the attributes of the object being constructed 
 and does not rely on knowing the order of each argument of a constructor as typical 
-constructors tend to require. 
+constructors tend to require.

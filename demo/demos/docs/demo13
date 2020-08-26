@@ -9,15 +9,14 @@ On line [8], 'SpeakTo' is a method which takes a Person. Interestingly, the para
 is not given a formal name. Instead, it is referred to by 'Person' or 'the Person'. 
 
 This demonstrates type name aliasing. Because a "class" is really only a section 
-of code, and because all objects which descend from the same "class" carry, as 
-their "DNA", a pointer to this section of code, objects are also callable as class 
-instance constructors.
+of code, and because all objects which are descendants of the same "class" are bound to, as 
+their "DNA", this section of code, objects are also callable as class constructors.
 
 
-Thus when line [11] calls 'a Person() Called(...)', its calling the 'Person' class 
+Thus when line [11] invokes 'a Person() Called(...)', it is calling the 'Person' class 
 through 'Bob'. Line [8] requires the parameter to be of the 'Person' type which 
 means line [11] will always be valid.
 
 
-All descendents of 'Person' with type '<Person>' are callable constructors of 
+All descendants of 'Person' with type '<Person>' are callable constructors of 
 objects of the 'Person' class!

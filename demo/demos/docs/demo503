@@ -5,11 +5,19 @@ In fact, object, classes, and methods are all really the same thing.
 # Details
 
 The example above demonstrates a method acting a lot like an object by returning 
-itself. Lines [2] creates a new Call named 'Greater' in the method's local scope. 
+itself. Line [2] creates a new Call named 'Greater' in the method's local scope. 
 Line [3] does the same, with the 'self' keyword emphasizing that 'Lesser' is 
-to exist in this local scope.
+to exist in this local scope (that of ‘Order’).
 
 
-Line [12] returns 'self' which allows both these two calls to be accessed in the 
-scope of the returned entity. Line [17] explicity captures this returned entity 
-as a Call.
+Line [12] returns 'self' which allows “packages” everything up into an “object” whose
+attributes are the local scope of ‘Order’. Both ‘Greater’ and ‘Lesser’ are 
+calls defined in this local scope, and so become attributes of the returned entity 
+of ‘Order’. 
+
+
+Line [17] explicitly captures this returned entity and assigns it to the Call ‘Ordering’. 
+
+
+This example expresses a method functioning as an object. In general, most methods 
+do not return ‘self’ and hence do not function as objects. 

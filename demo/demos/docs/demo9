@@ -5,8 +5,8 @@ Here we introduce more formally the notion of Nothing.
 
 The example relies on the 
 type system, which we will fully explain on a later page. For now, we believe that 
-the syntax for typing is intuitive enought that developing a working understanding 
-does not requies additional explanation.
+the syntax for typing is intuitive enough that developing a working understanding 
+does not requires additional explanation.
 
 # Details
 
@@ -15,7 +15,7 @@ Nothing is the equivalent of 'null' in Pebble.
 
 Nothing can be thought of as an 'object' with every possible attribute, with the 
 caveat that each attribute maps to Nothing. Thus, statements such as 
-'Nothing.Spinich' and 
+'Nothing.Potato and 
 'Nothing.ReadLine()' are well-defined and do not raise exceptions. 
 They will always, however, return 'Nothing'. 
 
@@ -24,16 +24,16 @@ Any operator applied on 'Nothing' also returns 'Nothing'. For instance, 'Nothing
 would return 'Nothing'. So would 'Nothing == "hello there"'
 
 
-Any conditional which evalutes to 'Nothing' is treated as false.
+Any conditional which evaluates to 'Nothing' is treated as false.
 
 
-In the example above, finding a 'Book' with 'Id=33' works nicely in the first example 
+In the example above, finding a 'Book' with 'Id=33' works 
 as expected, even though the 2nd book, by Spinoza, has no Id. Similarly, the 
-second query for a 'Book' with 'Id=3' does not throw an error, but returns 'Nothing' 
+second query for a 'Book' with 'Id=3' does not throw an error 
 even though there is no 'Book' matching this description. 
 
 
 Our philosophy is that top level checks can be employed 
-to deal with null behaviors. Instead of checking for 'Nothing' 
+to deal with null behavior. Instead of checking for 'Nothing' 
 at every step (which is still possible), checking can now be done at the highest level, 
-to declutter and simplify code. 
+to declutter and simplify code.

@@ -1,35 +1,37 @@
 # Intro
 
-Welcome to the Pebble PL interactive demo. Here we highlight a few interesting 
-peculiarities of Pebble's syntax, underlying paradigms, and conventions. At the 
-end, we'll also give you an opportunity to play around with some of these features 
-for yourself.
+Welcome to the Pebble PL interactive demo. 
+Here we highlight a few interesting peculiarities of Pebble's syntax, patterns, and paradigms. 
+At the end, you’ll also have the opportunity to play around in a sandbox and try out some of these features for yourself.
+
+# About
+
+Pebble is high-level, interpreted language designed to explore how syntax and programming primitives can be reimagined in a more familiar, human-friendly way. 
 
 
-Pebble is high-level, interpreted language designed to explore how 
-syntax and programming primitives can be reimagined in a more familiar, 
-human-friendly way. 
+Pebble is designed to be easy to pick up, straightforward to learn, and powerful enough to make an impact. 
+Achieving these goals involves finding innovative solutions to reduce syntax constraints and designing novel ways to think about coding primitives.
 
 
-Our mission is to create a language that is easy to pick up, 
-straightforward to learn, and expressive enough to be useful. 
-Achieving these goals involves finding innovative solutions to reduce syntax 
-constraints and designing novel ways to think about coding primitives.
+Pebble also introduces a new programming paradigm which can emulate both object-oriented and functional-programming paradigms.
+
+# Mission
+
+Technology touches us every day in ways that are both profound and unseen. Code governs our everyday. We believe that this technology is power. That it’s transformative--and able to solve some of the world’s toughest and oldest problems. 
 
 
-We also introduce a new, abstract programming paradigm which can emulate both 
-object-oriented and functional-programming paradigms.
+Programming is more than a skill. It’s the bridge between man and machine. Simply put, it’s a language. In designing Pebble, we take inspiration from language as well from mathematics. Our mission is to create a programming language that’s accessible to everyone, that feels more literary than mathematical. 
+
+
+We hope that Pebble gives individuals the courage to dive into programming.
+And we hope that in the process, individuals develop a deeper understanding and appreciation of the technology around them. 
 
 # Details
 
-The interactive demo is built up of different 'pages'. Each page is intended to 
-serve as an overview of a specific Pebble features. It contains an 
-actual Pebble program with syntax highlighting, as well as program's actual 
-output.
+The interactive demo is built up of different pages. Each page provides an overview of different Pebble features. It will contain an actual Pebble program and display its true output.
 
 
-A 'Details' section explains what the syntax does and some of the design motivations 
-behind the feature. We encourage you to read all explanations.
+A 'Details' section covers in more depth what’s actually happening. We encourage you to read all explanations.
 
 
 Enjoy!

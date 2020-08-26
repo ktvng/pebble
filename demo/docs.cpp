@@ -72,6 +72,11 @@ void ParseDoc(std::string filepath, Documentation& doc)
             }
             else
             {
+                if(line.back() != ' ')
+                {
+                    line.push_back(' ');
+                }
+                
                 sect.Content += line;   
             }
         }
