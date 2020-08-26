@@ -111,7 +111,12 @@ pebble: $(OBJS) $(PARSER_OBJS) $(INTERPRETER_OBJS) $(WALKER_OBJS) $(UTILS_OBJS) 
 	$(CC) $(CCFLAGS) $(INCLUDE_PATHS) -DDEMO -o build/main.o -c src/main.cpp
 	$(CC) $(CCFLAGS) -o pebble $^
 
-
+clean:
+	rm ./build/*.o
+	rm ./build/*.o.t
+	rm ./pebble
+	rm ./builder.exe
+	rm ./testbuild
 
 
 ################################################################################

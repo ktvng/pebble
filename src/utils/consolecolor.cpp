@@ -1,5 +1,9 @@
 #include <consolecolor.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 const char* WIN32_CONSOLE_COLOR(int color)
 {
 #ifdef _WIN32
