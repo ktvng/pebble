@@ -92,7 +92,7 @@ void ParseDoc(std::string filepath, Documentation& doc)
     }
 }
 
-const int GuardLineSize = 75;
+const int GuardLineSize = 80;
 const int IndentSize = 4;
 
 inline void StartLine(int& currentLineSize, int indent)
@@ -105,14 +105,19 @@ inline void StartLine(int& currentLineSize, int indent)
     currentLineSize += IndentSize;
 }
 
+void EndLine(int& currentLineSize, int indent)
+{
+    std::cout << '\n';
+    currentLineSize = 0;
+
+    StartLine(currentLineSize, indent);
+}
+
 void IfNeededEndLine(int& currentLineSize, int indent)
 {
     if(currentLineSize > GuardLineSize)
     {
-        std::cout << '\n';
-        currentLineSize = 0;
-
-        StartLine(currentLineSize, indent);
+        EndLine(currentLineSize, indent);
     }
 }
 
@@ -126,18 +131,34 @@ void FormattedPrint(std::string str, int& currentLineSize, int indent)
     }
 
     size_t pos = 0;
+    std::string word;
+    word.reserve(32);
     while(pos < str.size())
     {
+        word.clear();
+
         for(; pos < str.size() && str[pos] != ' '; pos++)
         {
-            std::cout << str[pos];
-            currentLineSize++;
+            word.push_back(str[pos]);
 
             if(str[pos] == '\n')
             {
-                currentLineSize = GuardLineSize + 1;
-                IfNeededEndLine(currentLineSize, indent);
+                pos++;
+                break;
             }
+        }
+
+        if(word.size() + currentLineSize > GuardLineSize)
+        {
+            EndLine(currentLineSize, indent);
+        }
+        
+        std::cout << word;
+        currentLineSize += word.size();
+
+        if(word.back() == '\n')
+        {
+            EndLine(currentLineSize, indent);
         }
 
         for(; pos < str.size() && str[pos] == ' '; pos++)

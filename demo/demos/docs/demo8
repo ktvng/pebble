@@ -29,8 +29,7 @@ can hold any/all of three abstract entities: a scope, a section, and a type.
   - A scope is a collection of Calls which are accessible.
 
 
-  - A section is a 'section' of executable Pebble code. In general, it is 
-    distinguished by indent level
+  - A section is a 'section' of executable Pebble code. In general, it is distinguished by indent level
 
 
   - A type is a formal expression of a category.
