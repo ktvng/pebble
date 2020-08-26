@@ -4,7 +4,7 @@ Thank you for viewing the Pebble PL demo. Our goal when designing Pebble
 was to balance simplicy and flexibility and to make a language that is 
 easy to pick-up and fun to learn. 
 
-In the end, we're developing this because we believe not just that this is a 
+We're developing Pebble because we believe not just that this is a 
 collection of exciting ideas, but that this has the power to positively impact 
 real people. 
 
@@ -13,9 +13,6 @@ Pebble is first and foremost a language with a mission. Our goal is to make
 learning how to program easy and accessible for everyone. We're trying to do away with 
 unintuitive syntax and unncessary keywords, to make something lightweight with 
 low overhead.
-
-
-
 
 
 Along the way, we've reimagined and redesigned features that most 

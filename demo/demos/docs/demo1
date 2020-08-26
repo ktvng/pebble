@@ -1,8 +1,8 @@
 # Overview
 
-Pebble PL syntax tries to represent programming as a dialogue between coder and 
-computer. The code reads naturally, and even without prior experience, makes sense.
+Pebble PL syntax tries to express programming as a dialogue between coder and 
+computer. The code reads naturally, and even without prior exposure, makes sense.
 
 # Details
 
-The obligatory 'helloworld' program.
+The obligatory hello world program.

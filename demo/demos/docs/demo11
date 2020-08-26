@@ -4,13 +4,13 @@ Pebble methods are "generic-by-default".
 
 
 By this, we mean that methods can be written without specifying the types of their 
-aruguments. At compile-time, the complier will ensure that the method is 
-type-consistent for all calls to the the method. 
+arguments. At compile-time, the complier will ensure that the method is 
+type-consistent for the types provided at each method call. 
 
 # Details
 
 Two facts about Pebble's type system allow for this generic-by-default pattern. 
-(1) Methods are evaluted on a copy (i.e. a fresh scope), and 
+(1) Methods are invoked on a fresh scope, and 
 (2) types are bound at first assignment. 
 
 

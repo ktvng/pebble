@@ -209,6 +209,7 @@ void InternalRunDemo(Demo& demo)
     Documentation doc;
     ParseDoc(demo.DocumentationPath, doc);
     DisplaySection(doc, "Overview");
+    DisplaySection(doc, "Definitions");
     RunDemoFile(demo.FilePath);
     DisplaySection(doc, "Details");
 }
@@ -232,6 +233,8 @@ void DisplayIntro()
     Documentation doc;
     ParseDoc("./demo/demos/docs/intro", doc);
     DisplaySection(doc, "Intro", 0);
+    DisplaySection(doc, "About", 0);
+    DisplaySection(doc, "Mission", 0);
     DisplaySection(doc, "Details", 0);
 
     Wait();
@@ -303,7 +306,7 @@ int RunDemo()
     DisplaySetup();
 
     g_demoNumber = 0;
-    while(g_demoNumber < Demos.size())
+    while(g_demoNumber <= Demos.size())
     {
         if(g_demoNumber == 0)
         {
@@ -312,7 +315,7 @@ int RunDemo()
         }
         else
         {
-            InternalRunDemo(Demos[g_demoNumber]);
+            InternalRunDemo(Demos[g_demoNumber-1]);
             if(Transition())
             {
                 g_demoNumber++;
