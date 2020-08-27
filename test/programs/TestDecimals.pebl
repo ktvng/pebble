@@ -1,0 +1,15 @@
+X = 1.0
+Y = 2.75
+Z = 0.1
+
+print X
+print Y
+print X + Y + Z
+
+A = 1.00 + 1.0000001 * 5.0
+B = 1.00 - 1.0000001 / 2.1
+C = 1.00 / 1.0000001 + 2.1
+
+print A
+print B
+print C

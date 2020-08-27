@@ -32,9 +32,9 @@ Steps to install:
 ## Running the unit tests
 Follow the following steps after you have installed Pebble to create the test build of the Pebble interpreter and run the unit tests
 ```
-$ make testbuilder
+$ make builder
 $ make testbuild
-$ ./pebble_tb.exe
+$ ./testbuild
 ```
 
 For documentation on advanced testing, consult the `./test/test.cpp` file.
