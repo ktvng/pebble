@@ -13,8 +13,8 @@ local scope and those in the scope of its parent object.
 # Details
 
 In the example, `Refuel`, `Drive`, and `Init` can be thought of as their own 'objects',
-with their own scope. Thus, the 'self' keyword will actually refer to their own 
-(local) scope. To refer to the scope of the object which calls them, 'caller is used'.
+with their own scope. Thus, the `self` keyword will refer to each object's respective 
+(local) scope. To refer to the scope of the object which calls them, 'caller' is used.
 
 
 By default, a Call is first resolved in the local scope (‘self’), and only then the caller’s scope (‘caller’).
