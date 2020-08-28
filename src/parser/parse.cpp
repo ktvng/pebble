@@ -490,6 +490,39 @@ TokenList Preprocess(TokenList& list)
     return processedList;
 }
 
+
+Operation* CompilationErrorFound(String error = "syntax error")
+{
+    LogIt(LogSeverityType::Sev3_Critical, "ERROR", error);
+    ReportCompileMsg(SystemMessageType::Exception, error);
+    FatalCompileError = true;
+    return nullptr;
+}
+
+/// Checks for errors programmers may make and given better suggestions (TODO: make message )
+bool PassesInitialCheckForLineErrors(TokenList* tokensPtr)
+{
+    for(size_t i = 0; i < tokensPtr->size() - 1; i++)
+    {
+        if(tokensPtr->at(i)->Type == TokenType::Simple && tokensPtr->at(i + 1)->Type == TokenType::Simple)
+        {
+            String errorMessage = "Cannot have multiple operators next to each other " + tokensPtr->at(i)->Content + tokensPtr->at(i + 1)->Content;
+            LogDiagnostics(tokensPtr, errorMessage);
+            CompilationErrorFound(errorMessage);
+            return false;
+        }
+    }
+    // determines if the first or last token is an operator (with -#'s being the exception at index 0)
+    if((tokensPtr->at(0)->Type == TokenType::Simple && tokensPtr->at(0)->Content.find("-") != 0) || tokensPtr->at(tokensPtr->size() - 1)->Type == TokenType::Simple)
+    {
+        String errorMessage = "Unfinished expression " + tokensPtr->at(0)->Content;
+        LogDiagnostics(tokensPtr, errorMessage);
+        CompilationErrorFound(errorMessage);
+        return false;
+    }
+    return true;
+}
+
 Operation* ExpressionParser(TokenList& rawline)
 {
     ParseToken* listHead = nullptr;
@@ -497,6 +530,10 @@ Operation* ExpressionParser(TokenList& rawline)
 
     TokenList line = Preprocess(rawline);
     LogDiagnostics(line);
+    if(!PassesInitialCheckForLineErrors(&line))
+    {
+        return nullptr;
+    }
 
     int pos = 0;
     while(static_cast<size_t>(pos) < line.size())
@@ -519,9 +556,7 @@ Operation* ExpressionParser(TokenList& rawline)
     if(listHead != listTail)
     {
         DestroyList(listHead);
-        ReportCompileMsg(SystemMessageType::Exception, "syntax error");
-        FatalCompileError = true;
-        return nullptr;
+        return CompilationErrorFound();
     }
 
     // resolving references will be done at runtime
