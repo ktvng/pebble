@@ -1215,7 +1215,6 @@ void BCI_SysCall(extArg_t arg)
             {
                 std::cout << msg;
             }
-            LogDiagnostics(PeekTOS<Call>());
 
             break;
         }
@@ -1224,7 +1223,6 @@ void BCI_SysCall(extArg_t arg)
         {
             String s;
             std::getline(std::cin, s);
-            std::cout << s;
             auto call = InternalPrimitiveCallConstructor(s);
             PushTOS<Call>(call);
             break;
