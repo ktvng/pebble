@@ -522,7 +522,7 @@ bool PassesInitialCheckForLineErrors(TokenList* tokensPtr)
         // silly validation checks!
         if(tokensPtr->at(0)->Content.find("-") != 0 && tokensPtr->at(0)->Content.find("ask") != 0 && tokensPtr->at(0)->Content.find("print") != 0 && tokensPtr->at(0)->Content.find("say") != 0 && tokensPtr->at(0)->Content.find("a") != 0)
         {
-            String errorMessage = "Unfinished expression ";
+            String errorMessage = "Unfinished expression";
             LogDiagnostics(tokensPtr, errorMessage);
             CompilationErrorFound(errorMessage);
             return false;
@@ -532,9 +532,10 @@ bool PassesInitialCheckForLineErrors(TokenList* tokensPtr)
     // determines if the first or last token is an operator (with -#'s being the exception at index 0)
     if((tokensPtr->at(tokensPtr->size() - 1)->Type == TokenType::Simple))
     {
+        // silly validation checks!
         if(tokensPtr->at(tokensPtr->size() - 1)->Content.find(":") != 0 && tokensPtr->at(tokensPtr->size() - 1)->Content.find(")") != 0 )
         {
-            String errorMessage = "Unfinished expression ";
+            String errorMessage = "Unfinished expression";
             LogDiagnostics(tokensPtr, errorMessage);
             CompilationErrorFound(errorMessage);
             return false;
