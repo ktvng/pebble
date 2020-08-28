@@ -1,0 +1,15 @@
+# Overview
+
+Pebble operators have different aliases. This means 
+there are a few different ways to express the same thing. This is a feature we’re still 
+testing out.
+
+# Details
+
+The example demonstrates applying the procedural construction to an if-statement. It 
+also makes use of two different aliases of the '>' operator on line [4] and [6]. 
+
+
+These are all defined and documented in './assets/grammar.txt'. Grammar rules are 
+simple CFG (context free grammar) production rules. Theoretically, this means that users can
+define custom aliases and customize their own flavor of Pebble.

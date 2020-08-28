@@ -1,0 +1,23 @@
+# Overview
+
+Pebble refers to variables as 'Calls'. If a Call is used before it is defined, it 
+will by default refer to 'Nothing', the Pebble equivalent of 'null'/'None'
+
+
+Calls are actually more complex than variables. They comprise the main primitive of 
+the call-binding paradigm (more on this later).
+
+# Definitions
+
+Call: A Call is a Pebble primitive. It's an entity, referenced by name, which stores 
+data, similar to a variable.
+
+# Details
+
+Motived by the rule in English where proper nouns are capitalized, Calls must also 
+be capitalized. Our hope is that this draws a parallel between a Calls and proper 
+nouns. We are still testing this feature, and it is subject to change.
+
+
+Here 'MyName' is a Call. It's initially undefined (line [1]) and so refers to Nothing. 
+We'll cover the 'Nothing' construct in detail later on.

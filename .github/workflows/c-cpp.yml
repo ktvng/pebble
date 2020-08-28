@@ -12,9 +12,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: make testbuilder
-      run: make testbuilder
+    - name: make builder
+      run: make builder
     - name: make testbuild
       run: make testbuild
     - name: run testbuild
-      run: ./pebble_tb.exe
+      run: ./testbuild

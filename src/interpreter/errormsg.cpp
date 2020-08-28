@@ -34,7 +34,7 @@ void IfNeededDisplayError(Program* p)
         ErrorFlag = false;
         int lineNumber = GetLineNumberFromInstructionNumber(InstructionReg, p);        
         String fatalStatus = (ErrorType == SystemMessageType::Exception ? "Fatal" : "");        
-        auto stringMsg = Msg("%s %s at line[%i]: %s\n     >>   %s\n", fatalStatus, SystemMessageTypeString(ErrorType), lineNumber, ErrorClasses[ErrorCode].ErrorMsg, ErrorMsg);
+        auto stringMsg = Msg("%s %s at line[%i]: %s\n     (!)   %s\n", fatalStatus, SystemMessageTypeString(ErrorType), lineNumber, ErrorClasses[ErrorCode].ErrorMsg, ErrorMsg);
 
         ProgramOutput += stringMsg;
         if(g_outputOn)

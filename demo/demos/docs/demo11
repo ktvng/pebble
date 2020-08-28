@@ -1,0 +1,25 @@
+# Overview
+
+Pebble methods are "generic-by-default". 
+
+
+By this, we mean that methods can be written without specifying the types of their 
+arguments. At compile-time, the complier will ensure that the method is 
+type-consistent for the types provided at each method call. 
+
+# Details
+
+Two facts about Pebble's type system allow for this generic-by-default pattern. 
+(1) Methods are invoked on a fresh scope, and 
+(2) types are bound at first assignment. 
+
+
+On line [20], 'Introduce' is a method which (by default), takes a generic Call 
+named 'Someone'. When this method is invoked, a copy of this scope is created, 
+and in this fresh scope, the Call 'Someone' is bound to the type of the supplied parameter. 
+This allows the original method to retain its generic, unbound 'Someone' Call.
+
+
+Notice that 'Introduce' works for all three object types. Further, when line [27] 
+attempts to reassign 'Someone' (which is a Noble) to a 'Doctor', a fatal exception 
+is thrown by the runtime.

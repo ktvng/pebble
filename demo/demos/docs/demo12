@@ -1,0 +1,26 @@
+# Overview
+
+Building on the last example, this page introduces Pebble's mixin pattern which 
+is the current model of inheritance.
+
+
+We also demonstrate the construction of a statically-typed, non-generic method. 
+
+# Details
+
+Line [14] demonstrates a method which 
+takes a non-generic parameter. As expected, this method works for the 'Noble' type, 
+but not for the 'Doctor' type. 
+
+
+Lines [6-11] demonstrate the mixin property. 'Nameable', defined on 
+line [1], is an object/method which defines the Calls 'Name' and 'Named' in its local 
+scope. The 'inherits' keyword simply calls a method without changing scopes. Thus 
+on line [7], 'Nameable()' is invoked over the Doctor's scope. 
+
+
+Line [11] uses the 'here' operator which is an alias of 'inherits. The 'inherits' keyword 
+is intended to be used to signify mixin inheritance whereas the 'here' operator is 
+intended for more general-purpose usage. Currently we are still exploring whether to 
+keep both, or, if it makes more sense to keep a single keyword for a method's 
+in-place invocation.

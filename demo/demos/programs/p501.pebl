@@ -1,0 +1,15 @@
+Method():
+    return "value1"
+
+Class():
+    Attribute1
+    Attribute2 = "attr2"
+
+    ClsMethod():
+        return "value2"
+
+    return self
+
+MyObject = Class()
+say MyObject.Attribute2
+say MyObject.ClsMethod()

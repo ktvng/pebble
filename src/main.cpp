@@ -20,6 +20,18 @@
 
 #include "dfa.h"
 
+#ifdef DEMO
+#include "demo.h"
+
+bool g_runDemo = false;
+bool RunDemoMode(std::vector<SettingOption> options)
+{
+    g_runDemo = true;
+    return false;
+}
+
+#endif
+
 bool g_standalone = false;
 
 bool Usage(std::vector<SettingOption> options)
@@ -94,7 +106,13 @@ ProgramConfiguration Config
     },
     {
         "Runtime version", "--runtime", ChangeRuntime
+    },
+
+#ifdef DEMO
+    {
+        "Run Demo", "--demo", RunDemoMode
     }
+#endif
 };
 
 // Logging
@@ -107,6 +125,14 @@ bool g_useBytecodeRuntime = true;
 int main(int argc, char* argv[])
 {
     ParseCommandArgs(argc, argv, &Config);
+
+#ifdef DEMO
+
+    if(g_runDemo)
+    {
+        return RunDemo();
+    }
+#endif
 
     bool ShouldPrintInitialCompileResult = true; 
 

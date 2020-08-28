@@ -1,0 +1,18 @@
+Car():
+    Fuel
+    Efficiency
+
+    Drive(Distance):
+        Fuel = Fuel - Distance / Efficiency
+
+    Init(Fuel, Efficiency):
+        caller.Fuel = Fuel
+        caller.Efficiency = Efficiency
+
+    return self
+
+MyCar is a Car()
+MyCar.Init(10.0, 30.0)
+MyCar.Drive(60.0)
+
+say MyCar's Fuel

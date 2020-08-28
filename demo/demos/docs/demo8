@@ -1,0 +1,74 @@
+# Overview
+
+What’s really happening?
+
+
+TL;DR: Pebble abstracts classes, objects, and methods into Calls. This utilizes a new programming-paradigm.
+
+
+This page outlines in detail what's really happening behind the scenes of Pebble 
+and introduces the new programming paradigm which outlines the theory behind Pebble. 
+It's something that is not required to appreciate Pebble’s syntax, nor is it required to achieve a mastery of Pebble fundamentals.
+
+
+It is only useful when moving into advanced topics and when pushing the boundaries of the 
+Pebble as a language.
+
+
+This page, then, can be considered optional. We encourage you to read though, because 
+we find this new call-binding paradigm quite both compelling and interesting.
+
+# Details
+
+When we first introduced the Call, it was described as a variable, but with some 
+additional, hidden complexity. We now touch on that complexity. 
+Formally, a call can be understood as a container which 
+can hold any/all of three abstract entities: a scope, a section, and a type.
+
+
+  - A scope is a collection of Calls which are accessible.
+
+
+  - A section is a 'section' of executable Pebble code. In general, it is distinguished by indent level
+
+
+  - A type is a formal expression of a category.
+
+
+A Call, then, can hold one, two, or all three of these entities. When it is given 
+one of them, we say that it is 'bound' to it. A Call can only be invoked (i.e. SomeCall()) 
+if it is bound to a section. Invocation is always done over a new scope.
+
+
+With this terminology, we can now redefine the ideas of a method, object, and class. 
+
+
+A method is a Call bound to a section. When executed, that section returns some value 
+which is then the return value of the method.
+
+
+An object is a Call bound to a scope. The dot operator is used to resolve different Calls inside this scope, which we can call the attributes of the object.
+
+
+A class is a special case of a method. It is bound to a section, and in particular, 
+that section returns 'self'. Thus, when a class is evaluted (i.e. an instance created), 
+the section bound to that class is invoked over a new scope. The code of this section 
+populates this new scope, and in the end, 'return self' returns a new Call 
+bound to this scope and the class’s section.
+
+
+In summary, objects/methods/classes are all variants of Calls in which the emphasis 
+of scope/section is varied. An object can also be bound to a section just as a method 
+can also be bound to a scope. 
+
+
+In the example above, Car is a method. In general, methods are bound to an empty 
+scope. Here, however, line [10] adds a Call for 'Count' to the bound scope of the 
+'Car' call. Line [2] refers to 'Car' the method and increments ‘Count’ which is found it is bound scope. This effectively emulates static variables.
+
+
+As whenever method invocation occurs, it occurs over a fresh scope, the original local 
+scope bound to 'Car' will never be overridden.
+
+
+We will cover types later when we introduce the type system.

@@ -1,0 +1,25 @@
+Doctor:
+    Name 
+    Named(Name):
+        caller.Name = Name
+Knight:
+    Name
+    Named(Name):
+        caller.Name = Name
+Noble:
+    Name
+    Named(Name):
+        caller.Name = Name
+
+Introduce(Someone):
+    if Someone is a Doctor
+        say "This is Dr. " + Someone's Name
+    else if Someone is a Knight
+        say "Please welcome Sir " + Someone's Name
+    else if Someone is a Noble
+        say "All rise for Lord " + Someone's Name
+        Someone = a Doctor()
+
+Introduce(a Doctor() Named("Sigmund"))
+Introduce(a Knight() Named("Arthur"))
+Introduce(a Noble() Named("Nicholas"))

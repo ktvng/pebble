@@ -1,0 +1,18 @@
+Nameable:
+    Name
+    Named(Name):
+        caller.Name = Name
+
+Doctor:
+    inherits Nameable()
+Knight:
+    inherits Nameable()
+Noble:
+    here Nameable()
+
+
+FanfareFor(Someone is a Noble):
+    say "duh-duh-duh-daaaahh... Presenting, Lord " + Someone's Name
+
+FanfareFor(a Noble() Named("Nicholas"))
+FanfareFor(a Doctor() Named("Sigmund"))

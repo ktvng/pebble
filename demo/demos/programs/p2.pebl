@@ -1,0 +1,4 @@
+say MyName
+
+MyName = "Kevin"
+say MyName

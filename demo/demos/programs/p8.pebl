@@ -1,0 +1,15 @@
+Car:
+    Car's Count = Car's Count + 1
+
+    Fuel
+    Efficiency
+
+    Drive(Distance):
+        Fuel = Fuel - Distance / Efficiency
+
+Car's Count = 0
+
+Car1 is a Car()
+Car2 is a Car()
+
+say Car's Count

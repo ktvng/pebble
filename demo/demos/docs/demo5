@@ -1,0 +1,27 @@
+# Overview
+
+Methods are defined with the ':' operator followed by an indent block. We are currently 
+working to support curly-braces for use with lambda expressions!
+
+
+Parentheses are not required when the method takes zero arguments.
+Parenthesis are required when the method takes a non-zero number of arguments. 
+
+# Definitions
+
+Scope: A scope is the set of Calls which are accessible at a given point. An object 
+has a scope (its attributes) and a method has a local scope (the scope where its code 
+gets executed).
+
+# Details
+
+There is no special keyword required to define method except for the ':' operator. 
+To avoid ambiguity, this is the only use of the colon.
+
+
+Method Calls (such as 'Factorial' on line [1]) are really just Calls which refer to a lambda 
+expression. Line [6] demonstrates the syntax for creation and assignment a lambda 
+expression. Line [1] does exactly the same, albeit implicitly.
+
+
+In this way, methods can be regarded as first-class citizens.

@@ -1,0 +1,27 @@
+# Overview
+
+Every operation returns a Call. Similarly, every line, being composed of operations, also returns a Call. 
+The keywords 'it'/'that' can be used to refer to the Call returned by the previous line.
+
+
+This allows for a linear, procedural construction of different expressions.
+
+# Details
+
+The 'it' and 'that' keywords are equivalent, referring to the Call 
+returned by the previous line. 
+
+
+The 'take' keyword has no special function: every line returns a Call, and 
+'take' merely emphasizes this fact for readability. Line 
+[14] demonstrates the same construction procedural construction with the 
+'take' keyword omitted.
+
+
+In Pebble, 'the' is a keyword which is treated as a one-word comment. It can be injected to improve 
+readability depending on the programmer's preference.
+
+
+One lines [10-11] the 'is' keyword is used. The is keyword is similar to the 
+`||=` operator in Ruby. It assigns a value only if the Call refers to Nothing (i.e. is "null"). 
+Its intended use is to signify the initial definition of a Call.

@@ -1,0 +1,30 @@
+# Overview
+
+Pebble uses the ideas of 'self' and 'caller' to refer to different elements of a 
+scope chain.
+
+
+In most languages, the distinction between 'caller' and 'self' does not exist because 
+methods are considered part of the object to which they belong.
+Pebble, however, 
+treats methods as their own object, and must precisely distinguish between calls in the methods own 
+local scope and those in the scope of its parent object.
+
+# Details
+
+In the example, `Refuel`, `Drive`, and `Init` can be thought of as their own 'objects',
+with their own scope. Thus, the `self` keyword will refer to each object's respective 
+(local) scope. To refer to the scope of the object which calls them, 'caller' is used.
+
+
+By default, a Call is first resolved in the local scope (‘self’), and only then the caller’s scope (‘caller’).
+Thus ‘Drive’ method on line [5] can omit explicitly referencing ‘caller’.
+
+
+More concretely, when an object calls a method, as in line [18], the caller is the 
+object on the left of the '.'
+
+
+Line [21] demonstrates another alias: the '.' operator is also 
+aliased to the “'s” operator for readability. 
+

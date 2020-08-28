@@ -220,6 +220,16 @@ void TestOrderOfOperations()
         Assert(Result.AsExpected());
 }
 
+void TestDecimals()
+{
+    ItTests("can do math with decimal numbers");
+
+    CompileAndExecuteProgram("TestDecimals");
+        Should("correctly parse, do arithmetic, then round decimals");
+        Expected("1.000000\n2.750000\n3.850000\n6.000001\n0.523809\n3.100000\n");
+        Assert(Result.AsExpected());
+}
+
 void TestMethodWithNoParams()
 {
     ItTests("can define/evaluate method with no params");
@@ -412,8 +422,9 @@ std::vector<TestFunction> Tests =
     TestIfElseComplex,
     TestWhile,
 
-    // Tests for operations
+    // Tests for operations + numbers
     TestOrderOfOperations,
+    TestDecimals,
 
     // Tests for methods
     TestMethodWithNoParams,

@@ -1,0 +1,31 @@
+Books is an Array(4)
+
+Book:
+    Author is a String
+    Id is an Integer
+
+    By(Author):
+        caller.Author = Author
+
+    With_Id(Books):
+        caller.Id = Books
+
+Books[0] is a Book() By("Foucault") With_Id(2)
+Books[1] is a Book() By("Spinoza") 
+Books[2] is a Book() By("Cato") With_Id(33)
+Books[3] is a Book() By("Schelling") With_Id(8)
+
+BookByIdIn(Arrs, Id):
+    I = 0
+    while I < 4
+        if Arrs[I].Id == Id
+            return Arrs[I]
+        I = I + 1
+
+    return Nothing
+
+take the BookByIdIn(Books, Id=33)
+say "the book is by " + it's Author
+
+take the BookByIdIn(Books, Id=3)
+say "the book is by " + it's Author

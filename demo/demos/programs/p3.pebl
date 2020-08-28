@@ -1,0 +1,16 @@
+Radius = 12.0
+Pi = 3.14
+
+take the Radius * the Radius
+take that * Pi
+say it
+
+
+
+the Width is 11.0
+the Height is 14.0
+
+take the Width * the Height
+that / 2.0
+AreaOfTriangle = that
+say the AreaOfTriangle
