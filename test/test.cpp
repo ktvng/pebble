@@ -1,6 +1,7 @@
 #include <sstream>
 #include <chrono>
 #include <algorithm>
+#include <random>
 
 #include "test.h"
 #include "consolecolor.h"
@@ -604,6 +605,11 @@ void ClearTest()
 
 void DoAllTests()
 {
+    unsigned seed = std::chrono::system_clock::now()
+        .time_since_epoch()
+        .count();
+    std::shuffle(Tests.begin(), Tests.end(), std::default_random_engine(seed));
+
     auto start = std::chrono::high_resolution_clock::now();
     for(auto test: Tests)
     {

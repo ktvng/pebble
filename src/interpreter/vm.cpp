@@ -270,6 +270,14 @@ void InitRuntime()
     ErrorFlag = false;
 
     InstructionReg = 0;
+
+    JumpStatusReg = 0;
+    LocalScopeIsDetachedReg = false;
+    LastResultReg = nullptr;
+    CmpReg = CmpRegDefaultValue;
+
+    ExtendedArg = 0;
+    ExtensionExp = 0; 
 }
 
 /// true if [ins] is not an Extend instruction and the exponent of the ExtendedArg
