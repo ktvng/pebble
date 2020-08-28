@@ -506,19 +506,39 @@ bool PassesInitialCheckForLineErrors(TokenList* tokensPtr)
     {
         if(tokensPtr->at(i)->Type == TokenType::Simple && tokensPtr->at(i + 1)->Type == TokenType::Simple)
         {
-            String errorMessage = "Cannot have multiple operators next to each other " + tokensPtr->at(i)->Content + tokensPtr->at(i + 1)->Content;
+            // silly validation checks!
+            if((tokensPtr->at(i)->Content.find("(") != 0 || tokensPtr->at(i + 1)->Content.find(")") != 0) && (tokensPtr->at(i)->Content.find(")") != 0 || tokensPtr->at(i + 1)->Content.find(":") != 0) && (tokensPtr->at(i)->Content.find("print") != 0 || tokensPtr->at(i + 1)->Content.find("ask") != 0) && (tokensPtr->at(i)->Content.find("say") != 0 || tokensPtr->at(i + 1)->Content.find("ask") != 0) && (tokensPtr->at(i)->Content.find("is") != 0 || tokensPtr->at(i + 1)->Content.find("a") != 0))
+            {
+                String errorMessage = "Cannot have multiple operators next to each other " + tokensPtr->at(i)->Content + tokensPtr->at(i + 1)->Content;
+                LogDiagnostics(tokensPtr, errorMessage);
+                CompilationErrorFound(errorMessage);
+                return false;
+            }
+        }
+    }
+    
+    if(tokensPtr->at(0)->Type == TokenType::Simple)
+    {
+        // silly validation checks!
+        if(tokensPtr->at(0)->Content.find("-") != 0 && tokensPtr->at(0)->Content.find("ask") != 0 && tokensPtr->at(0)->Content.find("print") != 0 && tokensPtr->at(0)->Content.find("say") != 0 && tokensPtr->at(0)->Content.find("a") != 0)
+        {
+            String errorMessage = "Unfinished expression ";
             LogDiagnostics(tokensPtr, errorMessage);
             CompilationErrorFound(errorMessage);
             return false;
         }
     }
+
     // determines if the first or last token is an operator (with -#'s being the exception at index 0)
-    if((tokensPtr->at(0)->Type == TokenType::Simple && tokensPtr->at(0)->Content.find("-") != 0) || tokensPtr->at(tokensPtr->size() - 1)->Type == TokenType::Simple)
+    if((tokensPtr->at(tokensPtr->size() - 1)->Type == TokenType::Simple))
     {
-        String errorMessage = "Unfinished expression " + tokensPtr->at(0)->Content;
-        LogDiagnostics(tokensPtr, errorMessage);
-        CompilationErrorFound(errorMessage);
-        return false;
+        if(tokensPtr->at(tokensPtr->size() - 1)->Content.find(":") != 0 && tokensPtr->at(tokensPtr->size() - 1)->Content.find(")") != 0 )
+        {
+            String errorMessage = "Unfinished expression ";
+            LogDiagnostics(tokensPtr, errorMessage);
+            CompilationErrorFound(errorMessage);
+            return false;
+        }
     }
     return true;
 }
