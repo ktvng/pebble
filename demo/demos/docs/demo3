@@ -14,7 +14,7 @@ returned by the previous line.
 
 The 'take' keyword has no special function: every line returns a Call, and 
 'take' merely emphasizes this fact for readability. Line 
-[14] demonstrates the same construction procedural construction with the 
+[14] demonstrates the same procedural construction with the 
 'take' keyword omitted.
 
 
@@ -22,6 +22,6 @@ In Pebble, 'the' is a keyword which is treated as a one-word comment. It can be 
 readability depending on the programmer's preference.
 
 
-One lines [10-11] the 'is' keyword is used. The is keyword is similar to the 
+On lines [10-11] the 'is' keyword is used. The 'is' keyword is similar to the 
 `||=` operator in Ruby. It assigns a value only if the Call refers to Nothing (i.e. is "null"). 
 Its intended use is to signify the initial definition of a Call.

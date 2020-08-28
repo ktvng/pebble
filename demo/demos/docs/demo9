@@ -15,7 +15,7 @@ Nothing is the equivalent of 'null' in Pebble.
 
 Nothing can be thought of as an 'object' with every possible attribute, with the 
 caveat that each attribute maps to Nothing. Thus, statements such as 
-'Nothing.Potato and 
+'Nothing.Potato' and 
 'Nothing.ReadLine()' are well-defined and do not raise exceptions. 
 They will always, however, return 'Nothing'. 
 

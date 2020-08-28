@@ -64,7 +64,7 @@ can also be bound to a scope.
 
 In the example above, Car is a method. In general, methods are bound to an empty 
 scope. Here, however, line [10] adds a Call for 'Count' to the bound scope of the 
-'Car' call. Line [2] refers to 'Car' the method and increments ‘Count’ which is found it is bound scope. This effectively emulates static variables.
+'Car' call. Line [2] refers to 'Car' the method and increments ‘Count’ which is found in is bound scope. This effectively emulates static variables.
 
 
 As whenever method invocation occurs, it occurs over a fresh scope, the original local 

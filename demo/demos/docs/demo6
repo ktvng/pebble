@@ -7,7 +7,7 @@ scope chain.
 In most languages, the distinction between 'caller' and 'self' does not exist because 
 methods are considered part of the object to which they belong.
 Pebble, however, 
-treats methods as their own object, and must precisely distinguish between calls in the methods own 
+treats methods as their own object, and must precisely distinguish between calls in the method's own 
 local scope and those in the scope of its parent object.
 
 # Details
