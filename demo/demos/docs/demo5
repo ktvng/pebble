@@ -4,7 +4,8 @@ Methods are defined with the ':' operator followed by an indent block. We are cu
 working to support curly-braces for use with lambda expressions!
 
 
-Parentheses are not required when the method takes a non-zero number of arguments
+Parentheses are not required when the method takes zero arguments.
+Parenthesis are required when the method takes a non-zero number of arguments. 
 
 # Definitions
 

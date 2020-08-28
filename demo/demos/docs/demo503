@@ -10,7 +10,7 @@ Line [3] does the same, with the 'self' keyword emphasizing that 'Lesser' is
 to exist in this local scope (that of ‘Order’).
 
 
-Line [12] returns 'self' which allows “packages” everything up into an “object” whose
+Line [12] returns 'self' which “packages” everything up into an “object” whose
 attributes are the local scope of ‘Order’. Both ‘Greater’ and ‘Lesser’ are 
 calls defined in this local scope, and so become attributes of the returned entity 
 of ‘Order’. 
