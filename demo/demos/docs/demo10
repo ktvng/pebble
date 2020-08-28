@@ -8,7 +8,7 @@ Compile-time checking has not yet been fully
 implemented. 
 
 # Details
-If you’re confused about the terminology on scope/section, checkout out Demo #8 (what’s really happening) for a detailed explanation.
+If you’re confused about the terminology on scope/section, checkout out Demo #11 (what’s really happening) for a detailed explanation.
 
 Calls take on a type at their time of definition, and this type is enforced henceforth. 
 The keywords 'a'/'an' refer to the type of the subsequent Call, and allow types to 
